@@ -1,0 +1,85 @@
+"use server";
+
+// Student-side server actions. Owner: student interface.
+import path from "node:path";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { createApplication, createProject, markDelivered, saveCv, updateProfile, withdrawApplication } from "@/lib/data/student";
+import { str, type FormState } from "@/lib/form";
+import { CATEGORIES, type Category } from "@/lib/types";
+
+export async function applyAction(_: FormState, f: FormData): Promise<FormState> {
+  const projectId = str(f, "projectId");
+  const user = await requireUser(`/projects/${projectId}`, "student");
+  const { error } = await createApplication(user, projectId, str(f, "pitch"));
+  if (error) return { error };
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/applications");
+  return { ok: true };
+}
+
+export async function updateProfileAction(_: FormState, f: FormData): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  const github = str(f, "github").replace(/^@/, "");
+  const linkedin = str(f, "linkedin");
+  if (github && !/^[a-zA-Z0-9-]{1,39}$/.test(github)) return { error: "That doesn't look like a GitHub username." };
+  if (linkedin && !/^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/.+/i.test(linkedin)) return { error: "Paste your full LinkedIn profile link (https://www.linkedin.com/in/...)." };
+  const res = await updateProfile(user, { fullName: str(f, "fullName") || user.fullName, program: str(f, "program"), githubHandle: github || null, linkedinUrl: linkedin || null });
+  if (res.error) return res;
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+const CV_TYPES = new Set([".pdf", ".doc", ".docx"]);
+
+export async function uploadCvAction(_: FormState, f: FormData): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  const file = f.get("cv");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a file first." };
+  const ext = path.extname(file.name).toLowerCase();
+  if (!CV_TYPES.has(ext)) return { error: "Upload a PDF or Word document." };
+  if (file.size > 5 * 1024 * 1024) return { error: "The file must be under 5 MB." };
+  const res = await saveCv(user, file, ext);
+  if (res.error) return res;
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+export async function postProjectAction(_: FormState, f: FormData): Promise<FormState> {
+  const user = await requireUser("/projects/new", "student");
+  const title = str(f, "title"), summary = str(f, "summary"), doneWhen = str(f, "doneWhen");
+  const deliverables = str(f, "deliverables").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8);
+  const category = str(f, "category") as Category;
+  const priceEur = Number(f.get("priceEur")), weeks = Number(f.get("weeks"));
+  if (!title || !summary || !doneWhen || deliverables.length === 0) return { error: "Fill in the title, problem, deliverables and how you'll know it's done." };
+  if (!CATEGORIES.includes(category)) return { error: "Pick a category." };
+  if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
+  if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
+  const skills = str(f, "skills").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  const res = await createProject(user, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills });
+  if (res.error) return { error: res.error };
+  revalidatePath("/projects");
+  redirect("/applications?tab=requests&posted=1");
+}
+
+export async function markDeliveredAction(applicationId: string): Promise<FormState> {
+  const user = await requireUser("/applications", "student");
+  const res = await markDelivered(user, applicationId);
+  if (res.error) return res;
+  revalidatePath("/applications");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function withdrawApplicationAction(applicationId: string): Promise<FormState> {
+  const user = await requireUser("/applications", "student");
+  const res = await withdrawApplication(user, applicationId);
+  if (res.error) return res;
+  revalidatePath("/applications");
+  revalidatePath("/projects");
+  revalidatePath("/");
+  return { ok: true };
+}
+

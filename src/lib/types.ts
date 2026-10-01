@@ -13,6 +13,8 @@ export const CATEGORIES = [
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
+export type Role = "student" | "company";
+
 export type ProjectStatus = "open" | "in_progress" | "delivered" | "verified" | "cancelled";
 export type ApplicationStatus = "pending" | "accepted" | "declined" | "delivered";
 
@@ -65,6 +67,7 @@ export type Strengths = {
 
 export type StudentProfile = {
   id: string; // auth.users.id
+  role: Role;
   email: string;
   fullName: string;
   program: string;
