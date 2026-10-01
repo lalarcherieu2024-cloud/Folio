@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* Palette from the "How it works" design: warm cream, blue = student side, amber = startup side. */
+:root {
+  --bg: #f6f2ea; --surface: #ffffff; --ink: #1c1b1f; --muted: #4e4a44; --line: #cfc8ba;
+  --blue: #2f5bd3; --blue-soft: #d9e3fb; --amber: #e39b2e; --amber-soft: #fbe3b8; --amber-ink: #8a5a0c;
+  --green: #1e7a4f; --green-soft: #e3f3ea; --red: #b8322a;
+}
+
+@theme inline {
+  --color-bg: var(--bg); --color-surface: var(--surface); --color-ink: var(--ink);
+  --color-muted: var(--muted); --color-line: var(--line);
+  --color-blue: var(--blue); --color-blue-soft: var(--blue-soft);
+  --color-amber: var(--amber); --color-amber-soft: var(--amber-soft); --color-amber-ink: var(--amber-ink);
+  --color-green: var(--green); --color-green-soft: var(--green-soft); --color-red: var(--red);
+  --font-sans: var(--font-manrope), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, serif;
+}
+
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.01em; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; border-radius: 4px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: .6rem; padding: .6rem 1.15rem; font-weight: 700; cursor: pointer; border: 1px solid var(--blue); background: var(--blue); color: #fff; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-quiet { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn-ghost { background: transparent; color: var(--blue); }
+.input { width: 100%; border-radius: .6rem; border: 1px solid var(--line); background: var(--surface); padding: .6rem .8rem; }
+
+/* Credential plaque, modeled on Madrid's tiled street plaques. Fixed colors on purpose. */
+.plaque {
+  position: relative; border-radius: 6px; padding: 26px 26px 22px; color: #1b2f86;
+  background: linear-gradient(165deg, #fff 0%, #eef1f8 100%);
+  box-shadow: inset 0 0 0 3px #1b2f86, inset 0 0 0 7px #fff, inset 0 0 0 9px #b8322a, 0 10px 30px -12px rgba(28,27,31,.35);
+}
