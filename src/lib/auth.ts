@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
-import type { StudentProfile } from "./types";
+import { homeFor } from "./routes";
+import type { Role, StudentProfile } from "./types";
 
 // Current signed-in student (or null). Cached per request so the layout and the page share one lookup.
 export const getSession = cache(async (): Promise<StudentProfile | null> => {
@@ -12,6 +13,7 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
   if (!p) return null;
   return {
     id: user.id,
+    role: (p.role as Role) ?? "student",
     email: user.email ?? "",
     fullName: p.full_name,
     program: p.program,
@@ -23,8 +25,11 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
   };
 });
 
-export async function requireUser(next = "/"): Promise<StudentProfile> {
+// Signed-in user, or a redirect to sign-in. Pass a role to also keep the other kind of
+// account out: a student opening a /company page lands on their own home, and vice versa.
+export async function requireUser(next = "/", role?: Role): Promise<StudentProfile> {
   const user = await getSession();
   if (!user) redirect(`/signin?next=${encodeURIComponent(next)}`);
+  if (role && user.role !== role) redirect(homeFor(user.role));
   return user;
 }
