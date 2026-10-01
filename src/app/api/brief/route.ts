@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { ApiError } from "@google/genai";
 import { getSession } from "@/lib/auth";
 import { draftBrief } from "@/lib/brief";
 
@@ -17,9 +17,9 @@ export async function POST(req: Request) {
   try {
     return Response.json(await draftBrief(idea));
   } catch (err) {
-    if (err instanceof Anthropic.RateLimitError) return Response.json({ error: "Busy right now, try again in a minute." }, { status: 429 });
-    if (err instanceof Anthropic.APIError) {
-      console.error("brief: Anthropic API error", err.status, err.message);
+    if (err instanceof ApiError) {
+      if (err.status === 429) return Response.json({ error: "Busy right now, try again in a minute." }, { status: 429 });
+      console.error("brief: Gemini API error", err.status, err.message);
       return Response.json({ error: "The assistant is unavailable. You can fill the brief in manually." }, { status: 502 });
     }
     return Response.json({ error: err instanceof Error ? err.message : "Something went wrong." }, { status: 500 });

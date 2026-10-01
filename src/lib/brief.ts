@@ -1,6 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
+import { generateStructured, geminiConfigured } from "./gemini";
 import { CATEGORIES, type Category } from "./types";
 
 export const BriefSchema = z.object({
@@ -40,7 +39,7 @@ function normalize(b: z.infer<typeof BriefSchema>): z.infer<typeof BriefSchema> 
   };
 }
 
-// Used when ANTHROPIC_API_KEY is not set, so the page still works in development.
+// Used when GEMINI_API_KEY is not set, so the page still works in development.
 function templateBrief(idea: string): z.infer<typeof BriefSchema> {
   const firstSentence = idea.trim().split(/(?<=[.!?])\s/)[0].slice(0, 200);
   return {
@@ -57,19 +56,7 @@ function templateBrief(idea: string): z.infer<typeof BriefSchema> {
 }
 
 export async function draftBrief(idea: string): Promise<Brief> {
-  if (!process.env.ANTHROPIC_API_KEY) return { ...templateBrief(idea), source: "template" };
-
-  const client = new Anthropic();
-  const response = await client.messages.parse({
-    model: "claude-opus-5-5",
-    max_tokens: 4000,
-    system: SYSTEM,
-    output_config: { effort: "low", format: zodOutputFormat(BriefSchema) },
-    messages: [{ role: "user", content: `<idea>\n${idea}\n</idea>` }],
-  });
-
-  if (response.stop_reason === "refusal" || !response.parsed_output) {
-    throw new Error("The assistant couldn't draft a brief for that. Try rewording your idea.");
-  }
-  return { ...normalize(response.parsed_output), source: "ai" };
+  if (!geminiConfigured()) return { ...templateBrief(idea), source: "template" };
+  const brief = await generateStructured({ system: SYSTEM, contents: `<idea>\n${idea}\n</idea>`, schema: BriefSchema });
+  return { ...normalize(brief), source: "ai" };
 }

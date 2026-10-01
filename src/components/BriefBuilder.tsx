@@ -1,82 +1,99 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Sparkles } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { postProjectAction, type FormState } from "@/app/actions";
-import { CATEGORIES } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import type { Brief } from "@/lib/brief";
-import { Field, FormError } from "./Field";
+import { CATEGORIES } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const FEE = 0.15;
+const EXAMPLE = "I'm starting a thrift-fashion Instagram shop and I need a simple brand: a logo, colours, and some post templates.";
 const blank = { title: "", category: CATEGORIES[0] as string, summary: "", deliverables: "", doneWhen: "", skills: "", weeks: 2, priceEur: 300 };
+
+const Num = ({ n }: { n: number }) => <span className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{n}</span>;
+const card = "flex flex-col rounded-xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]";
+const select = "h-9 w-full rounded-md border bg-white px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function BriefBuilder() {
   const [idea, setIdea] = useState("");
   const [f, setF] = useState(blank);
   const [questions, setQuestions] = useState<string[]>([]);
-  const [source, setSource] = useState<Brief["source"] | null>(null);
+  const [drafted, setDrafted] = useState<Brief["source"] | null>(null);
   const [drafting, setDrafting] = useState(false);
-  const [draftError, setDraftError] = useState<string>();
   const [state, action, pending] = useActionState<FormState, FormData>(postProjectAction, {});
+  const seen = useRef(state);
+  useEffect(() => { if (state !== seen.current) { seen.current = state; if (state.error) toast.error(state.error); } }, [state]);
   const set = <K extends keyof typeof blank>(k: K, v: (typeof blank)[K]) => setF((p) => ({ ...p, [k]: v }));
 
   async function draft() {
-    setDrafting(true); setDraftError(undefined);
+    setDrafting(true);
     try {
       const res = await fetch("/api/brief", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ idea }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Couldn't draft the brief.");
       const b = data as Brief;
       setF({ title: b.title, category: b.category, summary: b.summary, deliverables: b.deliverables.join("\n"), doneWhen: b.doneWhen, skills: b.skills.join(", "), weeks: b.weeks, priceEur: b.priceEur });
-      setQuestions(b.openQuestions); setSource(b.source);
+      setQuestions(b.openQuestions); setDrafted(b.source);
+      if (b.source === "template") toast("AI isn't connected yet", { description: "This is a generic starting template. Edit it by hand." });
     } catch (e) {
-      setDraftError(e instanceof Error ? e.message : "Couldn't draft the brief.");
+      toast.error(e instanceof Error ? e.message : "Couldn't draft the brief.");
     } finally {
       setDrafting(false);
     }
   }
 
+  const ideaOk = idea.trim().length >= 15;
+  const ready = !!(f.title.trim() && f.summary.trim() && f.deliverables.trim() && f.doneWhen.trim() && f.priceEur >= 150);
+  const total = Math.round(f.priceEur * (1 + FEE));
+
   return (
-    <div className="grid items-start gap-8 lg:grid-cols-[1fr_1.1fr]">
-      <section className="rounded-2xl border-2 border-blue bg-blue-soft p-6 lg:sticky lg:top-24">
-        <h2 className="text-xl">1 · Describe your idea</h2>
-        <p className="mb-3 mt-1 text-sm text-muted">Rough is fine. What are you building or trying to get done, and who is it for?</p>
-        <textarea value={idea} onChange={(e) => setIdea(e.target.value)} rows={6} maxLength={2000} aria-label="Your idea" className="input"
-          placeholder="e.g. I'm starting a thrift-fashion Instagram shop and I need a simple brand: a logo, colours, and some post templates." />
-        <FormError msg={draftError} />
-        <button type="button" onClick={draft} disabled={drafting || idea.trim().length < 15} className="btn mt-3">
-          {drafting ? "Drafting your brief…" : "✨ Draft my brief with AI"}
-        </button>
-        {source === "template" && <p className="mt-3 rounded-lg bg-amber-soft p-3 text-sm text-amber-ink">AI isn&apos;t connected yet (no <code>ANTHROPIC_API_KEY</code>), so this is a generic starting template. Edit it by hand.</p>}
-        {questions.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm font-bold">Before you post, decide:</p>
-            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-muted">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] items-start gap-4">
+      <section className={cn(card, "bg-panel")}>
+        <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={1} /><h2 className="text-base font-semibold">Describe your idea</h2></div>
+        <div className={cn("flex flex-col gap-3 px-5 pb-5 transition-opacity", drafting && "opacity-40")}>
+          <p className="text-[13px] text-muted-foreground">Rough is fine. What are you building or trying to get done, and who is it for?</p>
+          <Textarea value={idea} onChange={(e) => setIdea(e.target.value)} rows={6} maxLength={2000} aria-label="Your idea" placeholder="e.g. a logo and brand colours for my Instagram shop…" className="resize-none bg-white" />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={draft} disabled={drafting || !ideaOk} className="h-9 px-3.5"><Sparkles className="size-4" />{drafting ? "Drafting your brief…" : drafted ? "Redraft with AI" : "Draft my brief with AI"}</Button>
+            {!ideaOk && <span className="text-xs text-muted-foreground">At least 15 characters</span>}
+            {!idea && <button type="button" onClick={() => setIdea(EXAMPLE)} className="text-xs font-medium text-zinc-600 underline underline-offset-4 hover:text-foreground">Use an example</button>}
           </div>
-        )}
+          {questions.length > 0 && (
+            <div className="rounded-lg border bg-white p-3.5">
+              <p className="text-sm font-semibold">Before you post, decide</p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
+            </div>
+          )}
+        </div>
       </section>
 
-      <form action={action} className="rounded-2xl border border-line bg-surface p-6">
-        <h2 className="mb-1 text-xl">2 · Review and post</h2>
-        <p className="mb-5 text-sm text-muted">Edit anything. A good brief has deliverables a student can tick off.</p>
-        <Field label="Project title" htmlFor="title"><input id="title" name="title" value={f.title} onChange={(e) => set("title", e.target.value)} maxLength={70} className="input" /></Field>
-        <Field label="Category" htmlFor="category">
-          <select id="category" name="category" value={f.category} onChange={(e) => set("category", e.target.value)} className="input">{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
-        </Field>
-        <Field label="What's the problem or goal?" htmlFor="summary"><textarea id="summary" name="summary" value={f.summary} onChange={(e) => set("summary", e.target.value)} rows={2} className="input" /></Field>
-        <Field label="Deliverables" htmlFor="deliverables" hint="One per line. Each should be something you can see or open.">
-          <textarea id="deliverables" name="deliverables" value={f.deliverables} onChange={(e) => set("deliverables", e.target.value)} rows={5} className="input" />
-        </Field>
-        <Field label="How will you know it's done?" htmlFor="doneWhen" hint="A test you can check on the last day."><textarea id="doneWhen" name="doneWhen" value={f.doneWhen} onChange={(e) => set("doneWhen", e.target.value)} rows={2} className="input" /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Price paid to student (€)" htmlFor="priceEur"><input id="priceEur" name="priceEur" type="number" min={150} step={50} value={f.priceEur} onChange={(e) => set("priceEur", Number(e.target.value))} className="input" /></Field>
-          <Field label="Duration" htmlFor="weeks">
-            <select id="weeks" name="weeks" value={f.weeks} onChange={(e) => set("weeks", Number(e.target.value))} className="input">{[1, 2, 3, 4, 5, 6].map((w) => <option key={w} value={w}>{w} week{w > 1 ? "s" : ""}</option>)}</select>
-          </Field>
+      <form action={action} className={card}>
+        <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={2} /><h2 className="text-base font-semibold">Review and post</h2>{drafted === "ai" && <Badge variant="secondary" className="ml-auto h-[22px] rounded-md px-2 text-xs">AI draft · edit anything</Badge>}</div>
+        <div className="grid gap-4 px-5 pb-5">
+          <div className="grid gap-1.5"><Label htmlFor="title">Project title</Label><Input id="title" name="title" value={f.title} maxLength={70} onChange={(e) => set("title", e.target.value)} className="h-9" /></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5"><Label htmlFor="category">Field</Label><select id="category" name="category" value={f.category} onChange={(e) => set("category", e.target.value)} className={select}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></div>
+            <div className="grid gap-1.5"><Label htmlFor="skills">Skills</Label><Input id="skills" name="skills" value={f.skills} onChange={(e) => set("skills", e.target.value)} placeholder="Comma separated" className="h-9" /></div>
+          </div>
+          <div className="grid gap-1.5"><Label htmlFor="summary">Problem or goal</Label><Textarea id="summary" name="summary" value={f.summary} rows={2} onChange={(e) => set("summary", e.target.value)} className="resize-none" /></div>
+          <div className="grid gap-1.5"><Label htmlFor="deliverables">Deliverables</Label><Textarea id="deliverables" name="deliverables" value={f.deliverables} rows={4} onChange={(e) => set("deliverables", e.target.value)} className="resize-none" /><span className="text-xs text-muted-foreground">One per line. Each should be something you can see or open.</span></div>
+          <div className="grid gap-1.5"><Label htmlFor="doneWhen">Done when</Label><Textarea id="doneWhen" name="doneWhen" value={f.doneWhen} rows={2} onChange={(e) => set("doneWhen", e.target.value)} className="resize-none" /><span className="text-xs text-muted-foreground">A test you can check on the last day.</span></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5"><Label htmlFor="priceEur">Price paid to student (€)</Label><Input id="priceEur" name="priceEur" type="number" min={150} step={50} value={f.priceEur} onChange={(e) => set("priceEur", Number(e.target.value))} className="h-9 font-mono" /></div>
+            <div className="grid gap-1.5"><Label htmlFor="weeks">Duration</Label><select id="weeks" name="weeks" value={f.weeks} onChange={(e) => set("weeks", Number(e.target.value))} className={select}>{[1, 2, 3, 4, 5, 6].map((w) => <option key={w} value={w}>{w} week{w > 1 ? "s" : ""}</option>)}</select></div>
+          </div>
         </div>
-        <Field label="Skills needed" htmlFor="skills" hint="Separate with commas."><input id="skills" name="skills" value={f.skills} onChange={(e) => set("skills", e.target.value)} className="input" /></Field>
-        <p className="mb-4 rounded-lg bg-bg p-3 text-sm">You pay <b>€{Math.round(f.priceEur * (1 + FEE)).toLocaleString("en-GB")}</b> in total: €{f.priceEur.toLocaleString("en-GB")} to the student plus a 15% Folio fee. Payments go live in a later phase.</p>
-        <FormError msg={state.error} />
-        <button disabled={pending} className="btn w-full">{pending ? "Posting…" : "Post request"}</button>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">
+          <div className="flex flex-col leading-tight"><span className="text-sm">You pay <span className="font-mono font-semibold">€{total.toLocaleString("en-GB")}</span></span><span className="text-xs text-muted-foreground">€{f.priceEur.toLocaleString("en-GB")} to the student + 15% Folio fee</span></div>
+          <Button type="submit" disabled={!ready || pending} className="h-9 px-3.5">{pending ? "Posting…" : "Post request"}</Button>
+        </div>
       </form>
     </div>
   );
