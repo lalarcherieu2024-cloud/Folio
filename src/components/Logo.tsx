@@ -1,28 +1,56 @@
-// Folio mark: a lightbulb, half brain, half circuit. Redrawn as SVG from the approved logo image.
-export function LogoMark({ size = 58 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="30 20 160 190" aria-hidden fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="110" cy="92" r="70" fill="#dcdfea" />
-      <path d="M82 152C82 136 54 124 54 90a56 56 0 0 1 112 0c0 34-28 46-28 62Z" fill="#f6f2ea" stroke="#1c1b1f" strokeWidth="5" />
-      <path d="M110 38v114" stroke="#1c1b1f" strokeWidth="4" />
-      <path d="M110 50C98 38 78 44 78 58 66 60 60 76 70 84c-8 10-2 24 10 26 2 12 20 16 30 8" stroke="#1c1b1f" strokeWidth="4" />
-      <path d="M80 76c10-6 18 4 10 12M82 98c10-4 18 2 22 8M96 58c4 6 8 8 14 6" stroke="#1c1b1f" strokeWidth="3.5" />
-      <g stroke="#2f5bd3" strokeWidth="3.5">
-        <path d="M110 68h16l10-14M110 90h34M110 112h16l10 12" />
-      </g>
-      <g fill="#2f5bd3" stroke="#1c1b1f" strokeWidth="3">
-        <circle className="logo-node" cx="138" cy="52" r="7" /><circle className="logo-node" cx="148" cy="90" r="7" /><circle className="logo-node" cx="138" cy="126" r="7" />
-      </g>
-      <g fill="#1c1b1f"><rect x="80" y="160" width="60" height="8" rx="4" /><rect x="84" y="173" width="52" height="8" rx="4" /><rect x="90" y="186" width="40" height="8" rx="4" /><rect x="98" y="198" width="24" height="8" rx="4" /></g>
-    </svg>
-  );
+"use client";
+
+// Folio animated logo mark (from the design handoff). Pure SVG + SMIL.
+// Animation is switched off for visitors who prefer reduced motion, or with animated={false}.
+import { useSyncExternalStore } from "react";
+
+type Props = { size?: number; animated?: boolean; className?: string };
+
+const BLUE = "#2f5bd3", NAVY = "#1b2f86", HALO = "#d9e3fb", INK = "#1c1b1f";
+const CYCLE = 2.8;
+const NODES = [
+  { trace: "M32 17 H36 L40 13.5", cx: 42.2, cy: 12.4, d: 0 },
+  { trace: "M32 24 H43", cx: 45.4, cy: 24, d: 0.35 },
+  { trace: "M32 31 H36 L40 34.5", cx: 42.2, cy: 35.6, d: 0.7 },
+];
+
+function A({ on, attr, values, dur, begin = 0, keyTimes }: { on: boolean; attr: string; values: string; dur: number; begin?: number; keyTimes?: string }) {
+  if (!on) return null;
+  return <animate attributeName={attr} values={values} dur={`${dur}s`} begin={`${begin}s`} keyTimes={keyTimes} repeatCount="indefinite" />;
 }
 
-export function Logo({ size = 58, text = "text-[2.1rem]" }: { size?: number; text?: string }) {
+const query = "(prefers-reduced-motion: reduce)";
+const subscribe = (cb: () => void) => { const m = window.matchMedia(query); m.addEventListener("change", cb); return () => m.removeEventListener("change", cb); };
+
+export function Logo({ size = 44, animated = true, className }: Props) {
+  const reduced = useSyncExternalStore(subscribe, () => window.matchMedia(query).matches, () => false);
+  const on = animated && !reduced;
+  const ink = { fill: "none", stroke: NAVY, strokeWidth: 2.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   return (
-    <span className="flex items-center gap-2.5">
-      <LogoMark size={size} />
-      <span className={`font-serif font-bold leading-none tracking-tight ${text}`}>Folio</span>
-    </span>
+    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Folio" className={className} style={{ display: "block", overflow: "visible" }}>
+      <circle cx={32} cy={25} r={23} fill={HALO}>
+        <A on={on} attr="r" values="22;24;22" dur={3.6} />
+        <A on={on} attr="opacity" values=".75;1;.75" dur={3.6} />
+      </circle>
+      <path {...ink} fill="#fff" d="M24 43 C24 37.5 14 34 14 24.5 A18 18 0 0 1 50 24.5 C50 34 40 37.5 40 43 Z" />
+      <path {...ink} d="M32 7 V43" />
+      <path {...ink} strokeWidth={2.2} d="M30 13.5 C26.5 11.5 21 13 20.5 17.5 C17 18.5 16.5 24 19.5 25.5 C17.5 29 21 33.5 25 32.5 C26 35.5 29 36 30 35" />
+      <path {...ink} strokeWidth={2} d="M24.5 17.5 C26.5 18.5 27.5 20.5 26.5 23 M21.5 25 C23.5 24.5 26 26 25.5 28.5 M28.5 27 C29.5 28.5 29.5 30.5 28.5 31.5" />
+      {NODES.map((n, i) => (
+        <g key={i}>
+          <path d={n.trace} fill="none" stroke={BLUE} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={14} strokeDashoffset={0}>
+            <A on={on} attr="stroke-dashoffset" values="14;0;0;0" dur={CYCLE} begin={n.d} keyTimes="0;.25;.85;1" />
+          </path>
+          <circle cx={n.cx} cy={n.cy} r={2.8} fill="none" stroke={BLUE} strokeWidth={1.4} opacity={0}>
+            <A on={on} attr="r" values="2.8;2.8;7;7" dur={CYCLE} begin={n.d} keyTimes="0;.25;.6;1" />
+            <A on={on} attr="opacity" values="0;.7;0;0" dur={CYCLE} begin={n.d} keyTimes="0;.25;.6;1" />
+          </circle>
+          <circle cx={n.cx} cy={n.cy} r={2.8} fill={BLUE} stroke="#fff" strokeWidth={0.8}>
+            <A on={on} attr="r" values="1.6;3.2;2.8;2.8" dur={CYCLE} begin={n.d} keyTimes="0;.3;.42;1" />
+          </circle>
+        </g>
+      ))}
+      <path d="M21.5 47.5 H42.5 M24 52 H40 M28 56.5 H36" fill="none" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+    </svg>
   );
 }

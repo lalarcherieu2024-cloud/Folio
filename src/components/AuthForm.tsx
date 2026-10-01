@@ -3,40 +3,32 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { signInAction, signUpAction, type FormState } from "@/app/actions";
-import { Field, FormError } from "./Field";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next?: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(mode === "signup" ? signUpAction : signInAction, {});
   const up = mode === "signup";
+  const field = (id: string, label: string, props: React.ComponentProps<typeof Input>, hint?: string) => (
+    <div className="grid gap-1.5"><Label htmlFor={id}>{label}</Label><Input id={id} name={id} className="h-9" {...props} />{hint && <span className="text-xs text-muted-foreground">{hint}</span>}</div>
+  );
   return (
-    <form action={action} className="pop-in rounded-2xl border border-line bg-surface p-7">
-      <h1 className="mb-1 text-3xl">{up ? "Create your account" : "Welcome back"}</h1>
-      <p className="mb-6 text-muted">{up ? "Create your free account. You can add your CV and links next." : "Sign in to apply and track your projects."}</p>
+    <form action={action} className="grid gap-4 rounded-xl border bg-white p-7 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+      <div className="grid gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{up ? "Create your account" : "Welcome back"}</h1>
+        <p className="text-sm text-muted-foreground">{up ? "Free for IE students. Add your CV next." : "Sign in to apply and track your work."}</p>
+      </div>
       {next && <input type="hidden" name="next" value={next} />}
-      {up && (
-        <>
-          <Field label="Full name" htmlFor="fullName"><input id="fullName" name="fullName" autoComplete="name" required className="input" /></Field>
-          <Field label="Programme and year (optional)" htmlFor="program"><input id="program" name="program" placeholder="e.g. BBA, 2027" className="input" /></Field>
-        </>
-      )}
-      <Field label="Email" htmlFor="email" hint={up ? "Any email works. Use your university address to earn the verified-student badge." : undefined}>
-        <input id="email" name="email" type="email" autoComplete="email" required className="input" />
-      </Field>
-      {up && (
-        <Field label="Password" htmlFor="password" hint="At least 8 characters.">
-          <input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} className="input" />
-        </Field>
-      )}
-      {!up && (
-        <Field label="Password" htmlFor="password">
-          <input id="password" name="password" type="password" autoComplete="current-password" required className="input" />
-        </Field>
-      )}
-      <FormError msg={state.error} />
-      {state.notice && <p role="status" className="pop-in mb-3 rounded-lg bg-blue-soft p-3 text-sm font-semibold text-blue-deep">{state.notice}</p>}
-      <button disabled={pending} className="btn w-full">{pending ? "One moment…" : up ? "Create account" : "Sign in"}</button>
-      <p className="mt-5 text-center text-sm text-muted">
-        {up ? <>Already have an account? <Link href="/signin" className="font-semibold text-blue">Sign in</Link></> : <>New to Folio? <Link href="/signup" className="font-semibold text-blue">Create an account</Link></>}
+      {up && field("fullName", "Full name", { autoComplete: "name", required: true })}
+      {up && field("program", "Programme and year (optional)", { placeholder: "e.g. BBA, 2027" })}
+      {field("email", "Email", { type: "email", autoComplete: "email", required: true }, up ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
+      {field("password", "Password", { type: "password", autoComplete: up ? "new-password" : "current-password", required: true, minLength: up ? 8 : undefined }, up ? "At least 8 characters." : undefined)}
+      {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
+      {state.notice && <p role="status" className="rounded-lg bg-[#dbeafe] px-3 py-2.5 text-sm font-medium text-[#1e40af]">{state.notice}</p>}
+      <Button type="submit" disabled={pending} className="h-10 w-full">{pending ? "One moment…" : up ? "Create account" : "Sign in"}</Button>
+      <p className="text-center text-sm text-muted-foreground">
+        {up ? <>Already have an account? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></> : <>New to Folio? <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">Create an account</Link></>}
       </p>
     </form>
   );

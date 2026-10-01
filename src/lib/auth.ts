@@ -19,6 +19,7 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
     githubHandle: p.github_handle,
     linkedinUrl: p.linkedin_url,
     cv: p.cv_name ? { fileName: p.cv_name, sizeKb: p.cv_size_kb ?? 0, uploadedAt: p.cv_uploaded_at } : null,
+    strengths: p.strengths ?? null,
   };
 });
 

@@ -14,7 +14,7 @@ export const CATEGORIES = [
 export type Category = (typeof CATEGORIES)[number];
 
 export type ProjectStatus = "open" | "in_progress" | "delivered" | "verified" | "cancelled";
-export type ApplicationStatus = "pending" | "accepted" | "declined";
+export type ApplicationStatus = "pending" | "accepted" | "declined" | "delivered";
 
 export type Project = {
   id: string;
@@ -41,6 +41,7 @@ export type Application = {
   projectId: string;
   pitch: string;
   status: ApplicationStatus;
+  createdAt: string;
 };
 
 export type Credential = {
@@ -57,6 +58,11 @@ export type Credential = {
 
 export type CvInfo = { fileName: string; sizeKb: number; uploadedAt: string };
 
+export type Strengths = {
+  fields: { label: string; pct: number }[];
+  skills: { label: string; pct: number }[];
+};
+
 export type StudentProfile = {
   id: string; // auth.users.id
   email: string;
@@ -66,4 +72,5 @@ export type StudentProfile = {
   githubHandle: string | null; // optional, entered but NOT yet verified
   linkedinUrl: string | null; // optional, entered but NOT yet verified
   cv: CvInfo | null;
+  strengths: Strengths | null;
 };

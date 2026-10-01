@@ -6,10 +6,12 @@ export const metadata = { title: "Request help · Folio" };
 export default async function NewProject() {
   await requireUser("/projects/new");
   return (
-    <>
-      <h1 className="text-4xl">Request help on your project</h1>
-      <p className="mb-8 mt-2 max-w-[62ch] text-muted">Got an idea but not sure how to scope it? Tell us what you want and AI will turn it into a brief with clear deliverables. Then another IE student can pick it up.</p>
+    <div className="page-enter flex flex-col gap-6">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-[30px] font-semibold tracking-[-0.025em]">Request help</h1>
+        <p className="max-w-[62ch] text-[15px] text-muted-foreground">Tell us what you want built. AI turns it into a brief with clear deliverables, then another IE student can pick it up.</p>
+      </div>
       <BriefBuilder />
-    </>
+    </div>
   );
 }

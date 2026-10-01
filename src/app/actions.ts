@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { createApplication, createProject, saveCv, updateProfile } from "@/lib/data";
+import { createApplication, createProject, markDelivered, saveCv, updateProfile, withdrawApplication } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIES, type Category } from "@/lib/types";
 
@@ -107,5 +107,24 @@ export async function postProjectAction(_: FormState, f: FormData): Promise<Form
   const res = await createProject(user, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills });
   if (res.error) return { error: res.error };
   revalidatePath("/projects");
-  redirect(`/projects/${res.id}?posted=1`);
+  redirect("/applications?tab=requests&posted=1");
+}
+
+export async function markDeliveredAction(applicationId: string): Promise<FormState> {
+  const user = await requireUser("/applications");
+  const res = await markDelivered(user, applicationId);
+  if (res.error) return res;
+  revalidatePath("/applications");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function withdrawApplicationAction(applicationId: string): Promise<FormState> {
+  const user = await requireUser("/applications");
+  const res = await withdrawApplication(user, applicationId);
+  if (res.error) return res;
+  revalidatePath("/applications");
+  revalidatePath("/projects");
+  revalidatePath("/");
+  return { ok: true };
 }

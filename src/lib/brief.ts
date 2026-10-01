@@ -1,5 +1,5 @@
-import { ApiError, GoogleGenAI } from "@google/genai";
 import { z } from "zod";
+import { generateStructured, geminiConfigured } from "./gemini";
 import { CATEGORIES, type Category } from "./types";
 
 export const BriefSchema = z.object({
@@ -56,30 +56,7 @@ function templateBrief(idea: string): z.infer<typeof BriefSchema> {
 }
 
 export async function draftBrief(idea: string): Promise<Brief> {
-  if (!process.env.GEMINI_API_KEY) return { ...templateBrief(idea), source: "template" };
-
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const config = {
-    systemInstruction: SYSTEM,
-    responseMimeType: "application/json",
-    responseJsonSchema: z.toJSONSchema(BriefSchema),
-    maxOutputTokens: 4000,
-  };
-  // "-latest" aliases follow Google's current models, so a retirement can't break us.
-  // On a demand spike (503) or rate limit (429) we fall through to the lighter model.
-  const models = [process.env.GEMINI_MODEL || "gemini-flash-latest", "gemini-flash-lite-latest"];
-  let response;
-  for (const [i, model] of models.entries()) {
-    try {
-      response = await ai.models.generateContent({ model, contents: `<idea>\n${idea}\n</idea>`, config });
-      break;
-    } catch (err) {
-      const busy = err instanceof ApiError && (err.status === 503 || err.status === 429);
-      if (!busy || i === models.length - 1) throw err;
-    }
-  }
-
-  const parsed = BriefSchema.safeParse(JSON.parse(response?.text ?? "null"));
-  if (!parsed.success) throw new Error("The assistant couldn't draft a brief for that. Try rewording your idea.");
-  return { ...normalize(parsed.data), source: "ai" };
+  if (!geminiConfigured()) return { ...templateBrief(idea), source: "template" };
+  const brief = await generateStructured({ system: SYSTEM, contents: `<idea>\n${idea}\n</idea>`, schema: BriefSchema });
+  return { ...normalize(brief), source: "ai" };
 }
