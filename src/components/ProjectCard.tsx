@@ -15,7 +15,7 @@ export function ClientLine({ p }: { p: Project }) {
 
 export function ProjectCard({ p, applied }: { p: Project; applied?: boolean }) {
   return (
-    <Link href={`/projects/${p.id}`} className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-5 transition hover:border-blue hover:shadow-sm">
+    <Link href={`/projects/${p.id}`} className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-5 lift hover:border-blue">
       <span className="flex items-center justify-between gap-2 text-sm text-muted">
         <span><ClientLine p={p} /></span>
         <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[.72rem] font-bold ${p.clientKind === "student" ? "bg-blue-soft text-blue" : "bg-amber-soft text-amber-ink"}`}>

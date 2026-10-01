@@ -26,7 +26,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
         <span className="rounded border border-line bg-surface px-2 py-0.5 text-[.8rem] font-semibold">{p.category}</span>
         {p.skills.map((s) => <span key={s} className="rounded border border-line bg-surface px-2 py-0.5 text-[.8rem] text-muted">{s}</span>)}
       </div>
-      <dl className="my-6 grid gap-5">
+      <dl className="stagger my-6 grid gap-5">
         <div><dt className="font-bold">The problem</dt><dd className="mt-0.5 text-muted">{p.summary}</dd></div>
         <div><dt className="font-bold">What you&apos;ll deliver</dt><dd><ul className="mt-1 list-disc space-y-1 pl-5 text-muted">{p.deliverables.map((d) => <li key={d}>{d}</li>)}</ul></dd></div>
         <div><dt className="font-bold">Done when</dt><dd className="mt-0.5 text-muted">{p.doneWhen}</dd></div>
@@ -43,10 +43,15 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <div className="flex gap-2"><Link href="/signup" className="btn">Create account</Link><Link href={`/signin?next=/projects/${p.id}`} className="btn btn-quiet">Sign in</Link></div>
         </div>
       ) : (
-        <>
-          {!user.cv && <p className="mb-4 rounded-lg bg-amber-soft p-3 text-sm text-amber-ink">Tip: <Link href="/profile" className="font-bold underline">add your CV</Link> so clients see more than your pitch.</p>}
+        user.cv ? (
           <ApplyForm projectId={p.id} price={eur(p.priceEur)} />
-        </>
+        ) : (
+          <div className="rounded-xl border-2 border-blue bg-blue-soft p-5">
+            <p className="font-bold">Add your CV to apply</p>
+            <p className="mb-3 mt-1 text-muted">Every application needs a CV so clients can see your background. It takes a minute.</p>
+            <Link href="/profile" className="btn">Upload my CV</Link>
+          </div>
+        )
       )}
     </article>
   );

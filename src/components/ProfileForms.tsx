@@ -11,7 +11,7 @@ export function CvForm({ cv }: { cv: StudentProfile["cv"] }) {
     <form action={action} className="rounded-xl border border-line bg-surface p-5">
       <h3 className="text-lg">Your CV</h3>
       {cv && <p className="mt-1 text-sm font-semibold text-green">✓ {cv.fileName} ({cv.sizeKb} KB)</p>}
-      <p className="mb-3 mt-1 text-sm text-muted">{cv ? "Upload a new file to replace it." : "PDF or Word, up to 5 MB. Clients see it when you apply."}</p>
+      <p className="mb-3 mt-1 text-sm text-muted">{cv ? "Upload a new file to replace it." : "Required to apply for projects. PDF or Word, up to 5 MB. Clients see it with your application."}</p>
       <input name="cv" type="file" accept=".pdf,.doc,.docx" aria-label="CV file" className="mb-3 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-soft file:px-4 file:py-2 file:font-bold file:text-blue" />
       <FormError msg={state.error} />
       {state.ok && <p className="mb-3 text-sm font-semibold text-green">CV saved.</p>}

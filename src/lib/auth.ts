@@ -1,29 +1,29 @@
-// DEMO AUTH. The session cookie holds a bare user id and no password is checked,
-// so anyone could forge it. It exists only so the UI flows can be built and tested.
-// Phase 2 replaces this file with Supabase Auth (getUser() + RLS), and the rest of
-// the app keeps calling getSession() / requireUser() unchanged.
-import { cookies } from "next/headers";
+import { cache } from "react";
 import { redirect } from "next/navigation";
-import { db } from "./store";
+import { createClient } from "./supabase/server";
 import type { StudentProfile } from "./types";
 
-const COOKIE = "folio_session";
-
-export async function getSession(): Promise<StudentProfile | null> {
-  const id = (await cookies()).get(COOKIE)?.value;
-  return (id && db.users.get(id)) || null;
-}
+// Current signed-in student (or null). Cached per request so the layout and the page share one lookup.
+export const getSession = cache(async (): Promise<StudentProfile | null> => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser(); // verifies the token with Supabase
+  if (!user) return null;
+  const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if (!p) return null;
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    fullName: p.full_name,
+    program: p.program,
+    uniEmailVerified: p.uni_email_verified,
+    githubHandle: p.github_handle,
+    linkedinUrl: p.linkedin_url,
+    cv: p.cv_name ? { fileName: p.cv_name, sizeKb: p.cv_size_kb ?? 0, uploadedAt: p.cv_uploaded_at } : null,
+  };
+});
 
 export async function requireUser(next = "/"): Promise<StudentProfile> {
   const user = await getSession();
   if (!user) redirect(`/signin?next=${encodeURIComponent(next)}`);
   return user;
-}
-
-export async function startSession(userId: string) {
-  (await cookies()).set(COOKIE, userId, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7 });
-}
-
-export async function endSession() {
-  (await cookies()).delete(COOKIE);
 }

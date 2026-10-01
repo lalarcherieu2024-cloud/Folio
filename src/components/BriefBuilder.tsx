@@ -46,9 +46,9 @@ export function BriefBuilder() {
         <button type="button" onClick={draft} disabled={drafting || idea.trim().length < 15} className="btn mt-3">
           {drafting ? "Drafting your brief…" : "✨ Draft my brief with AI"}
         </button>
-        {source === "template" && <p className="mt-3 rounded-lg bg-amber-soft p-3 text-sm text-amber-ink">AI isn&apos;t connected yet (no <code>ANTHROPIC_API_KEY</code>), so this is a generic starting template. Edit it by hand.</p>}
+        {source === "template" && <p className="mt-3 rounded-lg bg-amber-soft p-3 text-sm text-amber-ink">AI isn&apos;t connected yet (no <code>GEMINI_API_KEY</code>), so this is a generic starting template. Edit it by hand.</p>}
         {questions.length > 0 && (
-          <div className="mt-4">
+          <div className="pop-in mt-4">
             <p className="text-sm font-bold">Before you post, decide:</p>
             <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-muted">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
           </div>

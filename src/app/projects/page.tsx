@@ -42,7 +42,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
         {skills.map((s) => <Link key={s} href={href({ skill: skill === s ? "" : s })} aria-pressed={skill === s} className={`${chip(skill === s)} !py-0.5 !text-[.8rem]`}>{s}</Link>)}
       </div>
       {projects.length ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">{projects.map((p) => <ProjectCard key={p.id} p={p} applied={applied.has(p.id)} />)}</div>
+        <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">{projects.map((p) => <ProjectCard key={p.id} p={p} applied={applied.has(p.id)} />)}</div>
       ) : (
         <div className="rounded-xl border-2 border-dashed border-line p-8 text-center text-muted">No projects match. Clear a filter, or <Link href="/projects/new" className="font-semibold text-blue">request help with your own idea</Link>.</div>
       )}

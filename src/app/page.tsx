@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plaque } from "@/components/Plaque";
+import { Reveal } from "@/components/Reveal";
 import { ProjectCard } from "@/components/ProjectCard";
 import { getOpenProjects } from "@/lib/data";
 import { SAMPLE_CREDENTIALS } from "@/lib/mock-data";
@@ -19,21 +20,21 @@ export default async function Home() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href={user ? "/projects" : "/signup"} className="btn">{user ? "Browse projects" : "Create your account"}</Link>
-            <Link href="/how-it-works" className="btn btn-quiet">How it works</Link>
+            {!user && <Link href="/how-it-works" className="btn btn-quiet">How it works</Link>}
           </div>
         </div>
         <div className="grid max-w-md gap-5">
           {SAMPLE_CREDENTIALS.map((c, i) => (
-            <div key={c.id} className={i === 0 ? "-rotate-1" : "rotate-1 md:translate-x-6"}><Plaque c={c} /></div>
+            <div key={c.id} className={i === 0 ? "-rotate-1" : "rotate-1 md:translate-x-6"}><div className={i === 0 ? "float" : "float-slow"}><Plaque c={c} /></div></div>
           ))}
         </div>
       </section>
 
       <section className="pb-12">
         <h2 className="mb-4 text-2xl">Projects in every field</h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="stagger flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (
-            <Link key={c} href={`/projects?category=${encodeURIComponent(c)}`} className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold hover:border-blue hover:text-blue">{c}</Link>
+            <Link key={c} href={`/projects?category=${encodeURIComponent(c)}`} className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold lift hover:border-blue hover:text-blue">{c}</Link>
           ))}
         </div>
       </section>
@@ -43,20 +44,20 @@ export default async function Home() {
           <h2 className="text-2xl">Open now</h2>
           <Link href="/projects" className="font-semibold text-blue">See all {projects.length} →</Link>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">{projects.slice(0, 3).map((p) => <ProjectCard key={p.id} p={p} />)}</div>
+        <div className="stagger grid gap-4 md:grid-cols-3">{projects.slice(0, 3).map((p) => <ProjectCard key={p.id} p={p} />)}</div>
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
-        <div className="rounded-xl border-2 border-blue bg-blue-soft p-7">
+        <Reveal from="left" className="lift rounded-xl border-2 border-blue bg-blue-soft p-7">
           <h3 className="mb-2 text-xl">Do projects</h3>
           <p className="mb-4 text-muted">Upload your CV, apply with a short pitch, deliver, get paid and collect verified credentials.</p>
           <Link href="/projects" className="btn">Find a project</Link>
-        </div>
-        <div className="rounded-xl border-2 border-line bg-surface p-7">
+        </Reveal>
+        <Reveal from="right" delay={120} className="lift rounded-xl border-2 border-line bg-surface p-7">
           <h3 className="mb-2 text-xl">Get help on your own idea</h3>
           <p className="mb-4 text-muted">Building something? Describe it and our AI turns it into a clear brief with deliverables, then another student picks it up.</p>
           <Link href="/projects/new" className="btn btn-quiet">Request help</Link>
-        </div>
+        </Reveal>
       </section>
     </>
   );

@@ -6,12 +6,12 @@ import { NavLinks } from "./NavLinks";
 
 export function NavBar({ user }: { user: StudentProfile | null }) {
   const links = user
-    ? ([["/how-it-works", "How it works"], ["/projects", "Find projects"], ["/applications", "My applications"], ["/projects/new", "Request help"]] as const)
+    ? ([["/projects", "Find projects"], ["/applications", "My applications"], ["/projects/new", "Request help"]] as const)
     : ([["/how-it-works", "How it works"], ["/projects", "Find projects"], ["/for-startups", "For startups"]] as const);
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-5 py-2.5 md:px-8">
         <Link href="/" aria-label="Folio home"><Logo /></Link>
         <NavLinks links={links} />
         {user ? (

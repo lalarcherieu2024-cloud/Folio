@@ -26,11 +26,11 @@ export default async function ApplicationsPage() {
           <Link href="/projects" className="btn mt-3">Find a project</Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="stagger flex flex-col gap-3">
           {apps.map((a) => {
             const [text, cls] = label(a, a.project);
             return (
-              <div key={a.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-line bg-surface p-5">
+              <div key={a.id} className="lift flex flex-wrap items-start justify-between gap-3 rounded-xl border border-line bg-surface p-5">
                 <div>
                   <h3 className="text-lg"><Link href={`/projects/${a.project.id}`}>{a.project.title}</Link></h3>
                   <p className="text-sm text-muted">{a.project.orgName ?? a.project.clientName}, {eur(a.project.priceEur)}, {a.project.weeks} week{a.project.weeks > 1 ? "s" : ""}</p>
@@ -46,7 +46,7 @@ export default async function ApplicationsPage() {
       {posted.length === 0 ? (
         <p className="text-muted">Projects you post for other students show up here. <Link href="/projects/new" className="font-semibold text-blue">Request help</Link></p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="stagger flex flex-col gap-3">
           {posted.map((p) => (
             <Link key={p.id} href={`/projects/${p.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-5 hover:border-blue">
               <span className="font-serif text-lg font-semibold">{p.title}</span>

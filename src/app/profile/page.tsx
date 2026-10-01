@@ -16,9 +16,9 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profile"
   return (
     <>
       {sp.welcome && (
-        <div className="mb-6 rounded-xl border-2 border-blue bg-blue-soft p-5">
+        <div className="pop-in mb-6 rounded-xl border-2 border-blue bg-blue-soft p-5">
           <h2 className="text-xl">Welcome to Folio, {me.fullName.split(" ")[0]}!</h2>
-          <p className="mt-1 text-muted">Add your CV below (GitHub and LinkedIn are optional), then <Link href="/projects" className="font-bold text-blue underline">find your first project</Link>.</p>
+          <p className="mt-1 text-muted">Add your CV below. It is required to apply for projects (GitHub and LinkedIn are optional), then <Link href="/projects" className="font-bold text-blue underline">find your first project</Link>.</p>
         </div>
       )}
       <div className="mb-8 flex flex-wrap items-center gap-4">
@@ -27,22 +27,22 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profile"
           <h1 className="text-3xl">{me.fullName}</h1>
           <p className="text-muted">{me.program || "Add your programme"} · {creds.length} verified project{creds.length === 1 ? "" : "s"}</p>
           <p className="mt-2 flex flex-wrap gap-2">
-            {badge(me.uniEmailVerified, "✓ University email", "University email not verified")}
-            {badge(!!me.cv, "✓ CV uploaded", "No CV yet")}
+            {badge(me.uniEmailVerified, "✓ University email", "Student email not verified")}
+            {badge(!!me.cv, "✓ CV uploaded", "CV needed to apply")}
             {me.githubHandle && badge(false, "", `GitHub @${me.githubHandle} (unverified)`)}
             {me.linkedinUrl && badge(false, "", "LinkedIn added (unverified)")}
           </p>
         </div>
       </div>
 
-      <div className="mb-12 grid gap-5 md:grid-cols-2">
+      <div className="stagger mb-12 grid gap-5 md:grid-cols-2">
         <CvForm cv={me.cv} />
         <DetailsForm user={me} />
       </div>
 
       <h2 className="mb-4 text-2xl">My verified record</h2>
       {creds.length ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6">{creds.map((c) => <Plaque key={c.id} c={c} />)}</div>
+        <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6">{creds.map((c) => <Plaque key={c.id} c={c} />)}</div>
       ) : (
         <div className="rounded-xl border-2 border-dashed border-line p-8 text-center text-muted">
           Finished projects appear here once the client verifies them.<br />

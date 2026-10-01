@@ -58,7 +58,7 @@ export type Credential = {
 export type CvInfo = { fileName: string; sizeKb: number; uploadedAt: string };
 
 export type StudentProfile = {
-  id: string; // = email in demo mode; = auth.users.id with Supabase
+  id: string; // auth.users.id
   email: string;
   fullName: string;
   program: string;

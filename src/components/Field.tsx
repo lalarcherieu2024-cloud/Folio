@@ -11,5 +11,5 @@ export function Field({ label, hint, htmlFor, children }: { label: string; hint?
 }
 
 export function FormError({ msg }: { msg?: string }) {
-  return msg ? <p role="alert" className="mb-3 text-sm font-semibold text-red">{msg}</p> : null;
+  return msg ? <p role="alert" className="shake mb-3 text-sm font-semibold text-red">{msg}</p> : null;
 }

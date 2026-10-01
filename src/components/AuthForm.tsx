@@ -9,9 +9,9 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next?: str
   const [state, action, pending] = useActionState<FormState, FormData>(mode === "signup" ? signUpAction : signInAction, {});
   const up = mode === "signup";
   return (
-    <form action={action} className="rounded-2xl border border-line bg-surface p-7">
+    <form action={action} className="pop-in rounded-2xl border border-line bg-surface p-7">
       <h1 className="mb-1 text-3xl">{up ? "Create your account" : "Welcome back"}</h1>
-      <p className="mb-6 text-muted">{up ? "Student account. You can add your CV and links next." : "Sign in to apply and track your projects."}</p>
+      <p className="mb-6 text-muted">{up ? "Create your free account. You can add your CV and links next." : "Sign in to apply and track your projects."}</p>
       {next && <input type="hidden" name="next" value={next} />}
       {up && (
         <>
@@ -19,7 +19,7 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next?: str
           <Field label="Programme and year (optional)" htmlFor="program"><input id="program" name="program" placeholder="e.g. BBA, 2027" className="input" /></Field>
         </>
       )}
-      <Field label="University email" htmlFor="email" hint={up ? "Use your @student.ie.edu address to get the verified-student badge." : undefined}>
+      <Field label="Email" htmlFor="email" hint={up ? "Any email works. Use your university address to earn the verified-student badge." : undefined}>
         <input id="email" name="email" type="email" autoComplete="email" required className="input" />
       </Field>
       {up && (
@@ -27,8 +27,13 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next?: str
           <input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} className="input" />
         </Field>
       )}
-      {!up && <p className="mb-4 rounded-lg bg-amber-soft p-3 text-sm text-amber-ink">Demo mode: sign in with just an email. Try <b>lucia@student.ie.edu</b>. Real passwords arrive with the Supabase step.</p>}
+      {!up && (
+        <Field label="Password" htmlFor="password">
+          <input id="password" name="password" type="password" autoComplete="current-password" required className="input" />
+        </Field>
+      )}
       <FormError msg={state.error} />
+      {state.notice && <p role="status" className="pop-in mb-3 rounded-lg bg-blue-soft p-3 text-sm font-semibold text-blue-deep">{state.notice}</p>}
       <button disabled={pending} className="btn w-full">{pending ? "One moment…" : up ? "Create account" : "Sign in"}</button>
       <p className="mt-5 text-center text-sm text-muted">
         {up ? <>Already have an account? <Link href="/signin" className="font-semibold text-blue">Sign in</Link></> : <>New to Folio? <Link href="/signup" className="font-semibold text-blue">Create an account</Link></>}
