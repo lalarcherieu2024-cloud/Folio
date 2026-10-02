@@ -5,7 +5,10 @@ import type { Project } from "../types";
 import { UUID, toProject } from "./shared";
 
 export type Sort = "new" | "pay" | "short" | "open";
-export type ProjectFilter = { q?: string; skill?: string; category?: string; kind?: "company" | "student"; sort?: Sort };
+export type ProjectFilter = { q?: string; skill?: string; category?: string; kind?: "company" | "student"; sort?: Sort; excludeOwner?: string };
+
+// Keeps projects with no owner (demo companies) while dropping the signed-in user's own.
+export const notOwnedBy = (id: string) => `client_id.is.null,client_id.neq.${id}`;
 
 export async function getOpenProjects(f: ProjectFilter = {}): Promise<Project[]> {
   const supabase = await createClient();
@@ -14,6 +17,7 @@ export async function getOpenProjects(f: ProjectFilter = {}): Promise<Project[]>
     : f.sort === "short" ? query.order("weeks", { ascending: true })
     : f.sort === "open" ? query.order("applicant_count", { ascending: true })
     : query.order("created_at", { ascending: false });
+  if (f.excludeOwner) query = query.or(notOwnedBy(f.excludeOwner));
   if (f.kind === "company") query = query.not("org_id", "is", null);
   if (f.kind === "student") query = query.is("org_id", null);
   if (f.category) query = query.eq("category", f.category);
@@ -38,9 +42,11 @@ export async function getProject(id: string): Promise<Project | undefined> {
   return data ? toProject(data) : undefined;
 }
 
-export async function getCategoryCounts(): Promise<Record<string, number>> {
+export async function getCategoryCounts(excludeOwner?: string): Promise<Record<string, number>> {
   const supabase = await createClient();
-  const { data } = await supabase.from("project_cards").select("category").eq("status", "open");
+  let query = supabase.from("project_cards").select("category").eq("status", "open");
+  if (excludeOwner) query = query.or(notOwnedBy(excludeOwner));
+  const { data } = await query;
   const counts: Record<string, number> = {};
   for (const r of data ?? []) counts[r.category] = (counts[r.category] ?? 0) + 1;
   return counts;

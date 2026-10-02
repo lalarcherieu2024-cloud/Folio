@@ -11,6 +11,7 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
   if (!user) return null;
   const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   if (!p) return null;
+  const { count: fileCount } = await supabase.from("profile_files").select("id", { count: "exact", head: true }).eq("user_id", user.id);
   return {
     id: user.id,
     role: (p.role as Role) ?? "student",
@@ -20,8 +21,12 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
     uniEmailVerified: p.uni_email_verified,
     githubHandle: p.github_handle,
     linkedinUrl: p.linkedin_url,
+    githubVerified: !!p.github_verified,
+    linkedinVerified: !!p.linkedin_verified,
     cv: p.cv_name ? { fileName: p.cv_name, sizeKb: p.cv_size_kb ?? 0, uploadedAt: p.cv_uploaded_at } : null,
     strengths: p.strengths ?? null,
+    payoutLink: p.payout_link ?? null,
+    fileCount: fileCount ?? 0,
   };
 });
 

@@ -19,7 +19,7 @@ const EXAMPLE = "I'm starting a thrift-fashion Instagram shop and I need a simpl
 const blank = { title: "", category: CATEGORIES[0] as string, summary: "", deliverables: "", doneWhen: "", skills: "", weeks: 2, priceEur: 300 };
 
 const Num = ({ n }: { n: number }) => <span className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{n}</span>;
-const card = "flex flex-col rounded-xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]";
+const card = "flex flex-col rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
 const select = "h-9 w-full rounded-md border bg-white px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function BriefBuilder() {
@@ -55,11 +55,11 @@ export function BriefBuilder() {
   const total = Math.round(f.priceEur * (1 + FEE));
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] items-start gap-4">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,23.75rem),1fr))] items-start gap-4">
       <section className={cn(card, "bg-panel")}>
         <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={1} /><h2 className="text-base font-semibold">Describe your idea</h2></div>
         <div className={cn("flex flex-col gap-3 px-5 pb-5 transition-opacity", drafting && "opacity-40")}>
-          <p className="text-[13px] text-muted-foreground">Rough is fine. What are you building or trying to get done, and who is it for?</p>
+          <p className="text-[0.8125rem] text-muted-foreground">Rough is fine. What are you building or trying to get done, and who is it for?</p>
           <Textarea value={idea} onChange={(e) => setIdea(e.target.value)} rows={6} maxLength={2000} aria-label="Your idea" placeholder="e.g. a logo and brand colours for my Instagram shop…" className="resize-none bg-white" />
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" onClick={draft} disabled={drafting || !ideaOk} className="h-9 px-3.5"><Sparkles className="size-4" />{drafting ? "Drafting your brief…" : drafted ? "Redraft with AI" : "Draft my brief with AI"}</Button>
@@ -69,14 +69,14 @@ export function BriefBuilder() {
           {questions.length > 0 && (
             <div className="rounded-lg border bg-white p-3.5">
               <p className="text-sm font-semibold">Before you post, decide</p>
-              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
+              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[0.8125rem] text-muted-foreground">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
             </div>
           )}
         </div>
       </section>
 
       <form action={action} className={card}>
-        <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={2} /><h2 className="text-base font-semibold">Review and post</h2>{drafted === "ai" && <Badge variant="secondary" className="ml-auto h-[22px] rounded-md px-2 text-xs">AI draft · edit anything</Badge>}</div>
+        <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={2} /><h2 className="text-base font-semibold">Review and post</h2>{drafted === "ai" && <Badge variant="secondary" className="ml-auto h-[1.375rem] rounded-md px-2 text-xs">AI draft · edit anything</Badge>}</div>
         <div className="grid gap-4 px-5 pb-5">
           <div className="grid gap-1.5"><Label htmlFor="title">Project title</Label><Input id="title" name="title" value={f.title} maxLength={70} onChange={(e) => set("title", e.target.value)} className="h-9" /></div>
           <div className="grid gap-4 sm:grid-cols-2">

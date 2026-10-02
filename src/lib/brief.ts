@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateStructured, geminiConfigured } from "./gemini";
+import { FAST_MODELS, generateStructured, geminiConfigured } from "./gemini";
 import { CATEGORIES, type Category } from "./types";
 
 export const BriefSchema = z.object({
@@ -57,6 +57,6 @@ function templateBrief(idea: string): z.infer<typeof BriefSchema> {
 
 export async function draftBrief(idea: string): Promise<Brief> {
   if (!geminiConfigured()) return { ...templateBrief(idea), source: "template" };
-  const brief = await generateStructured({ system: SYSTEM, contents: `<idea>\n${idea}\n</idea>`, schema: BriefSchema });
+  const brief = await generateStructured({ system: SYSTEM, contents: `<idea>\n${idea}\n</idea>`, schema: BriefSchema, models: FAST_MODELS, maxOutputTokens: 2000, timeoutMs: 15000 });
   return { ...normalize(brief), source: "ai" };
 }

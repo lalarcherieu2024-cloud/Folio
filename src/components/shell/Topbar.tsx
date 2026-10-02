@@ -7,13 +7,14 @@ import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import type { StudentProfile } from "@/lib/types";
+import type { Notification, StudentProfile } from "@/lib/types";
+import { NotificationsMenu } from "./NotificationsMenu";
 import { Logo } from "@/components/shared/Logo";
 import { NavItems, UserMenu } from "@/components/shell/Sidebar";
 import { PAGE_TITLES, type NavCounts } from "./nav";
 
 
-export function Topbar({ user, counts }: { user: StudentProfile; counts: NavCounts }) {
+export function Topbar({ user, counts, notifications }: { user: StudentProfile; counts: NavCounts; notifications: { items: Notification[]; unread: number } }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -29,12 +30,13 @@ export function Topbar({ user, counts }: { user: StudentProfile; counts: NavCoun
       </div>
       <div className="flex-1" />
       <form
-        role="search" className={cn("relative hidden w-[min(320px,40vw)]", !company && "sm:block")}
+        role="search" className={cn("relative hidden w-[min(20rem,40vw)]", !company && "sm:block")}
         onSubmit={(e) => { e.preventDefault(); const q = String(new FormData(e.currentTarget).get("q") ?? "").trim(); router.push(q ? `/projects?q=${encodeURIComponent(q)}` : "/projects"); }}
       >
         <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <input name="q" aria-label="Search projects" placeholder="Search projects, skills, companies…" className="h-9 w-full rounded-md border bg-white pl-8.5 pr-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring" />
       </form>
+      <NotificationsMenu items={notifications.items} unread={notifications.unread} />
       <Link href={company ? "/company/projects/new" : "/projects/new"} className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />{company ? "Post a project" : "Request help"}</Link>
 
       <Sheet open={open} onOpenChange={setOpen}>

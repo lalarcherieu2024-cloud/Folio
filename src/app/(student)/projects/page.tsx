@@ -24,9 +24,10 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
 
   const user = await getSession();
   const [projects, counts, mine, selected] = await Promise.all([
-    getOpenProjects({ q, category, kind: kindVal, sort }), getCategoryCounts(), user ? getApplications(user) : [], projectId ? getProject(projectId) : undefined,
+    getOpenProjects({ q, category, kind: kindVal, sort, excludeOwner: user?.id }), getCategoryCounts(user?.id), user ? getApplications(user) : [], projectId ? getProject(projectId) : undefined,
   ]);
   const applied = new Map(mine.map((a) => [a.projectId, a]));
+  const viewer = { id: user?.id, skills: (user?.strengths?.skills ?? []).filter((s) => s.pct >= 50).map((s) => s.label.toLowerCase()) };
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   const href = (over: Record<string, string | undefined>) => {
@@ -50,12 +51,12 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
     <PublicWrap signedIn={!!user}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-[30px] font-semibold tracking-[-0.025em]">Find projects</h1>
-          <p className="max-w-[60ch] text-[15px] text-muted-foreground">Paid work from startups, small businesses and fellow students. Fixed price, clear finish line.</p>
+          <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">Find projects</h1>
+          <p className="max-w-[60ch] text-[0.9375rem] text-muted-foreground">Paid work from startups, small businesses and fellow students. Fixed price, clear finish line.</p>
         </div>
 
         <div className="flex flex-wrap items-start gap-8">
-          <aside className="flex max-w-60 flex-[1_1_200px] flex-col gap-5">
+          <aside className="flex max-w-60 flex-[1_1_12.5rem] flex-col gap-5">
             <div className="flex flex-col gap-0.5">
               <div className="px-2 pb-1.5 text-xs font-medium text-muted-foreground">Field</div>
               <Link href={href({ category: undefined })} scroll={false} className={listItem(!category)}><span>All fields</span><span className="font-mono text-xs text-zinc-400">{total}</span></Link>
@@ -76,10 +77,10 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
             </div>
           </aside>
 
-          <section className="flex min-w-0 flex-[999_1_480px] flex-col gap-4">
+          <section className="flex min-w-0 flex-[999_1_30rem] flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex-1 text-sm text-muted-foreground"><span className="font-medium text-foreground">{projects.length}</span> project{projects.length === 1 ? "" : "s"}{q ? <> matching “{q}”</> : null}</span>
-              {hasFilters && <Link href="/projects" className="inline-flex h-8 items-center rounded-md px-2.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">Clear filters</Link>}
+              {hasFilters && <Link href="/projects" className="inline-flex h-8 items-center rounded-md px-2.5 text-[0.8125rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">Clear filters</Link>}
               <div className="flex rounded-md border bg-white p-0.5" role="group" aria-label="Layout">
                 <Link href={href({ view: undefined })} scroll={false} aria-label="Grid view" aria-pressed={view === "grid"} className={cn("grid size-7 place-items-center rounded", view === "grid" && "bg-muted")}><LayoutGrid className="size-3.5" /></Link>
                 <Link href={href({ view: "list" })} scroll={false} aria-label="List view" aria-pressed={view === "list"} className={cn("grid size-7 place-items-center rounded", view === "list" && "bg-muted")}><List className="size-3.5" /></Link>
@@ -97,19 +98,19 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
                 </div>
               </div>
             ) : view === "grid" ? (
-              <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4">
-                {projects.map((p) => <ProjectCard key={p.id} p={p} applied={applied.has(p.id)} href={href({ project: p.id })} />)}
+              <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(min(100%,17.5rem),1fr))] gap-4">
+                {projects.map((p) => <ProjectCard key={p.id} p={p} applied={applied.has(p.id)} href={href({ project: p.id })} viewer={viewer} />)}
               </div>
             ) : (
               <div className="overflow-hidden rounded-xl border bg-white">
-                <div className="hidden grid-cols-[minmax(0,1fr)_140px_90px_90px_90px] gap-4 border-b bg-panel px-4 py-2.5 text-xs font-medium text-muted-foreground md:grid"><span>Project</span><span>Field</span><span>Pay</span><span>Duration</span><span>Applicants</span></div>
+                <div className="hidden grid-cols-[minmax(0,1fr)_8.75rem_5.625rem_5.625rem_5.625rem] gap-4 border-b bg-panel px-4 py-2.5 text-xs font-medium text-muted-foreground md:grid"><span>Project</span><span>Field</span><span>Pay</span><span>Duration</span><span>Applicants</span></div>
                 {projects.map((p) => (
-                  <Link key={p.id} href={href({ project: p.id })} scroll={false} className="grid items-center gap-x-4 gap-y-1 border-b border-zinc-100 px-4 py-3.5 text-sm last:border-0 hover:bg-panel md:grid-cols-[minmax(0,1fr)_140px_90px_90px_90px]">
+                  <Link key={p.id} href={href({ project: p.id })} scroll={false} className="grid items-center gap-x-4 gap-y-1 border-b border-zinc-100 px-4 py-3.5 text-sm last:border-0 hover:bg-panel md:grid-cols-[minmax(0,1fr)_8.75rem_5.625rem_5.625rem_5.625rem]">
                     <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="flex items-center gap-2 font-medium">{p.title}{applied.has(p.id) && <Badge className="h-5 rounded-md px-1.5 text-[11px]">Applied</Badge>}</span>
-                      <span className="text-[13px] text-muted-foreground">{p.orgName ?? p.clientName} · {kindLabel(p)}</span>
+                      <span className="flex items-center gap-2 font-medium">{p.title}{applied.has(p.id) && <Badge className="h-5 rounded-md px-1.5 text-[0.6875rem]">Applied</Badge>}</span>
+                      <span className="text-[0.8125rem] text-muted-foreground">{p.orgName ?? p.clientName} · {kindLabel(p)}</span>
                     </div>
-                    <span className="text-[13px] text-zinc-600">{p.category}</span>
+                    <span className="text-[0.8125rem] text-zinc-600">{p.category}</span>
                     <span className="font-mono font-semibold">{eur(p.priceEur)}</span>
                     <span className="text-zinc-600">{weeksLabel(p.weeks)}</span>
                     <span className="font-mono text-zinc-600">{p.applicantCount}</span>
@@ -120,7 +121,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
           </section>
         </div>
       </div>
-      <Suspense fallback={null}><ProjectSheet project={selected ?? null} mode={mode} status={status} /></Suspense>
+      <Suspense fallback={null}><ProjectSheet project={selected ?? null} mode={mode} status={status} mySkills={viewer.skills} cvName={user?.cv?.fileName ?? ""} fileCount={user?.fileCount ?? 0} /></Suspense>
     </PublicWrap>
   );
 }

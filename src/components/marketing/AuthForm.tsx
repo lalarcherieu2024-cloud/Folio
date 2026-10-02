@@ -15,7 +15,7 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
     <div className="grid gap-1.5"><Label htmlFor={id}>{label}</Label><Input id={id} name={id} className="h-9" {...props} />{hint && <span className="text-xs text-muted-foreground">{hint}</span>}</div>
   );
   return (
-    <form action={action} className="grid gap-4 rounded-xl border bg-white p-7 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+    <form action={action} className="grid gap-4 rounded-xl border bg-white p-7 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
       <div className="grid gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">{up ? "Create your account" : "Welcome back"}</h1>
         <p className="text-sm text-muted-foreground">{up ? (role === "company" ? "For startups and small businesses. Post a project in minutes." : "Free for IE students. Add your CV next.") : "Sign in to apply and track your work."}</p>

@@ -8,10 +8,9 @@ import { signOutAction } from "@/app/actions/auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { Role, StudentProfile } from "@/lib/types";
+import { initials } from "@/lib/work";
 import { navFor, type NavCounts } from "./nav";
 import { Logo } from "@/components/shared/Logo";
-
-export const initials = (name: string) => name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
 export function NavItems({ role, counts, onNavigate }: { role: Role; counts: NavCounts; onNavigate?: () => void }) {
   const path = usePathname();
@@ -22,7 +21,7 @@ export function NavItems({ role, counts, onNavigate }: { role: Role; counts: Nav
       {items.map(({ href, label, icon: Icon, count, active }) => (
         <Link
           key={href} href={href} onClick={onNavigate} aria-current={active ? "page" : undefined}
-          className={cn("flex h-[34px] items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors", active ? "bg-[#f0f0f1] font-medium text-foreground" : "text-zinc-600 hover:bg-[#f0f0f1] hover:text-foreground")}
+          className={cn("flex h-[2.125rem] items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors", active ? "bg-[#f0f0f1] font-medium text-foreground" : "text-zinc-600 hover:bg-[#f0f0f1] hover:text-foreground")}
         >
           <Icon className="size-4 shrink-0" />
           <span className="flex-1">{label}</span>

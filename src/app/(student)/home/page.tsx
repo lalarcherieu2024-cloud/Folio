@@ -4,9 +4,9 @@ import { StrengthsCard } from "@/components/student/StrengthsCard";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { getOpenProjects } from "@/lib/data/projects";
-import { getApplications, getCredentials, getRecommended } from "@/lib/data/student";
+import { getApplications, getRecommended } from "@/lib/data/student";
 import { cn } from "@/lib/utils";
-import { STEPS, TONE_CLASS, eur, firstName, profileChecklist, statusInfo } from "@/lib/work";
+import { STEPS, TONE_CLASS, eur, firstName, nextLabel, profileChecklist, stageColors, stagePct, statusInfo } from "@/lib/work";
 import { Check } from "lucide-react";
 
 function greeting() {
@@ -16,71 +16,82 @@ function greeting() {
 
 export default async function StudentHome() {
   const user = await requireUser("/home", "student");
-  const [apps, creds, open] = await Promise.all([getApplications(user), getCredentials(user), getOpenProjects()]);
+  const [apps, open] = await Promise.all([getApplications(user), getOpenProjects({ excludeOwner: user.id })]);
   const { projects: recommended, basedOn } = await getRecommended(user, apps as never);
-  const { items, pct } = profileChecklist(user, apps.length, creds.length);
+  const { items, pct } = profileChecklist(user);
   const inMotion = apps.filter((a) => a.status !== "declined").length;
   const left = items.filter((i) => !i.done).length;
-  const card = "rounded-xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]";
+  const card = "rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
 
   return (
     <div className="page-enter flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-[30px] font-semibold tracking-[-0.025em]">{greeting()}, {firstName(user.fullName)}</h1>
-          <p className="text-[15px] text-muted-foreground">{inMotion} project{inMotion === 1 ? "" : "s"} in motion. {left === 0 ? "Your profile is complete." : `${left} step${left === 1 ? "" : "s"} left on your profile.`}</p>
+          <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">{greeting()}, {firstName(user.fullName)}</h1>
+          <p className="text-[0.9375rem] text-muted-foreground">{inMotion} project{inMotion === 1 ? "" : "s"} in motion. {left === 0 ? "Your profile is complete." : `${left} step${left === 1 ? "" : "s"} left on your profile.`}</p>
         </div>
         <Link href="/projects" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5 shadow-xs")}>Browse all {open.length} projects</Link>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22.5rem),1fr))] gap-4">
         <div className={cn(card, "flex flex-col")}>
           <div className="flex items-center justify-between px-5 pb-3 pt-5">
-            <div className="flex flex-col gap-1"><span className="text-base font-semibold">Your pipeline</span><span className="text-[13px] text-muted-foreground">From application to verified credential</span></div>
-            <Link href="/applications" className={cn(buttonVariants({ variant: "ghost" }), "h-8 px-3 text-[13px]")}>View all</Link>
+            <div className="flex flex-col gap-1"><span className="text-base font-semibold">In progress</span><span className="text-[0.8125rem] text-muted-foreground">Track each project from pitch to payout</span></div>
+            <Link href="/applications" className={cn(buttonVariants({ variant: "ghost" }), "h-8 px-3 text-[0.8125rem]")}>View all</Link>
           </div>
           {apps.length === 0 ? (
             <div className="border-t border-zinc-100 px-5 py-6 text-sm text-muted-foreground">No applications yet. <Link href="/projects" className="font-medium text-foreground underline underline-offset-4">Find your first project</Link>.</div>
           ) : apps.slice(0, 4).map((a) => {
             const s = statusInfo(a, a.project);
+            const [ring, fg, tint] = stageColors(s.step);
+            const pctN = stagePct(s.step);
             return (
-              <Link key={a.id} href={`/projects?project=${a.projectId}`} className="flex flex-col gap-2.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 flex-col gap-0.5"><span className="truncate text-sm font-medium">{a.project.title}</span><span className="text-[13px] text-muted-foreground">{a.project.orgName ?? a.project.clientName} · {eur(a.project.priceEur)}</span></div>
-                  <span className={cn("inline-flex h-[22px] shrink-0 items-center rounded-md px-2 text-xs font-medium", TONE_CLASS[s.tone])}>{s.label}</span>
+              <Link key={a.id} href={`/projects?project=${a.projectId}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel" style={{ boxShadow: `inset 3px 0 0 ${ring}`, background: tint }}>
+                <div title={`Step ${s.step + 1} of ${STEPS.length}: ${STEPS[s.step]}`} className="grid size-[3.25rem] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${ring} ${pctN}%, #f4f4f5 0)` }}>
+                  <div className="grid size-[2.625rem] place-items-center rounded-full bg-white font-mono text-xs font-semibold" style={{ color: fg }}>{pctN}%</div>
                 </div>
-                <div className="flex gap-1">{STEPS.map((_, i) => <div key={i} className="h-1 flex-1 rounded-sm" style={{ background: i <= s.step ? "#18181b" : "#e4e4e7" }} />)}</div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="truncate text-sm font-medium">{a.project.title}</span>
+                  <span className="text-[0.8125rem] text-muted-foreground">{a.project.orgName ?? a.project.clientName} · {eur(a.project.priceEur)}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: fg }}><span className="size-1.5 rounded-full" style={{ background: ring }} />{nextLabel(s.step)}</span>
+                </div>
+                <span className={cn("inline-flex h-[1.375rem] shrink-0 items-center rounded-md px-2 text-xs font-medium", TONE_CLASS[s.tone])}>{s.label}</span>
               </Link>
             );
           })}
         </div>
 
-        <div className={cn(card, "flex flex-col gap-4 p-5")}>
-          <div className="flex flex-col gap-1"><span className="text-base font-semibold">Profile strength</span><span className="text-[13px] text-muted-foreground">Clients see this before they accept you</span></div>
-          <div className="flex items-center gap-3">
-            <div className="h-2 flex-1 overflow-hidden rounded bg-muted"><div className="h-full rounded bg-primary transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
-            <span className="font-mono text-[13px] font-medium">{pct}%</span>
+        {pct < 100 && (
+          <div className={cn(card, "flex flex-col gap-4 p-5")}>
+            <div className="flex flex-col gap-1"><span className="text-base font-semibold">Complete your profile</span><span className="text-[0.8125rem] text-muted-foreground">Clients see this before they accept you</span></div>
+            <div className="flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded bg-muted"><div className="h-full rounded transition-[width] duration-500" style={{ width: `${pct}%`, background: "#f97316" }} /></div>
+              <span className="font-mono text-[0.8125rem] font-medium">{pct}%</span>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {items.map((c) => (
+                <Link key={c.label} href="/profile" className={cn("flex items-center gap-2.5 text-sm", c.done ? "pointer-events-none text-[#166534]" : "text-[#9a3412] hover:underline")}>
+                  <span className={cn("grid size-[1.125rem] shrink-0 place-items-center rounded-full border", c.done ? "border-[#16a34a] bg-[#16a34a]" : "border-[#fb923c] bg-[#fff7ed]")}>
+                    {c.done ? <Check className="size-2.5 text-white" strokeWidth={3.5} /> : <span className="size-1.5 rounded-full bg-[#f97316]" />}
+                  </span>
+                  <span className="flex-1">{c.label}</span>
+                  <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-[0.6875rem] font-medium", c.done ? "bg-[#dcfce7] text-[#166534]" : "bg-[#ffedd5] text-[#c2410c]")}>{c.done ? "Done" : "Pending"}</span>
+                </Link>
+              ))}
+            </div>
+            <Link href="/profile" className={cn(buttonVariants({ variant: "outline" }), "h-9 justify-start bg-white px-3.5")}>Finish your profile</Link>
           </div>
-          <div className="flex flex-col gap-2.5">
-            {items.map((c) => (
-              <div key={c.label} className={cn("flex items-center gap-2.5 text-sm", c.done ? "text-foreground" : "text-muted-foreground")}>
-                <span className={cn("grid size-[18px] place-items-center rounded-full border", c.done ? "border-[#16a34a] bg-[#16a34a]" : "border-zinc-300 bg-white")}>{c.done && <Check className="size-2.5 text-white" strokeWidth={3.5} />}</span>
-                {c.label}
-              </div>
-            ))}
-          </div>
-          {!user.cv && <Link href="/profile" className={cn(buttonVariants({ variant: "outline" }), "h-9 justify-start bg-white px-3.5")}>Upload your CV</Link>}
-        </div>
+        )}
       </div>
 
-      <StrengthsCard strengths={user.strengths} hasCv={!!user.cv} />
+      <StrengthsCard strengths={user.strengths} hasCv={!!user.cv} cvIsPdf={!!user.cv && /\.pdf$/i.test(user.cv.fileName)} />
 
       <div className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold tracking-tight">Recommended for you</h2>
-          <span className="text-[13px] text-muted-foreground">{basedOn.length ? <>Matched on {basedOn.join(", ")}</> : "Newest projects"}</span>
+          <span className="text-[0.8125rem] text-muted-foreground">{basedOn.length ? <>Matched on {basedOn.join(", ")}</> : "Newest projects"}</span>
         </div>
-        <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">{recommended.map((p) => <ProjectCard key={p.id} p={p} />)}</div>
+        <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-4">{recommended.map((p) => <ProjectCard key={p.id} p={p} viewer={{ id: user.id, skills: (user.strengths?.skills ?? []).filter((s) => s.pct >= 50).map((s) => s.label.toLowerCase()) }} />)}</div>
       </div>
     </div>
   );

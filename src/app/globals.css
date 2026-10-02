@@ -41,12 +41,14 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   html { @apply font-sans; font-size: 16px; }
-  body { @apply bg-background text-foreground antialiased; font-size: 14px; }
+  body { @apply bg-background text-foreground antialiased; font-size: 0.875rem; }
   h1, h2, h3 { letter-spacing: -0.015em; }
   ::placeholder { color: #a1a1aa; }
 }
-@media (min-width: 1280px) { html { font-size: 17px; } }
-@media (min-width: 1700px) { html { font-size: 18px; } }
+/* Everything is rem-based, so raising the root size scales the whole interface on big screens. */
+@media (min-width: 1280px) { html { font-size: 18px; } }
+@media (min-width: 1700px) { html { font-size: 20px; } }
+@media (min-width: 2100px) { html { font-size: 22px; } }
 
 /* ---------- Motion ---------- */
 @keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
