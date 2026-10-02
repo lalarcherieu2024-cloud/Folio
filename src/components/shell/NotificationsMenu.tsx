@@ -4,7 +4,7 @@ import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useTransition } from "react";
 import { markNotificationsReadAction } from "@/app/actions/student";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Notification } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +19,8 @@ export function NotificationsMenu({ items, unread }: { items: Notification[]; un
         {unread > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-[#2f5bd3] px-1 text-[0.625rem] font-semibold leading-4 text-white">{unread > 9 ? "9+" : unread}</span>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[22rem] max-w-[calc(100vw-2rem)]">
-        <DropdownMenuLabel className="text-sm font-semibold text-foreground">Notifications</DropdownMenuLabel>
+        {/* The menu library requires a label to live inside a group, or it throws when opened. */}
+        <DropdownMenuGroup><DropdownMenuLabel className="text-sm font-semibold text-foreground">Notifications</DropdownMenuLabel></DropdownMenuGroup>
         {items.length === 0 ? (
           <p className="px-2 py-6 text-center text-sm text-muted-foreground">Nothing yet. You&apos;ll hear about applications and changes here.</p>
         ) : items.map((n) => (

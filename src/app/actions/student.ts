@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { acceptApplicant, declineApplicant } from "@/lib/data/applicants";
 import { markAllRead } from "@/lib/data/notifications";
-import { addProfileFile, createApplication, createProject, markDelivered, reanalyzeStoredCv, removeProfileFile, saveCv, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
+import { addProfileFile, createApplication, createProject, markDelivered, reanalyzeStoredCv, removeProfileFile, saveCv, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
 import { str, type FormState } from "@/lib/form";
 import { CATEGORIES, type Category } from "@/lib/types";
 
@@ -61,7 +61,11 @@ export async function postProjectAction(_: FormState, f: FormData): Promise<Form
   if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
   if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
   const skills = str(f, "skills").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 5);
-  const res = await createProject(user, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills });
+  const hours = Number(f.get("hoursPerWeek"));
+  const hoursPerWeek = hours >= 1 && hours <= 60 ? Math.round(hours) : null;
+  const learn = str(f, "learn").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 4);
+  const beginnerFriendly = f.get("beginnerFriendly") === "on";
+  const res = await createProject(user, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills, hoursPerWeek, learn, beginnerFriendly });
   if (res.error) return { error: res.error };
   revalidatePath("/projects");
   redirect("/applications?tab=requests&posted=1");
@@ -148,7 +152,11 @@ export async function updateProjectAction(projectId: string, _: FormState, f: Fo
   if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
   if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
   const skills = str(f, "skills").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 5);
-  const res = await updateProject(user, projectId, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills });
+  const hours = Number(f.get("hoursPerWeek"));
+  const hoursPerWeek = hours >= 1 && hours <= 60 ? Math.round(hours) : null;
+  const learn = str(f, "learn").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 4);
+  const beginnerFriendly = f.get("beginnerFriendly") === "on";
+  const res = await updateProject(user, projectId, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills, hoursPerWeek, learn, beginnerFriendly });
   if (res.error) return { error: res.error };
   revalidatePath(`/requests/${projectId}`);
   revalidatePath("/projects");
@@ -159,4 +167,12 @@ export async function updateProjectAction(projectId: string, _: FormState, f: Fo
 export async function markNotificationsReadAction(): Promise<void> {
   const user = await requireUser("/home", "student");
   await markAllRead(user);
+}
+
+export async function toggleSavedAction(projectId: string, save: boolean): Promise<FormState> {
+  const user = await requireUser("/projects", "student");
+  const res = await toggleSaved(user, projectId, save);
+  if (res.error) return res;
+  revalidatePath("/projects");
+  return { ok: true };
 }

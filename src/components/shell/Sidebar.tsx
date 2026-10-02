@@ -8,7 +8,7 @@ import { signOutAction } from "@/app/actions/auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { Role, StudentProfile } from "@/lib/types";
-import { initials } from "@/lib/work";
+import { initials, softColor } from "@/lib/work";
 import { navFor, type NavCounts } from "./nav";
 import { Logo } from "@/components/shared/Logo";
 
@@ -36,7 +36,7 @@ export function UserMenu({ user, side = "top" }: { user: StudentProfile; side?: 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-md p-2 text-left outline-none hover:bg-[#f0f0f1] focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-200 text-xs font-semibold">{initials(user.fullName)}</span>
+        <span style={softColor(user.fullName)} className="grid size-8 shrink-0 place-items-center rounded-lg text-xs font-semibold">{initials(user.fullName)}</span>
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
           <span className="truncate text-sm font-medium">{user.fullName}</span>
           <span className="truncate text-xs text-muted-foreground">{user.email}</span>
@@ -63,10 +63,10 @@ export function UserMenu({ user, side = "top" }: { user: StudentProfile; side?: 
 export function Sidebar({ user, counts }: { user: StudentProfile; counts: NavCounts }) {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-panel md:flex">
-      <div className="flex h-16 items-center gap-2.5 border-b px-3">
-        <Logo size={44} />
+      <div className="flex h-20 items-center gap-3 border-b px-3.5">
+        <Logo size={64} />
         <div className="flex flex-col leading-tight">
-          <span className="text-base font-semibold tracking-tight">Folio</span>
+          <span className="text-xl font-semibold tracking-tight">Folio</span>
           <span className="text-xs text-muted-foreground">{user.role === "company" ? "For companies" : "IE Madrid"}</span>
         </div>
       </div>

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 const FEE = 0.15;
 const EXAMPLE = "I'm starting a thrift-fashion Instagram shop and I need a simple brand: a logo, colours, and some post templates.";
-const blank = { title: "", category: CATEGORIES[0] as string, summary: "", deliverables: "", doneWhen: "", skills: "", weeks: 2, priceEur: 300 };
+const blank = { title: "", category: CATEGORIES[0] as string, summary: "", deliverables: "", doneWhen: "", skills: "", weeks: 2, priceEur: 300, hoursPerWeek: 5, learn: "", beginnerFriendly: false };
 
 const Num = ({ n }: { n: number }) => <span className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{n}</span>;
 const card = "flex flex-col rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
@@ -40,7 +40,7 @@ export function BriefBuilder() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Couldn't draft the brief.");
       const b = data as Brief;
-      setF({ title: b.title, category: b.category, summary: b.summary, deliverables: b.deliverables.join("\n"), doneWhen: b.doneWhen, skills: b.skills.join(", "), weeks: b.weeks, priceEur: b.priceEur });
+      setF({ title: b.title, category: b.category, summary: b.summary, deliverables: b.deliverables.join("\n"), doneWhen: b.doneWhen, skills: b.skills.join(", "), weeks: b.weeks, priceEur: b.priceEur, hoursPerWeek: b.hoursPerWeek, learn: b.learn.join(", "), beginnerFriendly: b.beginnerFriendly });
       setQuestions(b.openQuestions); setDrafted(b.source);
       if (b.source === "template") toast("AI isn't connected yet", { description: "This is a generic starting template. Edit it by hand." });
     } catch (e) {
@@ -90,6 +90,11 @@ export function BriefBuilder() {
             <div className="grid gap-1.5"><Label htmlFor="priceEur">Price paid to student (€)</Label><Input id="priceEur" name="priceEur" type="number" min={150} step={50} value={f.priceEur} onChange={(e) => set("priceEur", Number(e.target.value))} className="h-9 font-mono" /></div>
             <div className="grid gap-1.5"><Label htmlFor="weeks">Duration</Label><select id="weeks" name="weeks" value={f.weeks} onChange={(e) => set("weeks", Number(e.target.value))} className={select}>{[1, 2, 3, 4, 5, 6].map((w) => <option key={w} value={w}>{w} week{w > 1 ? "s" : ""}</option>)}</select></div>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5"><Label htmlFor="hoursPerWeek">Hours per week</Label><Input id="hoursPerWeek" name="hoursPerWeek" type="number" min={1} max={60} value={f.hoursPerWeek} onChange={(e) => set("hoursPerWeek", Number(e.target.value))} className="h-9 font-mono" /></div>
+            <div className="grid gap-1.5"><Label htmlFor="learn">What the student will learn</Label><Input id="learn" name="learn" value={f.learn} onChange={(e) => set("learn", e.target.value)} placeholder="e.g. Metabase, dashboards" className="h-9" /></div>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm"><input type="checkbox" name="beginnerFriendly" checked={f.beginnerFriendly} onChange={(e) => set("beginnerFriendly", e.target.checked)} className="size-4 accent-[#18181b]" />A good first project (little experience needed)</label>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">
           <div className="flex flex-col leading-tight"><span className="text-sm">You pay <span className="font-mono font-semibold">€{total.toLocaleString("en-GB")}</span></span><span className="text-xs text-muted-foreground">€{f.priceEur.toLocaleString("en-GB")} to the student + 15% Folio fee</span></div>

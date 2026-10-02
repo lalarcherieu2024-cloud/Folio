@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { applyAction } from "@/app/actions/student";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +12,17 @@ import type { FormState } from "@/lib/form";
 import { firstName } from "@/lib/work";
 
 const MAX = 600;
+
+// Live hints while you write the optional note. They only nudge: none of them is required.
+function pitchChecks(note: string) {
+  const text = note.trim();
+  const sentences = text.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean).length;
+  return [
+    { label: "Mentions similar work", ok: /\b(built|made|created|designed|wrote|worked|project|class|course|intern|experience|similar|portfolio|led|managed)\b/i.test(text) },
+    { label: "2 to 4 sentences", ok: sentences >= 2 && sentences <= 4 },
+    { label: "Asks a question", ok: text.includes("?") },
+  ];
+}
 
 export function ApplyDialog({ projectId, client, cvName, fileCount }: { projectId: string; client: string; cvName: string; fileCount: number }) {
   const [open, setOpen] = useState(false);
@@ -60,7 +72,16 @@ export function ApplyDialog({ projectId, client, cvName, fileCount }: { projectI
           <div className="grid gap-1.5">
             <label htmlFor="note" className="flex items-center gap-2 text-sm font-medium">Short note <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[0.6875rem] font-medium text-zinc-600">Optional</span></label>
             <Textarea id="note" name="pitch" value={note} onChange={(e) => setNote(e.target.value.slice(0, MAX))} rows={4} placeholder="Why you're a good fit: a class, project or job that's relevant." className="resize-none" />
-            <div className="text-right font-mono text-xs text-muted-foreground">{note.length}/{MAX}</div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <ul className="flex flex-wrap gap-1.5" aria-label="Note tips">
+                {pitchChecks(note).map((c) => (
+                  <li key={c.label} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium transition-colors ${c.ok ? "bg-[#dcfce7] text-[#166534]" : "bg-zinc-100 text-zinc-500"}`}>
+                    <Check className={`size-3 transition-opacity ${c.ok ? "opacity-100" : "opacity-30"}`} strokeWidth={3} />{c.label}
+                  </li>
+                ))}
+              </ul>
+              <span className="font-mono text-xs text-muted-foreground">{note.length}/{MAX}</span>
+            </div>
           </div>
 
           {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}

@@ -3,10 +3,9 @@ import { ProjectCard } from "@/components/shared/ProjectCard";
 import { StrengthsCard } from "@/components/student/StrengthsCard";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
-import { getOpenProjects } from "@/lib/data/projects";
-import { getApplications, getRecommended } from "@/lib/data/student";
+import { getApplications, getRecommended, getSavedIds } from "@/lib/data/student";
 import { cn } from "@/lib/utils";
-import { STEPS, TONE_CLASS, eur, firstName, nextLabel, profileChecklist, stageColors, stagePct, statusInfo } from "@/lib/work";
+import { STEPS, TONE_CLASS, dueInfo, eur, firstName, nextLabel, profileChecklist, stageColors, stagePct, statusInfo, viewerFrom } from "@/lib/work";
 import { Check } from "lucide-react";
 
 function greeting() {
@@ -16,7 +15,8 @@ function greeting() {
 
 export default async function StudentHome() {
   const user = await requireUser("/home", "student");
-  const [apps, open] = await Promise.all([getApplications(user), getOpenProjects({ excludeOwner: user.id })]);
+  const [apps, savedIds] = await Promise.all([getApplications(user), getSavedIds(user)]);
+  const viewer = viewerFrom(user, savedIds);
   const { projects: recommended, basedOn } = await getRecommended(user, apps as never);
   const { items, pct } = profileChecklist(user);
   const inMotion = apps.filter((a) => a.status !== "declined").length;
@@ -30,7 +30,6 @@ export default async function StudentHome() {
           <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">{greeting()}, {firstName(user.fullName)}</h1>
           <p className="text-[0.9375rem] text-muted-foreground">{inMotion} project{inMotion === 1 ? "" : "s"} in motion. {left === 0 ? "Your profile is complete." : `${left} step${left === 1 ? "" : "s"} left on your profile.`}</p>
         </div>
-        <Link href="/projects" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5 shadow-xs")}>Browse all {open.length} projects</Link>
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22.5rem),1fr))] gap-4">
@@ -40,20 +39,20 @@ export default async function StudentHome() {
             <Link href="/applications" className={cn(buttonVariants({ variant: "ghost" }), "h-8 px-3 text-[0.8125rem]")}>View all</Link>
           </div>
           {apps.length === 0 ? (
-            <div className="border-t border-zinc-100 px-5 py-6 text-sm text-muted-foreground">No applications yet. <Link href="/projects" className="font-medium text-foreground underline underline-offset-4">Find your first project</Link>.</div>
+            <div className="border-t border-zinc-100 px-5 py-6 text-sm text-muted-foreground">No applications yet. Your first one is usually the hardest: pick a project that matches your skills and send a short note. <Link href="/projects" className="font-medium text-foreground underline underline-offset-4">Find your first project</Link>.</div>
           ) : apps.slice(0, 4).map((a) => {
             const s = statusInfo(a, a.project);
             const [ring, fg, tint] = stageColors(s.step);
             const pctN = stagePct(s.step);
             return (
-              <Link key={a.id} href={`/projects?project=${a.projectId}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel" style={{ boxShadow: `inset 3px 0 0 ${ring}`, background: tint }}>
+              <Link key={a.id} href={`/projects/${a.projectId}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel" style={{ boxShadow: `inset 3px 0 0 ${ring}`, background: tint }}>
                 <div title={`Step ${s.step + 1} of ${STEPS.length}: ${STEPS[s.step]}`} className="grid size-[3.25rem] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${ring} ${pctN}%, #f4f4f5 0)` }}>
                   <div className="grid size-[2.625rem] place-items-center rounded-full bg-white font-mono text-xs font-semibold" style={{ color: fg }}>{pctN}%</div>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate text-sm font-medium">{a.project.title}</span>
                   <span className="text-[0.8125rem] text-muted-foreground">{a.project.orgName ?? a.project.clientName} · {eur(a.project.priceEur)}</span>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: fg }}><span className="size-1.5 rounded-full" style={{ background: ring }} />{nextLabel(s.step)}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: fg }}><span className="size-1.5 rounded-full" style={{ background: ring }} />{s.step === 2 ? (dueInfo(a.acceptedAt, a.project.weeks)?.label ?? nextLabel(s.step)) : nextLabel(s.step)}</span>
                 </div>
                 <span className={cn("inline-flex h-[1.375rem] shrink-0 items-center rounded-md px-2 text-xs font-medium", TONE_CLASS[s.tone])}>{s.label}</span>
               </Link>
@@ -84,6 +83,7 @@ export default async function StudentHome() {
         )}
       </div>
 
+
       <StrengthsCard strengths={user.strengths} hasCv={!!user.cv} cvIsPdf={!!user.cv && /\.pdf$/i.test(user.cv.fileName)} />
 
       <div className="flex flex-col gap-4">
@@ -91,7 +91,7 @@ export default async function StudentHome() {
           <h2 className="text-lg font-semibold tracking-tight">Recommended for you</h2>
           <span className="text-[0.8125rem] text-muted-foreground">{basedOn.length ? <>Matched on {basedOn.join(", ")}</> : "Newest projects"}</span>
         </div>
-        <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-4">{recommended.map((p) => <ProjectCard key={p.id} p={p} viewer={{ id: user.id, skills: (user.strengths?.skills ?? []).filter((s) => s.pct >= 50).map((s) => s.label.toLowerCase()) }} />)}</div>
+        <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-4">{recommended.map((p) => <ProjectCard key={p.id} p={p} viewer={viewer} />)}</div>
       </div>
     </div>
   );

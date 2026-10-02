@@ -5,7 +5,7 @@ import { createClient } from "../supabase/server";
 import { analyzeCv } from "../strengths";
 import type { Application, Credential, Project, ProfileFile, StudentProfile } from "../types";
 import { UUID, monthYear, toApplication, toProject } from "./shared";
-import { getOpenProjects, notOwnedBy } from "./projects";
+import { appliedProjectIds, getOpenProjects, notOwnedBy } from "./projects";
 
 export async function getApplicationFor(user: StudentProfile, projectId: string): Promise<Application | undefined> {
   const supabase = await createClient();
@@ -35,18 +35,19 @@ export async function createApplication(user: StudentProfile, projectId: string,
   const { error } = await supabase.from("applications").insert({ project_id: projectId, student_id: user.id, pitch: pitch.trim().slice(0, 600), include_files: includeFiles && user.fileCount > 0 });
   if (!error) return {};
   if (error.code === "23505") return { error: "You already applied." };
-  if (error.code === "42501") return { error: "You can't apply to this project. It may be closed, it may be your own, or your CV is missing." };
+  if (error.code === "42501") return { error: "You can't apply to this project. It may be closed, it may be your own, or your CV is missing (if this keeps happening, migration 0011 may not have been run)." };
   console.error("createApplication", error);
   return { error: "Couldn't send your application. Try again." };
 }
 
-export type NewProject = Pick<Project, "title" | "category" | "summary" | "deliverables" | "doneWhen" | "priceEur" | "weeks" | "skills">;
+export type NewProject = Pick<Project, "title" | "category" | "summary" | "deliverables" | "doneWhen" | "priceEur" | "weeks" | "skills" | "hoursPerWeek" | "learn" | "beginnerFriendly">;
 
 export async function createProject(user: StudentProfile, p: NewProject): Promise<{ id?: string; error?: string }> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("projects").insert({
     client_id: user.id, client_name: user.fullName, hood: "IE community", category: p.category, title: p.title.slice(0, 70),
     summary: p.summary, deliverables: p.deliverables, done_when: p.doneWhen, price_eur: p.priceEur, weeks: p.weeks, skills: p.skills,
+    hours_per_week: p.hoursPerWeek, learn: p.learn, beginner_friendly: p.beginnerFriendly,
   }).select("id").single();
   if (error) { console.error("createProject", error); return { error: "Couldn't post your request. Check the fields and try again." }; }
   return { id: data.id };
@@ -97,6 +98,7 @@ export async function updateProject(user: StudentProfile, id: string, p: NewProj
   const { data, error } = await supabase.rpc("update_project", {
     p_id: id, p_title: p.title.slice(0, 70), p_category: p.category, p_summary: p.summary, p_deliverables: p.deliverables,
     p_done_when: p.doneWhen, p_price: p.priceEur, p_weeks: p.weeks, p_skills: p.skills,
+    p_hours: p.hoursPerWeek, p_learn: p.learn, p_beginner: p.beginnerFriendly,
   });
   if (error) {
     console.error("updateProject", error);
@@ -113,7 +115,7 @@ export async function getCredentials(user: StudentProfile): Promise<Credential[]
   const { data } = await supabase.from("credential_cards").select("*").eq("student_id", user.id).order("issued_at", { ascending: false });
   return (data ?? []).map((r) => ({
     id: r.id, projectId: r.project_id, projectTitle: r.project_title, clientName: r.client_name, orgName: r.org_name,
-    hood: r.hood, rating: r.rating, review: r.review, issuedAt: monthYear(r.issued_at),
+    hood: r.hood, rating: r.rating, review: r.review, issuedAt: monthYear(r.issued_at), category: r.category ?? "", priceEur: r.price_eur ?? 0,
   }));
 }
 
@@ -131,14 +133,19 @@ export async function updateProfile(user: StudentProfile, patch: { fullName: str
 export async function getStudentNavCounts(user: StudentProfile): Promise<{ open: number; mine: number }> {
   const supabase = await createClient();
   const [open, mine] = await Promise.all([
-    supabase.from("project_cards").select("id", { count: "exact", head: true }).eq("status", "open").or(notOwnedBy(user.id)),
+    (async () => {
+      const applied = await appliedProjectIds(user.id);
+      let q = supabase.from("project_cards").select("id", { count: "exact", head: true }).eq("status", "open").or(notOwnedBy(user.id));
+      if (applied.length) q = q.not("id", "in", `(${applied.join(",")})`);
+      return q;
+    })(),
     supabase.from("applications").select("id", { count: "exact", head: true }).eq("student_id", user.id),
   ]);
   return { open: open.count ?? 0, mine: mine.count ?? 0 };
 }
 
 export async function getRecommended(user: StudentProfile, applied: Application[] & { project?: Project }[]): Promise<{ projects: Project[]; basedOn: string[] }> {
-  const open = await getOpenProjects({ excludeOwner: user.id });
+  const open = await getOpenProjects({ viewerId: user.id });
   const mine = new Set((applied as { projectId: string }[]).map((a) => a.projectId));
   const want = new Map<string, number>();
   for (const s of user.strengths?.skills ?? []) want.set(s.label.toLowerCase(), s.pct);
@@ -240,4 +247,34 @@ export async function removeProfileFile(user: StudentProfile, id: string): Promi
   await supabase.storage.from("cvs").remove([row.path]);
   const { error } = await supabase.from("profile_files").delete().eq("id", id).eq("user_id", user.id);
   return error ? { error: "Couldn't remove the file." } : {};
+}
+
+// ---- Saved projects (the heart)
+export async function getSavedIds(user: StudentProfile): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("saved_projects").select("project_id").eq("user_id", user.id).order("created_at", { ascending: false });
+  return (data ?? []).map((r) => r.project_id as string);
+}
+
+export async function toggleSaved(user: StudentProfile, projectId: string, save: boolean): Promise<{ error?: string }> {
+  if (!UUID.test(projectId)) return { error: "Project not found." };
+  const supabase = await createClient();
+  const { error } = save
+    ? await supabase.from("saved_projects").upsert({ user_id: user.id, project_id: projectId }, { onConflict: "user_id,project_id", ignoreDuplicates: true })
+    : await supabase.from("saved_projects").delete().eq("user_id", user.id).eq("project_id", projectId);
+  if (error) { console.error("toggleSaved", error); return { error: "Couldn't update your saved projects. Has migration 0012 been run?" }; }
+  return {};
+}
+
+// Real events that count as activity: applications sent, projects accepted, credentials earned.
+export async function getActivityDates(user: StudentProfile): Promise<string[]> {
+  const supabase = await createClient();
+  const [{ data: apps }, { data: creds }] = await Promise.all([
+    supabase.from("applications").select("created_at, accepted_at").eq("student_id", user.id),
+    supabase.from("credentials").select("issued_at").eq("student_id", user.id),
+  ]);
+  return [
+    ...(apps ?? []).flatMap((a) => [a.created_at, a.accepted_at].filter(Boolean) as string[]),
+    ...(creds ?? []).map((c) => c.issued_at as string),
+  ];
 }

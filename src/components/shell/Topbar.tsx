@@ -22,7 +22,7 @@ export function Topbar({ user, counts, notifications }: { user: StudentProfile; 
   const company = user.role === "company";
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b bg-white/90 px-4 backdrop-blur md:px-6">
+    <header className="sticky top-0 z-10 flex h-20 shrink-0 items-center gap-3 border-b bg-white/90 px-4 backdrop-blur md:px-6">
       <button type="button" aria-label="Open menu" onClick={() => setOpen(true)} className="grid size-9 place-items-center rounded-md hover:bg-muted md:hidden"><Menu className="size-5" /></button>
       <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
         <span className="hidden sm:inline">Folio</span><span className="hidden text-zinc-300 sm:inline">/</span>
@@ -37,12 +37,12 @@ export function Topbar({ user, counts, notifications }: { user: StudentProfile; 
         <input name="q" aria-label="Search projects" placeholder="Search projects, skills, companies…" className="h-9 w-full rounded-md border bg-white pl-8.5 pr-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring" />
       </form>
       <NotificationsMenu items={notifications.items} unread={notifications.unread} />
-      <Link href={company ? "/company/projects/new" : "/projects/new"} className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />{company ? "Post a project" : "Request help"}</Link>
+      <Link href={company ? "/company/projects/new" : "/projects/new"} className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />Post a project</Link>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-64 gap-0 p-0 sm:max-w-64" showCloseButton={false}>
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="flex h-16 items-center gap-2.5 border-b px-3"><Logo size={40} /><span className="text-base font-semibold">Folio</span></div>
+          <div className="flex h-20 items-center gap-3 border-b px-3.5"><Logo size={56} /><span className="text-xl font-semibold">Folio</span></div>
           <NavItems role={user.role} counts={counts} onNavigate={() => setOpen(false)} />
           <div className="border-t p-2"><UserMenu user={user} /></div>
         </SheetContent>

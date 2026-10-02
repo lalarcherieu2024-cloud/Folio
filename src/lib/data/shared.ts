@@ -10,7 +10,8 @@ export const toProject = (r: any): Project => ({
   orgName: r.org_name, orgVerified: r.org_verified, hood: r.hood, category: r.category, title: r.title,
   summary: r.summary, deliverables: r.deliverables, doneWhen: r.done_when, priceEur: r.price_eur,
   weeks: r.weeks, skills: r.skills, status: r.status, applicantCount: r.applicant_count,
+  hoursPerWeek: r.hours_per_week ?? null, learn: r.learn ?? [], beginnerFriendly: !!r.beginner_friendly,
   about: r.org_blurb ? { industry: r.org_industry ?? "", size: r.org_size ?? "", founded: r.org_founded ?? "", blurb: r.org_blurb, website: r.org_website } : null,
 });
-export const toApplication = (r: any): Application => ({ id: r.id, projectId: r.project_id, pitch: r.pitch, status: r.status, createdAt: r.created_at, includeFiles: !!r.include_files });
+export const toApplication = (r: any): Application => ({ id: r.id, projectId: r.project_id, pitch: r.pitch, status: r.status, createdAt: r.created_at, includeFiles: !!r.include_files, acceptedAt: r.accepted_at ?? null });
 export const monthYear = (iso: string) => new Date(iso).toLocaleString("en-GB", { month: "long", year: "numeric" });

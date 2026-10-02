@@ -37,6 +37,9 @@ export type Project = {
   status: ProjectStatus;
   applicantCount: number;
   about: CompanyAbout | null; // null for student requests, or until a company fills it in
+  hoursPerWeek: number | null; // typical weekly effort
+  learn: string[]; // what a student picks up doing it
+  beginnerFriendly: boolean; // a good first project
 };
 
 export type CompanyAbout = { industry: string; size: string; founded: string; blurb: string; website: string | null };
@@ -48,6 +51,7 @@ export type Application = {
   status: ApplicationStatus;
   createdAt: string;
   includeFiles: boolean; // student chose to share their additional files
+  acceptedAt: string | null; // when the client chose this student (starts the clock)
 };
 
 export type Applicant = {
@@ -72,6 +76,8 @@ export type Credential = {
   rating: number;
   review: string;
   issuedAt: string; // e.g. "July 2026"
+  category: string; // field of the project
+  priceEur: number;
 };
 
 export type ProfileFile = { id: string; name: string; sizeKb: number; createdAt: string };

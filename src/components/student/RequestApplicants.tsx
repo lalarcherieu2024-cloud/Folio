@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Applicant, Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { initials } from "@/lib/work";
+import { initials, softColor } from "@/lib/work";
 
 const chip = "h-[1.375rem] gap-1 rounded-md px-2 text-xs font-medium";
 
@@ -31,7 +31,7 @@ function ApplicantCard({ a, project }: { a: Applicant; project: Project }) {
     <article className={cn("flex flex-col gap-4 rounded-xl border bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)]", accepted && "border-[#16a34a] shadow-[inset_4px_0_0_#16a34a]", declined && "opacity-60")}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-zinc-200 text-sm font-semibold">{initials(a.student.fullName)}</span>
+          <span style={softColor(a.student.fullName)} className="grid size-11 shrink-0 place-items-center rounded-lg text-sm font-semibold">{initials(a.student.fullName)}</span>
           <div className="flex min-w-0 flex-col gap-1">
             <span className="text-base font-semibold leading-tight">{a.student.fullName}</span>
             <span className="text-[0.8125rem] text-muted-foreground">{a.student.program || "IE student"}{a.student.topField ? ` · strongest in ${a.student.topField}` : ""}</span>

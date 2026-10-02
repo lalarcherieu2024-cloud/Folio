@@ -1,4 +1,4 @@
-import { Building2, FolderKanban, House, ListChecks, Plus, Search, User, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, FolderKanban, House, ListChecks, Plus, Search, User, Users, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 import type { Role } from "@/lib/types";
 
 export type NavEntry = { href: string; label: string; icon: LucideIcon; count?: number; active: boolean };
@@ -19,6 +19,7 @@ export function navFor(role: Role, path: string, counts: NavCounts): NavEntry[] 
     { href: "/projects", label: "Find projects", icon: Search, count: counts.open, active: path.startsWith("/projects") && !path.startsWith("/projects/new") },
     { href: "/applications", label: "My work", icon: ListChecks, count: counts.mine, active: path.startsWith("/applications") || path.startsWith("/requests") },
     { href: "/payments", label: "Payments", icon: Wallet, active: path.startsWith("/payments") },
+    { href: "/progress", label: "Progress", icon: TrendingUp, active: path.startsWith("/progress") },
     { href: "/profile", label: "Profile & record", icon: User, active: path.startsWith("/profile") },
   ];
 }
@@ -26,5 +27,5 @@ export function navFor(role: Role, path: string, counts: NavCounts): NavEntry[] 
 export const PAGE_TITLES: [string, string][] = [
   ["/requests", "My work"],
   ["/company/projects/new", "Post a project"], ["/company/projects", "My projects"], ["/company/applicants", "Applicants"], ["/company", "Dashboard"],
-  ["/projects/new", "Request help"], ["/projects", "Find projects"], ["/applications", "My work"], ["/payments", "Payments"], ["/profile", "Profile & record"], ["/home", "Home"],
+  ["/projects/new", "Post a project"], ["/projects", "Find projects"], ["/applications", "My work"], ["/payments", "Payments"], ["/progress", "Progress"], ["/profile", "Profile & record"], ["/home", "Home"],
 ];

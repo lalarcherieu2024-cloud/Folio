@@ -35,7 +35,7 @@ export default async function RequestPage(props: PageProps<"/requests/[id]">) {
 
   return (
     <div className="page-enter flex flex-col gap-6">
-      <Link href="/applications?tab=requests" className="inline-flex w-fit items-center gap-1.5 text-[0.8125rem] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" />My work · My requests</Link>
+      <Link href="/applications?tab=requests" className="inline-flex w-fit items-center gap-1.5 text-[0.8125rem] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" />My work · Posted by me</Link>
 
       {saved !== null && Number.isFinite(saved) && <SavedToast notified={saved} />}
 
