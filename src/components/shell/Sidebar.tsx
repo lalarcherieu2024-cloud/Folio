@@ -22,7 +22,7 @@ export function NavItems({ role, counts, onNavigate }: { role: Role; counts: Nav
       {items.map(({ href, label, icon: Icon, count, active }) => (
         <Link
           key={href} href={href} onClick={onNavigate} aria-current={active ? "page" : undefined}
-          className={cn("flex h-[34px] items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors", active ? "bg-[#f0f0f1] font-medium text-foreground" : "text-zinc-600 hover:bg-[#f0f0f1] hover:text-foreground")}
+          className={cn("flex h-[34px] items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors", active ? (role === "company" ? "bg-brand-halo font-medium text-brand-navy" : "bg-[#f0f0f1] font-medium text-foreground") : "text-zinc-600 hover:bg-[#f0f0f1] hover:text-foreground")}
         >
           <Icon className="size-4 shrink-0" />
           <span className="flex-1">{label}</span>
@@ -63,7 +63,7 @@ export function UserMenu({ user, side = "top" }: { user: StudentProfile; side?: 
 
 export function Sidebar({ user, counts }: { user: StudentProfile; counts: NavCounts }) {
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-panel md:flex">
+    <aside className={cn("sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r md:flex", user.role === "company" ? "bg-cream" : "bg-panel")}>
       <div className="flex h-16 items-center gap-2.5 border-b px-3">
         <Logo size={44} />
         <div className="flex flex-col leading-tight">

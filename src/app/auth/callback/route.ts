@@ -7,8 +7,9 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}/profile?welcome=1`);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    // Companies continue their verification; students land on their profile.
+    if (!error) return NextResponse.redirect(`${origin}${data.user?.user_metadata?.role === "company" ? "/company/verify" : "/profile?welcome=1"}`);
   }
   return NextResponse.redirect(`${origin}/signin?error=confirm`);
 }

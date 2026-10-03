@@ -4,7 +4,8 @@
 // Animation is switched off for visitors who prefer reduced motion, or with animated={false}.
 import { useSyncExternalStore } from "react";
 
-type Props = { size?: number; animated?: boolean; className?: string };
+// onDark: the variant for navy backgrounds (stronger blue halo, white base lines).
+type Props = { size?: number; animated?: boolean; className?: string; onDark?: boolean };
 
 const BLUE = "#2f5bd3", NAVY = "#1b2f86", HALO = "#d9e3fb", INK = "#1c1b1f";
 const CYCLE = 2.8;
@@ -22,13 +23,13 @@ function A({ on, attr, values, dur, begin = 0, keyTimes }: { on: boolean; attr: 
 const query = "(prefers-reduced-motion: reduce)";
 const subscribe = (cb: () => void) => { const m = window.matchMedia(query); m.addEventListener("change", cb); return () => m.removeEventListener("change", cb); };
 
-export function Logo({ size = 44, animated = true, className }: Props) {
+export function Logo({ size = 44, animated = true, className, onDark = false }: Props) {
   const reduced = useSyncExternalStore(subscribe, () => window.matchMedia(query).matches, () => false);
   const on = animated && !reduced;
   const ink = { fill: "none", stroke: NAVY, strokeWidth: 2.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Folio" className={className} style={{ display: "block", overflow: "visible" }}>
-      <circle cx={32} cy={25} r={23} fill={HALO}>
+      <circle cx={32} cy={25} r={23} fill={onDark ? BLUE : HALO}>
         <A on={on} attr="r" values="22;24;22" dur={3.6} />
         <A on={on} attr="opacity" values=".75;1;.75" dur={3.6} />
       </circle>
@@ -50,7 +51,7 @@ export function Logo({ size = 44, animated = true, className }: Props) {
           </circle>
         </g>
       ))}
-      <path d="M21.5 47.5 H42.5 M24 52 H40 M28 56.5 H36" fill="none" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+      <path d="M21.5 47.5 H42.5 M24 52 H40 M28 56.5 H36" fill="none" stroke={onDark ? "#fff" : INK} strokeWidth={3} strokeLinecap="round" />
     </svg>
   );
 }

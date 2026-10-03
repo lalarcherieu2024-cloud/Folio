@@ -16,6 +16,7 @@
   --radius: 0.5rem;
   --brand: #2f5bd3; --brand-mid: #7d99e6; --brand-low: #c7d4f5; --brand-halo: #d9e3fb; --brand-navy: #1b2f86;
   --panel: #fafafa;
+  --cream: #fbf7f0; /* company workspace background */
 }
 
 @theme inline {
@@ -33,6 +34,7 @@
   --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring);
   --color-brand: var(--brand); --color-brand-mid: var(--brand-mid); --color-brand-low: var(--brand-low);
   --color-brand-halo: var(--brand-halo); --color-brand-navy: var(--brand-navy); --color-panel: var(--panel);
+  --color-cream: var(--cream);
   --radius-sm: calc(var(--radius) - 2px); --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px); --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px); --radius-3xl: calc(var(--radius) + 12px);
