@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateStructured, geminiConfigured } from "./gemini";
+import { FAST_MODELS, generateStructured, geminiConfigured } from "./gemini";
 import { CATEGORIES, type Category } from "./types";
 
 export const BriefSchema = z.object({
@@ -11,6 +11,9 @@ export const BriefSchema = z.object({
   skills: z.array(z.string()).describe("2 to 5 skills"),
   weeks: z.number().describe("Whole weeks, 1 to 6"),
   priceEur: z.number().describe("Fair fixed price in euros for a student, 150 to 1500"),
+  hoursPerWeek: z.number().describe("Typical hours per week for the student, 1 to 20"),
+  learn: z.array(z.string()).describe("1 to 3 things the student will learn or practise doing this, e.g. a tool or method"),
+  beginnerFriendly: z.boolean().describe("true if a student with little experience could do it well"),
   openQuestions: z.array(z.string()).describe("Things the requester must still decide, if any (max 4)"),
 });
 export type Brief = z.infer<typeof BriefSchema> & { source: "ai" | "template" };
@@ -35,6 +38,8 @@ function normalize(b: z.infer<typeof BriefSchema>): z.infer<typeof BriefSchema> 
     skills: b.skills.slice(0, 5),
     weeks: clamp(b.weeks, 1, 6),
     priceEur: clamp(b.priceEur, 150, 1500),
+    hoursPerWeek: clamp(b.hoursPerWeek, 1, 20),
+    learn: b.learn.slice(0, 3),
     openQuestions: b.openQuestions.slice(0, 4),
   };
 }
@@ -51,12 +56,15 @@ function templateBrief(idea: string): z.infer<typeof BriefSchema> {
     skills: [],
     weeks: 2,
     priceEur: 300,
+    hoursPerWeek: 5,
+    learn: [],
+    beginnerFriendly: false,
     openQuestions: ["Who is this for?", "What tools or files should the student use or start from?", "Is there a deadline?"],
   };
 }
 
 export async function draftBrief(idea: string): Promise<Brief> {
   if (!geminiConfigured()) return { ...templateBrief(idea), source: "template" };
-  const brief = await generateStructured({ system: SYSTEM, contents: `<idea>\n${idea}\n</idea>`, schema: BriefSchema });
+  const brief = await generateStructured({ system: SYSTEM, contents: `<idea>\n${idea}\n</idea>`, schema: BriefSchema, models: FAST_MODELS, maxOutputTokens: 2000, timeoutMs: 15000 });
   return { ...normalize(brief), source: "ai" };
 }

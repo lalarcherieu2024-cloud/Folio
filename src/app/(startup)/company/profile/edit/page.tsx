@@ -1,5 +1,8 @@
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CompanyDetailsForm } from "@/components/startup/CompanyDetailsForm";
+import { PageHeader } from "@/components/startup/ui";
 import { requireUser } from "@/lib/auth";
 import { getOrganization } from "@/lib/data/startup";
 
@@ -11,11 +14,9 @@ export default async function EditCompanyProfile() {
   const org = await getOrganization(user);
   if (!org) redirect("/company/verify");
   return (
-    <div className="page-enter flex max-w-[620px] flex-col gap-6">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-[32px] font-semibold tracking-[-0.025em]">Edit profile</h1>
-        <p className="text-[15px] text-muted-foreground">Students see this on your profile and next to every project you post.</p>
-      </div>
+    <div className="page-enter flex max-w-[38.75rem] flex-col gap-6">
+      <Link href="/company/profile" className="inline-flex w-fit items-center gap-1.5 text-[0.8125rem] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" />Company profile</Link>
+      <PageHeader title="Edit profile" sub="Students see this on your profile and next to every project you post." />
       <CompanyDetailsForm org={org} then="profile" backHref="/company/profile" backLabel="Cancel" submitLabel="Save" />
     </div>
   );

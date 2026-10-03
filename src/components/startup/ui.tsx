@@ -1,47 +1,44 @@
-// Small visual building blocks for the startup interface (colours from the design handoff).
-import type { Category, ProjectStatus } from "@/lib/types";
+// Small building blocks for the startup interface, in the same style as the student side.
+import type { ProjectStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export const HUES = {
-  blue: { solid: "#2f5bd3", bg: "#e6ecfb", fg: "#1b2f86" },
-  coral: { solid: "#e8613c", bg: "#fdeae4", fg: "#9a3412" },
-  green: { solid: "#22a55a", bg: "#e3f5ea", fg: "#166534" },
-  amber: { solid: "#e0a00f", bg: "#fdf3d8", fg: "#92400e" },
-  violet: { solid: "#7c4dde", bg: "#efe8fd", fg: "#5b21b6" },
+export const card = "rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
+export const chip = "inline-flex h-[1.375rem] items-center gap-1 rounded-md px-2 text-xs font-medium";
+
+// Same tones as the student "request" page.
+export const TONES = {
+  success: "bg-[#dcfce7] text-[#166534]",
+  info: "bg-[#e0f2fe] text-[#0c4a6e]",
+  warning: "bg-[#fef3c7] text-[#92400e]",
+  violet: "bg-[#ede9fe] text-[#5b21b6]",
+  danger: "bg-[#fee2e2] text-[#991b1b]",
+  muted: "bg-zinc-100 text-zinc-600",
 } as const;
-export type Hue = (typeof HUES)[keyof typeof HUES];
 
-const CATEGORY_HUE: Record<Category, keyof typeof HUES> = {
-  "Tech & Data": "blue",
-  "Design & Creative": "coral",
-  "Marketing & Growth": "green",
-  "Business & Finance": "blue",
-  "Research & Analysis": "violet",
-  "Writing & Content": "amber",
-  "Video & Photo": "coral",
-  "Operations & Admin": "blue",
-};
-export const hueFor = (c: Category): Hue => HUES[CATEGORY_HUE[c] ?? "blue"];
-
-const AVATAR_HUES = [HUES.coral, HUES.blue, HUES.violet, HUES.green, HUES.amber];
-/** Stable colour per person, so the same student always gets the same avatar tint. */
-export const avatarHue = (id: string): Hue => AVATAR_HUES[[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % AVATAR_HUES.length];
-
-const STATUS: Record<ProjectStatus, [label: string, bg: string, fg: string]> = {
-  open: ["Open", "#f0fdf4", "#166534"],
-  in_progress: ["In progress", "#d9e3fb", "#1b2f86"],
-  delivered: ["Delivered", "#fdf3d8", "#92400e"],
-  verified: ["Completed", "#f4f4f5", "#3f3f46"],
-  cancelled: ["Cancelled", "#fef2f2", "#b91c1c"],
+const STATUS: Record<ProjectStatus, [label: string, tone: keyof typeof TONES]> = {
+  open: ["Open", "success"],
+  in_progress: ["In progress", "info"],
+  delivered: ["Delivered", "violet"],
+  verified: ["Verified", "success"],
+  cancelled: ["Cancelled", "muted"],
 };
 
 export function StatusPill({ status, className }: { status: ProjectStatus; className?: string }) {
-  const [label, bg, fg] = STATUS[status];
-  return <span className={cn("inline-flex h-[22px] items-center rounded-md px-2 text-xs font-medium", className)} style={{ background: bg, color: fg }}>{label}</span>;
+  const [label, tone] = STATUS[status];
+  return <span className={cn(chip, TONES[tone], className)}>{label}</span>;
 }
 
-export function Pill({ hue, children, className }: { hue: Hue; children: React.ReactNode; className?: string }) {
-  return <span className={cn("inline-flex h-[22px] items-center rounded-md px-2 text-xs font-medium", className)} style={{ background: hue.bg, color: hue.fg }}>{children}</span>;
+/** Page title + one-line description, as on every student page. */
+export function PageHeader({ title, sub, children }: { title: React.ReactNode; sub?: React.ReactNode; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">{title}</h1>
+        {sub && <p className="max-w-[64ch] text-[0.9375rem] text-muted-foreground">{sub}</p>}
+      </div>
+      {children}
+    </div>
+  );
 }
 
 const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });

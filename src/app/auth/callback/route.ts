@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
+import { safeNext } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";
 
-// Landing point for the confirmation link in Supabase's sign-up email.
+// Landing point for (a) the confirmation link in Supabase's sign-up email and
+// (b) the return trip after linking a GitHub / LinkedIn account.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const next = safeNext(searchParams.get("next") ?? "");
   if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    // Companies continue their verification; students land on their profile.
-    if (!error) return NextResponse.redirect(`${origin}${data.user?.user_metadata?.role === "company" ? "/company/verify" : "/profile?welcome=1"}`);
+    if (!error) {
+      // Copy the freshly linked identities onto the profile (safe to run after any sign-in).
+      await supabase.rpc("sync_verified_identities");
+      // Companies continue their verification; students land on their profile.
+      const home = data.user?.user_metadata?.role === "company" ? "/company/verify" : "/profile?welcome=1";
+      return NextResponse.redirect(`${origin}${next || home}`);
+    }
   }
-  return NextResponse.redirect(`${origin}/signin?error=confirm`);
+  const failed = next || "/signin";
+  return NextResponse.redirect(`${origin}${failed}${failed.includes("?") ? "&" : "?"}error=link`);
 }

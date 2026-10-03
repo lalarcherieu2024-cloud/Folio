@@ -16,10 +16,10 @@ import { cn } from "@/lib/utils";
 
 const FEE = 0.15;
 const EXAMPLE = "I'm starting a thrift-fashion Instagram shop and I need a simple brand: a logo, colours, and some post templates.";
-const blank = { title: "", category: CATEGORIES[0] as string, summary: "", deliverables: "", doneWhen: "", skills: "", weeks: 2, priceEur: 300 };
+const blank = { title: "", category: CATEGORIES[0] as string, summary: "", deliverables: "", doneWhen: "", skills: "", weeks: 2, priceEur: 300, hoursPerWeek: 5, learn: "", beginnerFriendly: false };
 
 const Num = ({ n }: { n: number }) => <span className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{n}</span>;
-const card = "flex flex-col rounded-xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]";
+const card = "flex flex-col rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
 const select = "h-9 w-full rounded-md border bg-white px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function BriefBuilder() {
@@ -40,7 +40,7 @@ export function BriefBuilder() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Couldn't draft the brief.");
       const b = data as Brief;
-      setF({ title: b.title, category: b.category, summary: b.summary, deliverables: b.deliverables.join("\n"), doneWhen: b.doneWhen, skills: b.skills.join(", "), weeks: b.weeks, priceEur: b.priceEur });
+      setF({ title: b.title, category: b.category, summary: b.summary, deliverables: b.deliverables.join("\n"), doneWhen: b.doneWhen, skills: b.skills.join(", "), weeks: b.weeks, priceEur: b.priceEur, hoursPerWeek: b.hoursPerWeek, learn: b.learn.join(", "), beginnerFriendly: b.beginnerFriendly });
       setQuestions(b.openQuestions); setDrafted(b.source);
       if (b.source === "template") toast("AI isn't connected yet", { description: "This is a generic starting template. Edit it by hand." });
     } catch (e) {
@@ -55,11 +55,11 @@ export function BriefBuilder() {
   const total = Math.round(f.priceEur * (1 + FEE));
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] items-start gap-4">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,23.75rem),1fr))] items-start gap-4">
       <section className={cn(card, "bg-panel")}>
         <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={1} /><h2 className="text-base font-semibold">Describe your idea</h2></div>
         <div className={cn("flex flex-col gap-3 px-5 pb-5 transition-opacity", drafting && "opacity-40")}>
-          <p className="text-[13px] text-muted-foreground">Rough is fine. What are you building or trying to get done, and who is it for?</p>
+          <p className="text-[0.8125rem] text-muted-foreground">Rough is fine. What are you building or trying to get done, and who is it for?</p>
           <Textarea value={idea} onChange={(e) => setIdea(e.target.value)} rows={6} maxLength={2000} aria-label="Your idea" placeholder="e.g. a logo and brand colours for my Instagram shop…" className="resize-none bg-white" />
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" onClick={draft} disabled={drafting || !ideaOk} className="h-9 px-3.5"><Sparkles className="size-4" />{drafting ? "Drafting your brief…" : drafted ? "Redraft with AI" : "Draft my brief with AI"}</Button>
@@ -69,14 +69,14 @@ export function BriefBuilder() {
           {questions.length > 0 && (
             <div className="rounded-lg border bg-white p-3.5">
               <p className="text-sm font-semibold">Before you post, decide</p>
-              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
+              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[0.8125rem] text-muted-foreground">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
             </div>
           )}
         </div>
       </section>
 
       <form action={action} className={card}>
-        <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={2} /><h2 className="text-base font-semibold">Review and post</h2>{drafted === "ai" && <Badge variant="secondary" className="ml-auto h-[22px] rounded-md px-2 text-xs">AI draft · edit anything</Badge>}</div>
+        <div className="flex items-center gap-2.5 p-5 pb-3"><Num n={2} /><h2 className="text-base font-semibold">Review and post</h2>{drafted === "ai" && <Badge variant="secondary" className="ml-auto h-[1.375rem] rounded-md px-2 text-xs">AI draft · edit anything</Badge>}</div>
         <div className="grid gap-4 px-5 pb-5">
           <div className="grid gap-1.5"><Label htmlFor="title">Project title</Label><Input id="title" name="title" value={f.title} maxLength={70} onChange={(e) => set("title", e.target.value)} className="h-9" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -90,6 +90,11 @@ export function BriefBuilder() {
             <div className="grid gap-1.5"><Label htmlFor="priceEur">Price paid to student (€)</Label><Input id="priceEur" name="priceEur" type="number" min={150} step={50} value={f.priceEur} onChange={(e) => set("priceEur", Number(e.target.value))} className="h-9 font-mono" /></div>
             <div className="grid gap-1.5"><Label htmlFor="weeks">Duration</Label><select id="weeks" name="weeks" value={f.weeks} onChange={(e) => set("weeks", Number(e.target.value))} className={select}>{[1, 2, 3, 4, 5, 6].map((w) => <option key={w} value={w}>{w} week{w > 1 ? "s" : ""}</option>)}</select></div>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5"><Label htmlFor="hoursPerWeek">Hours per week</Label><Input id="hoursPerWeek" name="hoursPerWeek" type="number" min={1} max={60} value={f.hoursPerWeek} onChange={(e) => set("hoursPerWeek", Number(e.target.value))} className="h-9 font-mono" /></div>
+            <div className="grid gap-1.5"><Label htmlFor="learn">What the student will learn</Label><Input id="learn" name="learn" value={f.learn} onChange={(e) => set("learn", e.target.value)} placeholder="e.g. Metabase, dashboards" className="h-9" /></div>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm"><input type="checkbox" name="beginnerFriendly" checked={f.beginnerFriendly} onChange={(e) => set("beginnerFriendly", e.target.checked)} className="size-4 accent-[#0c4a6e]" />A good first project (little experience needed)</label>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">
           <div className="flex flex-col leading-tight"><span className="text-sm">You pay <span className="font-mono font-semibold">€{total.toLocaleString("en-GB")}</span></span><span className="text-xs text-muted-foreground">€{f.priceEur.toLocaleString("en-GB")} to the student + 15% Folio fee</span></div>

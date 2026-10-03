@@ -15,7 +15,7 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
     <div className="grid gap-1.5"><Label htmlFor={id}>{label}</Label><Input id={id} name={id} className="h-9" {...props} />{hint && <span className="text-xs text-muted-foreground">{hint}</span>}</div>
   );
   return (
-    <form action={action} className="grid gap-4 rounded-xl border bg-white p-7 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+    <form action={action} className="grid gap-4 rounded-xl border bg-white p-7 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
       <div className="grid gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">{up ? "Create your account" : "Welcome back"}</h1>
         <p className="text-sm text-muted-foreground">{up ? (role === "company" ? "For startups and small businesses. Post a project in minutes." : "Free for IE students. Add your CV next.") : "Sign in to apply and track your work."}</p>
@@ -27,7 +27,7 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
       {field("email", "Email", { type: "email", autoComplete: "email", required: true }, up ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
       {field("password", "Password", { type: "password", autoComplete: up ? "new-password" : "current-password", required: true, minLength: up ? 8 : undefined }, up ? "At least 8 characters." : undefined)}
       {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
-      {state.notice && <p role="status" className="rounded-lg bg-[#dbeafe] px-3 py-2.5 text-sm font-medium text-[#1e40af]">{state.notice}</p>}
+      {state.notice && <p role="status" className="rounded-lg bg-[#e0f2fe] px-3 py-2.5 text-sm font-medium text-[#0c4a6e]">{state.notice}</p>}
       <Button type="submit" disabled={pending} className="h-10 w-full">{pending ? "One moment…" : up ? "Create account" : "Sign in"}</Button>
       <p className="text-center text-sm text-muted-foreground">
         {up ? <>Already have an account? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></> : <>New to Folio? <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">Create an account</Link></>}

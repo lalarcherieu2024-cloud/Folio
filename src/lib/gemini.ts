@@ -7,17 +7,20 @@ export function geminiConfigured() {
   return !!process.env.GEMINI_API_KEY;
 }
 
-export async function generateStructured<T extends z.ZodType>(opts: { system: string; contents: ContentListUnion; schema: T; maxOutputTokens?: number }): Promise<z.infer<T>> {
+export const FAST_MODELS = ["gemini-flash-lite-latest", "gemini-flash-latest"]; // quick interactive answers
+export const SMART_MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest"]; // heavier reading (CVs)
+
+export async function generateStructured<T extends z.ZodType>(opts: { system: string; contents: ContentListUnion; schema: T; maxOutputTokens?: number; models?: string[]; timeoutMs?: number }): Promise<z.infer<T>> {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const config = { systemInstruction: opts.system, responseMimeType: "application/json", responseJsonSchema: z.toJSONSchema(opts.schema), maxOutputTokens: opts.maxOutputTokens ?? 4000 };
-  const models = [process.env.GEMINI_MODEL || "gemini-flash-latest", "gemini-flash-lite-latest"];
+  const config = { systemInstruction: opts.system, responseMimeType: "application/json", responseJsonSchema: z.toJSONSchema(opts.schema), maxOutputTokens: opts.maxOutputTokens ?? 4000, httpOptions: { timeout: opts.timeoutMs ?? 25000 } };
+  const models = [...(process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []), ...(opts.models ?? SMART_MODELS)];
   let text: string | undefined;
   for (const [i, model] of models.entries()) {
     try {
       text = (await ai.models.generateContent({ model, contents: opts.contents, config })).text;
       break;
     } catch (err) {
-      const busy = err instanceof ApiError && (err.status === 503 || err.status === 429);
+      const busy = (err instanceof ApiError && (err.status >= 500 || err.status === 429)) || (err instanceof Error && /timeout|timed out|aborted/i.test(err.message));
       if (!busy || i === models.length - 1) throw err;
     }
   }

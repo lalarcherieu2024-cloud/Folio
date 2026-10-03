@@ -1,9 +1,10 @@
-import { Check } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { buttonVariants } from "@/components/ui/button";
 import { PostedToast } from "@/components/startup/PostedToast";
-import { hueFor, Pill, StatusPill } from "@/components/startup/ui";
+import { card, StatusPill } from "@/components/startup/ui";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { getCompanyProject } from "@/lib/data/startup";
 import { cn } from "@/lib/utils";
@@ -18,52 +19,56 @@ export default async function CompanyProjectPage(props: PageProps<"/company/proj
   const user = await requireUser(`/company/projects/${id}`, "company");
   const p = await getCompanyProject(user, id);
   if (!p) notFound();
-  const hue = hueFor(p.category);
-  const applicants = `${p.applicantCount} applicant${p.applicantCount === 1 ? "" : "s"}`;
   const stats = [["Pay", eur(p.priceEur)], ["Duration", weeksLabel(p.weeks)], ["Applicants", String(p.applicantCount)]];
 
   return (
-    <div className="page-enter flex max-w-[860px] flex-col gap-6">
+    <div className="page-enter flex max-w-[53.75rem] flex-col gap-6">
       {posted && <PostedToast />}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3">
-        <span className="min-w-[200px] flex-1 text-[13px] text-zinc-600">Public view. This is what students see when they open your project.</span>
-        <Link href={`/company/applicants?project=${p.id}`} className={cn(buttonVariants({ variant: "outline" }), "h-8 px-3 text-[13px]")}>View {applicants}</Link>
+      <Link href="/company/projects" className="inline-flex w-fit items-center gap-1.5 text-[0.8125rem] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" />My projects</Link>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-[1.875rem] font-semibold leading-tight tracking-[-0.025em]">{p.title}</h1>
+          <StatusPill status={p.status} />
+          <Link href={`/company/applicants?project=${p.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto h-8 bg-white px-3 text-[0.8125rem]")}>
+            View {p.applicantCount} applicant{p.applicantCount === 1 ? "" : "s"}
+          </Link>
+        </div>
+        <p className="flex flex-wrap items-center gap-1.5 text-[0.9375rem] text-muted-foreground">
+          <span className="font-medium text-foreground">{p.orgName ?? p.clientName}</span>
+          {p.orgVerified && <Check className="size-3.5 text-[#16a34a]" strokeWidth={2.5} aria-label="Verified" />}
+          <span>· {p.hood} · {p.category}</span>
+        </p>
       </div>
 
-      <article className="overflow-hidden rounded-xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]">
-        <div className="border-b px-7 pb-5 pt-6" style={{ background: hue.bg }}>
-          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-            <span className="font-medium text-foreground">{p.orgName ?? p.clientName}</span>
-            {p.orgVerified && <span className="inline-flex h-5 items-center gap-1 rounded-md border bg-white px-1.5 text-[11px] font-medium text-[#166534]"><Check className="size-3" />Verified</span>}
-            <span>· {p.hood}</span>
-            <StatusPill status={p.status} className="ml-auto" />
-          </div>
-          <h1 className="mt-2.5 text-balance text-[26px] font-semibold leading-tight tracking-[-0.02em]">{p.title}</h1>
-        </div>
+      <p className="rounded-lg border border-dashed border-zinc-300 bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600">This is what students see when they open your project.</p>
+
+      <article className={cn(card, "overflow-hidden")}>
         <div className="grid grid-cols-3 border-b">
           {stats.map(([k, v], i) => (
-            <div key={k} className={cn("flex flex-col gap-0.5 px-7 py-4", i > 0 && "border-l")}>
+            <div key={k} className={cn("flex flex-col gap-0.5 px-5 py-4", i > 0 && "border-l")}>
               <span className="text-xs text-muted-foreground">{k}</span>
-              <span className="font-mono text-[15px] font-semibold">{v}</span>
+              <span className="font-mono text-[0.9375rem] font-semibold">{v}</span>
             </div>
           ))}
         </div>
-        <div className="flex flex-col gap-6 px-7 py-6">
-          <p className="max-w-[68ch] text-pretty text-[15px] leading-relaxed">{p.summary}</p>
-          <section className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-5 p-5">
+          <p className="max-w-[68ch] text-pretty text-[0.9375rem] leading-relaxed">{p.summary}</p>
+          <div>
             <h2 className="text-sm font-semibold">Deliverable{p.deliverables.length > 1 ? "s" : ""}</h2>
-            {p.deliverables.map((d) => (
-              <div key={d} className="flex items-start gap-2.5 text-sm">
-                <span className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded border"><Check className="size-3 text-zinc-400" strokeWidth={3} /></span>
-                <span>{d}</span>
-              </div>
-            ))}
-          </section>
+            <ul className="mt-2 space-y-2">
+              {p.deliverables.map((d) => (
+                <li key={d} className="flex items-start gap-2.5 text-sm"><span className="mt-0.5 grid size-[1.125rem] shrink-0 place-items-center rounded border bg-white"><Check className="size-3 text-zinc-400" strokeWidth={3} /></span>{d}</li>
+              ))}
+            </ul>
+          </div>
           {p.skills.length > 0 && (
-            <section className="flex flex-col gap-2.5">
+            <div>
               <h2 className="text-sm font-semibold">Skills needed</h2>
-              <div className="flex flex-wrap gap-1.5">{p.skills.map((s) => <Pill key={s} hue={hue}>{s}</Pill>)}</div>
-            </section>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {p.skills.map((s) => <Badge key={s} variant="secondary" className="rounded-md px-2 text-xs font-medium text-zinc-800">{s}</Badge>)}
+              </div>
+            </div>
           )}
         </div>
       </article>

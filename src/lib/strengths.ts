@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateStructured, geminiConfigured } from "./gemini";
+import { FAST_MODELS, generateStructured, geminiConfigured } from "./gemini";
 import { CATEGORIES, type Strengths } from "./types";
 
 const Score = z.object({ label: z.string(), pct: z.number() });
@@ -22,6 +22,9 @@ export async function analyzeCv(bytes: ArrayBuffer, mime: string): Promise<Stren
   const out = await generateStructured({
     system: SYSTEM,
     schema: StrengthsSchema,
+    models: FAST_MODELS,
+    timeoutMs: 40000,
+    maxOutputTokens: 2000,
     contents: [{ role: "user", parts: [{ inlineData: { mimeType: "application/pdf", data: Buffer.from(bytes).toString("base64") } }, { text: "Score this CV." }] }],
   });
   const byLabel = new Map(out.fields.map((f) => [f.label, clamp(f.pct)]));

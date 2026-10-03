@@ -36,14 +36,34 @@ export type Project = {
   skills: string[];
   status: ProjectStatus;
   applicantCount: number;
+  about: CompanyAbout | null; // null for student requests, or until a company fills it in
+  hoursPerWeek: number | null; // typical weekly effort
+  learn: string[]; // what a student picks up doing it
+  beginnerFriendly: boolean; // a good first project
 };
+
+export type CompanyAbout = { industry: string; size: string; founded: string; blurb: string; website: string | null };
 
 export type Application = {
   id: string;
   projectId: string;
-  pitch: string;
+  pitch: string; // optional note, may be empty
   status: ApplicationStatus;
   createdAt: string;
+  includeFiles: boolean; // student chose to share their additional files
+  acceptedAt: string | null; // when the client chose this student (starts the clock)
+};
+
+export type Applicant = {
+  applicationId: string;
+  status: ApplicationStatus;
+  pitch: string;
+  includeFiles: boolean;
+  appliedAt: string;
+  student: { id: string; avatarColor: string | null; avatarUrl: string | null; fullName: string; program: string; githubHandle: string | null; githubVerified: boolean; linkedinUrl: string | null; linkedinVerified: boolean; topField: string | null };
+  cv: { name: string; sizeKb: number; url: string | null } | null;
+  files: { id: string; name: string; sizeKb: number; url: string | null }[];
+  matchedSkills: string[]; // skills the project asks for that this student has
 };
 
 export type Credential = {
@@ -56,7 +76,13 @@ export type Credential = {
   rating: number;
   review: string;
   issuedAt: string; // e.g. "July 2026"
+  category: string; // field of the project
+  priceEur: number;
 };
+
+export type ProfileFile = { id: string; name: string; sizeKb: number; createdAt: string };
+
+export type Notification = { id: string; kind: string; title: string; body: string; link: string | null; read: boolean; createdAt: string };
 
 export type CvInfo = { fileName: string; sizeKb: number; uploadedAt: string };
 
@@ -72,8 +98,14 @@ export type StudentProfile = {
   fullName: string;
   program: string;
   uniEmailVerified: boolean;
-  githubHandle: string | null; // optional, entered but NOT yet verified
-  linkedinUrl: string | null; // optional, entered but NOT yet verified
+  githubHandle: string | null; // typed by the student, or the real handle once verified
+  linkedinUrl: string | null; // optional, typed by the student
+  githubVerified: boolean; // true only after linking the real GitHub account (OAuth)
+  linkedinVerified: boolean; // true only after linking the real LinkedIn account (OAuth)
   cv: CvInfo | null;
   strengths: Strengths | null;
+  avatarColor: string | null; // chosen background colour for the initials
+  avatarUrl: string | null; // uploaded photo, if any
+  payoutLink: string | null; // PayPal link where the student gets paid
+  fileCount: number; // additional files (portfolio etc.)
 };

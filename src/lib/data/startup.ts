@@ -2,6 +2,7 @@
 // Database rules: supabase/migrations/0001_init.sql, the Student-view migrations 0009–0013
 // (accept_applicant, applicant file access) and 0015_company_side.sql.
 import type { PostgrestError } from "@supabase/supabase-js";
+import { avatarPublicUrl } from "../avatar";
 import { createClient } from "../supabase/server";
 import type { ApplicationStatus, Category, Credential, Project, ProjectStatus, StudentProfile } from "../types";
 import { monthYear, toProject, UUID } from "./shared";
@@ -16,6 +17,10 @@ export type Applicant = {
   studentId: string;
   name: string;
   program: string;
+  avatarColor: string | null;
+  avatarUrl: string | null;
+  githubVerified: boolean;
+  linkedinVerified: boolean;
   status: ApplicationStatus;
   createdAt: string;
   hasCv: boolean;
@@ -98,12 +103,17 @@ export async function saveOrganization(user: StudentProfile, d: OrgDetails): Pro
 
 export async function saveCompanyDoc(user: StudentProfile, kind: DocKind, file: File, ext: string): Promise<{ error?: string }> {
   const supabase = await createClient();
-  const { data: org } = await supabase.from("organizations").select("id, status").eq("owner_id", user.id).maybeSingle();
+  const { data: org, error: orgErr } = await supabase.from("organizations").select("id, status").eq("owner_id", user.id).maybeSingle();
+  if (orgErr?.code === "42703") return { error: NEEDS_MIGRATION };
   if (!org) return { error: "Add your company details first." };
   if (org.status !== "draft" && org.status !== "rejected") return { error: "Your documents were already submitted." };
   const path = `${user.id}/${kind}-${Date.now()}${ext}`;
   const { error: upErr } = await supabase.storage.from("company-docs").upload(path, await file.arrayBuffer(), { contentType: file.type || undefined });
-  if (upErr) { console.error("saveCompanyDoc upload", upErr); return { error: "Upload failed. Check the file is a PDF, JPG or PNG under 10 MB." }; }
+  if (upErr) {
+    console.error("saveCompanyDoc upload", upErr);
+    if (/bucket not found/i.test(upErr.message)) return { error: NEEDS_MIGRATION };
+    return { error: "Upload failed. Check the file is a PDF, JPG or PNG under 10 MB." };
+  }
   const { data: old } = await supabase.from("company_documents").select("path").eq("org_id", org.id).eq("kind", kind).maybeSingle();
   if (old) await supabase.from("company_documents").delete().eq("org_id", org.id).eq("kind", kind);
   const { error } = await supabase.from("company_documents").insert({ org_id: org.id, kind, path, file_name: file.name.slice(0, 120), size_kb: Math.max(1, Math.round(file.size / 1024)) });
@@ -168,7 +178,7 @@ export async function countIssuedCredentials(projects: CompanyProject[]): Promis
 
 // ---------------------------------------------------------------- applicants
 
-const APPLICANT_FIELDS = "id, project_id, student_id, status, created_at, pitch, student:profiles(full_name, program, uni_email_verified, github_handle, linkedin_url, cv_path, cv_name, cv_size_kb)";
+const APPLICANT_FIELDS = "id, project_id, student_id, status, created_at, pitch, student:profiles(full_name, program, avatar_color, avatar_path, uni_email_verified, github_handle, github_verified, linkedin_url, linkedin_verified, cv_path, cv_name, cv_size_kb)";
 
 const linksOf = (s: any): { label: string; href: string }[] => [
   ...(s?.github_handle ? [{ label: `github.com/${s.github_handle}`, href: `https://github.com/${s.github_handle}` }] : []),
@@ -178,7 +188,10 @@ const linksOf = (s: any): { label: string; href: string }[] => [
 function toApplicant(a: any, project: Pick<Project, "title" | "status">, ratings: number[]): Applicant {
   return {
     id: a.id, projectId: a.project_id, projectTitle: project.title, projectStatus: project.status, studentId: a.student_id,
-    name: a.student?.full_name ?? "Student", program: a.student?.program ?? "", status: a.status, createdAt: a.created_at,
+    name: a.student?.full_name ?? "Student", program: a.student?.program ?? "",
+    avatarColor: a.student?.avatar_color ?? null, avatarUrl: avatarPublicUrl(a.student?.avatar_path),
+    githubVerified: !!a.student?.github_verified, linkedinVerified: !!a.student?.linkedin_verified,
+    status: a.status, createdAt: a.created_at,
     hasCv: !!a.student?.cv_path, linkCount: linksOf(a.student).length,
     pastCount: ratings.length, avgRating: ratings.length ? ratings.reduce((s, n) => s + n, 0) / ratings.length : null,
   };
@@ -208,7 +221,7 @@ export async function getApplicant(user: StudentProfile, applicationId: string):
   const { data: creds } = await supabase.from("credential_cards").select("*").eq("student_id", a.student_id).order("issued_at", { ascending: false });
   const past: Credential[] = (creds ?? []).map((r: any) => ({
     id: r.id, projectId: r.project_id, projectTitle: r.project_title, clientName: r.client_name, orgName: r.org_name,
-    hood: r.hood, rating: r.rating, review: r.review, issuedAt: monthYear(r.issued_at),
+    hood: r.hood, rating: r.rating, review: r.review, issuedAt: monthYear(r.issued_at), category: r.category ?? "", priceEur: r.price_eur ?? 0,
   }));
   const s = (a as any).student;
   return {

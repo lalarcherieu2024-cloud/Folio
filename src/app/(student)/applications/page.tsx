@@ -11,8 +11,8 @@ export default async function ApplicationsPage({ searchParams }: PageProps<"/app
   return (
     <div className="page-enter flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-[30px] font-semibold tracking-[-0.025em]">My work</h1>
-        <p className="text-[15px] text-muted-foreground">Track each project from application to verified credential.</p>
+        <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">My work</h1>
+        <p className="text-[0.9375rem] text-muted-foreground">Track each project from application to verified credential.</p>
       </div>
       <WorkTabs apps={apps} requests={requests} tab={sp.tab === "requests" ? "requests" : "applications"} posted={sp.posted === "1"} />
     </div>

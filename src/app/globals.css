@@ -4,22 +4,26 @@
 
 /* Folio design tokens (shadcn zinc) + one brand colour, from the design handoff. */
 :root {
-  --background: #ffffff; --foreground: #09090b;
-  --card: #ffffff; --card-foreground: #09090b;
-  --popover: #ffffff; --popover-foreground: #09090b;
-  --primary: #18181b; --primary-foreground: #fafafa;
-  --secondary: #f4f4f5; --secondary-foreground: #18181b;
-  --muted: #f4f4f5; --muted-foreground: #71717a;
-  --accent: #f4f4f5; --accent-foreground: #18181b;
+  --background: #f5f9fc; --foreground: #0b1f2e;
+  --card: #ffffff; --card-foreground: #0b1f2e;
+  --popover: #ffffff; --popover-foreground: #0b1f2e;
+  --primary: #0c4a6e; --primary-foreground: #ffffff;
+  --secondary: #eef4f8; --secondary-foreground: #0b1f2e;
+  --muted: #eef4f8; --muted-foreground: #5b6b78;
+  --accent: #eef4f8; --accent-foreground: #0b1f2e;
   --destructive: #dc2626;
-  --border: #e4e4e7; --input: #e4e4e7; --ring: #a1a1aa;
+  --border: #dde7ee; --input: #dde7ee; --ring: #5b9bbd;
   --radius: 0.5rem;
-  --brand: #2f5bd3; --brand-mid: #7d99e6; --brand-low: #c7d4f5; --brand-halo: #d9e3fb; --brand-navy: #1b2f86;
-  --panel: #fafafa;
-  --cream: #fbf7f0; /* company workspace background */
+  --brand: #0c4a6e; --brand-mid: #5b9bbd; --brand-low: #bfdbe9; --brand-halo: #d6ebf7; --brand-navy: #082f49;
+  --lime: #15803d; --lime-soft: #dcfce7; --lime-border: #bbf7d0; /* "lime" = the original green */
+  --soft: #e0f2fe; /* soft blue: active items and chips */
+  --panel: #f1f6fa;
 }
 
 @theme inline {
+  --color-zinc-50: #f8fafc; --color-zinc-100: #f1f5f9; --color-zinc-200: #e2e8f0; --color-zinc-300: #cbd5e1; --color-zinc-400: #94a3b8;
+  --color-zinc-500: #64748b; --color-zinc-600: #475569; --color-zinc-700: #334155; --color-zinc-800: #1e293b; --color-zinc-900: #0f172a;
+  --color-soft: var(--soft);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --font-heading: var(--font-sans);
@@ -32,9 +36,8 @@
   --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring);
-  --color-brand: var(--brand); --color-brand-mid: var(--brand-mid); --color-brand-low: var(--brand-low);
+  --color-lime: var(--lime); --color-lime-soft: var(--lime-soft); --color-brand: var(--brand); --color-brand-mid: var(--brand-mid); --color-brand-low: var(--brand-low);
   --color-brand-halo: var(--brand-halo); --color-brand-navy: var(--brand-navy); --color-panel: var(--panel);
-  --color-cream: var(--cream);
   --radius-sm: calc(var(--radius) - 2px); --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px); --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px); --radius-3xl: calc(var(--radius) + 12px);
@@ -43,12 +46,14 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   html { @apply font-sans; font-size: 16px; }
-  body { @apply bg-background text-foreground antialiased; font-size: 14px; }
+  body { @apply bg-background text-foreground antialiased; font-size: 0.875rem; }
   h1, h2, h3 { letter-spacing: -0.015em; }
-  ::placeholder { color: #a1a1aa; }
+  ::placeholder { color: #94a3b8; }
 }
-@media (min-width: 1280px) { html { font-size: 17px; } }
-@media (min-width: 1700px) { html { font-size: 18px; } }
+/* Everything is rem-based, so raising the root size scales the whole interface on big screens. */
+@media (min-width: 1280px) { html { font-size: 18px; } }
+@media (min-width: 1700px) { html { font-size: 20px; } }
+@media (min-width: 2100px) { html { font-size: 22px; } }
 
 /* ---------- Motion ---------- */
 @keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -67,8 +72,17 @@
 .stagger > :nth-child(8) { animation-delay: 385ms; }
 .stagger > :nth-child(9) { animation-delay: 440ms; }
 
-.card-hover { transition: border-color .15s, box-shadow .15s; }
-.card-hover:hover { border-color: #a1a1aa; box-shadow: 0 6px 16px -8px rgba(0,0,0,.12); }
+@keyframes pop-card { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+.pop-card { animation: pop-card .4s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes slide-in-left { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@keyframes pop-count { 0% { transform: scale(.7); opacity: .3; } 60% { transform: scale(1.18); } 100% { transform: scale(1); opacity: 1; } }
+.slide-in { animation: slide-in-left .45s cubic-bezier(.2, .8, .2, 1) both; }
+.pop-count { display: inline-block; animation: pop-count .35s cubic-bezier(.2, .8, .2, 1) both; }
+
+/* Cards: a gentle lift and a soft shadow, like a physical card being picked up. */
+.card-hover { transition: border-color .2s, box-shadow .25s, transform .25s cubic-bezier(.2, .8, .2, 1); }
+.card-hover:hover { border-color: #5b9bbd; box-shadow: 0 12px 28px -14px rgba(0,0,0,.22); transform: translateY(-3px); }
+.card-hover:active { transform: translateY(-1px) scale(.995); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

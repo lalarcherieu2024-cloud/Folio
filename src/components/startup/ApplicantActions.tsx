@@ -11,8 +11,7 @@ import type { Applicant } from "@/lib/data/startup";
 import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/work";
-
-const pill = "inline-flex items-center rounded-md px-2.5 text-xs font-medium";
+import { chip, TONES } from "./ui";
 
 function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "name" | "projectTitle">; open: boolean; onOpenChange: (o: boolean) => void }) {
   const [rating, setRating] = useState(0);
@@ -27,7 +26,7 @@ function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "na
   }, [state, a.name, onOpenChange]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-6 sm:max-w-[480px]">
+      <DialogContent className="p-6 sm:max-w-[30rem]">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Verify {firstName(a.name)}&apos;s work</DialogTitle>
           <DialogDescription>Check the deliverable for “{a.projectTitle}”. Your rating and review become the student&apos;s verified credential, shown on their profile.</DialogDescription>
@@ -46,7 +45,7 @@ function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "na
           {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
           <DialogFooter className="mt-1 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={!rating || review.trim().length < 10 || pending} className="bg-brand text-white hover:bg-brand/90">{pending ? "Verifying…" : "Verify and issue credential"}</Button>
+            <Button type="submit" disabled={!rating || review.trim().length < 10 || pending}>{pending ? "Verifying…" : "Verify and issue credential"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -54,39 +53,37 @@ function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "na
   );
 }
 
-/** Accept / Reject for a pending applicant, Verify for delivered work, otherwise the outcome as a pill. */
+/** Accept / Decline for a pending applicant, Verify for delivered work, otherwise the outcome as a badge. */
 export function ApplicantActions({ a, size = "sm" }: { a: Applicant; size?: "sm" | "lg" }) {
   const [busy, start] = useTransition();
   const [verifying, setVerifying] = useState(false);
-  const h = size === "lg" ? "h-9 px-3.5 text-sm" : "h-8 px-3 text-[13px]";
+  const h = size === "lg" ? "h-9 px-3.5 text-sm" : "h-8 px-3 text-[0.8125rem]";
 
   const accept = () => start(async () => {
     const r = await acceptApplicantAction(a.id);
-    if (r.error) toast.error(r.error); else toast.success(`${a.name} accepted`, { description: r.notice });
+    if (r.error) toast.error(r.error); else toast.success(`${firstName(a.name)} is now working on this`, { description: r.notice });
   });
-  const reject = () => start(async () => {
+  const decline = () => start(async () => {
     const r = await declineApplicantAction(a.id);
-    if (r.error) toast.error(r.error); else toast(`${a.name} rejected`, { description: "They’ll see it in their applications." });
+    if (r.error) toast.error(r.error); else toast.success("Applicant declined");
   });
 
   if (a.status === "pending") {
     return (
       <div className="flex gap-2">
-        <button type="button" onClick={reject} disabled={busy} className={cn("rounded-lg border bg-white font-medium hover:bg-[#fef2f2] hover:text-[#b91c1c] disabled:opacity-50", h)}>Reject</button>
-        <button type="button" onClick={accept} disabled={busy} className={cn("rounded-lg bg-brand font-medium text-white hover:bg-brand/90 disabled:opacity-50", h)}>{busy ? "Saving…" : "Accept"}</button>
+        <Button variant="outline" size="sm" disabled={busy} onClick={decline} className={cn("bg-white", h)}>Decline</Button>
+        <Button size="sm" disabled={busy} onClick={accept} className={h}>Accept</Button>
       </div>
     );
   }
   if (a.status === "delivered" && a.projectStatus !== "verified") {
     return (
       <>
-        <button type="button" onClick={() => setVerifying(true)} className={cn("rounded-lg bg-brand font-medium text-white hover:bg-brand/90", h)}>Verify delivery</button>
+        <Button size="sm" onClick={() => setVerifying(true)} className={h}>Verify delivery</Button>
         <VerifyDialog a={a} open={verifying} onOpenChange={setVerifying} />
       </>
     );
   }
-  const [label, cls] = a.status === "declined" ? ["Declined", "bg-[#fef2f2] text-[#b91c1c]"]
-    : a.projectStatus === "verified" ? ["✓ Verified", "bg-[#f0fdf4] text-[#166534]"]
-    : ["Accepted · in progress", "bg-[#f0fdf4] text-[#166534]"];
-  return <span className={cn(pill, cls, size === "lg" ? "h-7 text-[13px]" : "h-6")}>{label}</span>;
+  const [label, tone] = a.status === "declined" ? ["Declined", TONES.muted] : a.projectStatus === "verified" ? ["Verified", TONES.success] : ["Working on it", TONES.success];
+  return <span className={cn(chip, tone, size === "lg" && "h-7 text-[0.8125rem]")}>{label}</span>;
 }
