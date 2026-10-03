@@ -94,7 +94,7 @@ export function BriefBuilder() {
             <div className="grid gap-1.5"><Label htmlFor="hoursPerWeek">Hours per week</Label><Input id="hoursPerWeek" name="hoursPerWeek" type="number" min={1} max={60} value={f.hoursPerWeek} onChange={(e) => set("hoursPerWeek", Number(e.target.value))} className="h-9 font-mono" /></div>
             <div className="grid gap-1.5"><Label htmlFor="learn">What the student will learn</Label><Input id="learn" name="learn" value={f.learn} onChange={(e) => set("learn", e.target.value)} placeholder="e.g. Metabase, dashboards" className="h-9" /></div>
           </div>
-          <label className="flex cursor-pointer items-center gap-2.5 text-sm"><input type="checkbox" name="beginnerFriendly" checked={f.beginnerFriendly} onChange={(e) => set("beginnerFriendly", e.target.checked)} className="size-4 accent-[#18181b]" />A good first project (little experience needed)</label>
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm"><input type="checkbox" name="beginnerFriendly" checked={f.beginnerFriendly} onChange={(e) => set("beginnerFriendly", e.target.checked)} className="size-4 accent-[#0c4a6e]" />A good first project (little experience needed)</label>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">
           <div className="flex flex-col leading-tight"><span className="text-sm">You pay <span className="font-mono font-semibold">€{total.toLocaleString("en-GB")}</span></span><span className="text-xs text-muted-foreground">€{f.priceEur.toLocaleString("en-GB")} to the student + 15% Folio fee</span></div>

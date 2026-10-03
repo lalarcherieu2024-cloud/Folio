@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import type { Strengths } from "@/lib/types";
 
-const color = (pct: number) => (pct >= 75 ? "#2f5bd3" : pct >= 50 ? "#7d99e6" : "#c7d4f5");
+const color = (pct: number) => (pct >= 75 ? "#0c4a6e" : pct >= 50 ? "#5b9bbd" : "#bfdbe9");
 const PLACEHOLDER: Strengths = {
   fields: ["Tech & Data", "Business & Finance", "Research & Analysis", "Operations & Admin", "Marketing & Growth", "Design & Creative"].map((label, i) => ({ label, pct: 85 - i * 12 })),
   skills: ["SQL", "Excel", "Python", "Data viz", "Writing", "Research"].map((label, i) => ({ label, pct: 80 - i * 10 })),

@@ -53,8 +53,8 @@ function AppCard({ a }: { a: Row }) {
         <div className="grid grid-cols-5 gap-1.5">
           {STEPS.map((label, i) => (
             <div key={label} className="flex flex-col gap-2">
-              <div className="h-1.5 rounded-full" style={{ background: i <= s.step ? ring : "#e4e4e7", boxShadow: i === s.step ? `0 0 0 3px ${ring}22` : "none" }} />
-              <span className="inline-flex items-center gap-1 text-xs" style={{ color: i <= s.step ? fg : "#a1a1aa", fontWeight: i === s.step ? 600 : 500 }}>
+              <div className="h-1.5 rounded-full" style={{ background: i <= s.step ? ring : "#dde7ee", boxShadow: i === s.step ? `0 0 0 3px ${ring}22` : "none" }} />
+              <span className="inline-flex items-center gap-1 text-xs" style={{ color: i <= s.step ? fg : "#94a3b8", fontWeight: i === s.step ? 600 : 500 }}>
                 {i < s.step && <Check className="size-[0.6875rem]" strokeWidth={3} />}{label}
               </span>
             </div>
@@ -95,7 +95,7 @@ export function WorkTabs({ apps, requests, tab, posted }: { apps: Row[]; request
             <span className="text-base font-semibold">{p.title}</span>
             <span className="flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
               <span>{p.status === "open" ? `${p.applicantCount} applicant${p.applicantCount === 1 ? "" : "s"}` : "Review →"}</span><span className="font-mono font-semibold text-foreground">{eur(p.priceEur)}</span>
-              <span className={cn("inline-flex h-[1.375rem] items-center rounded-md px-2 text-xs font-medium", p.status === "open" ? "bg-[#dcfce7] text-[#166534]" : "bg-[#dbeafe] text-[#1e40af]")}>{p.status === "open" ? "Open" : p.status === "verified" ? "Verified" : "In progress"}</span>
+              <span className={cn("inline-flex h-[1.375rem] items-center rounded-md px-2 text-xs font-medium", p.status === "open" ? "bg-[#dcfce7] text-[#166534]" : "bg-[#e0f2fe] text-[#0c4a6e]")}>{p.status === "open" ? "Open" : p.status === "verified" ? "Verified" : "In progress"}</span>
             </span>
           </Link>
         ))}

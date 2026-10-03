@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { StudentProfile } from "@/lib/types";
 
 const PROVIDERS = [
-  { id: "github", label: "GitHub", note: "Proves the account and handle are yours." },
+  { id: "github", label: "GitHub", note: "Optional, handy if you do tech work. Proves the handle is yours." },
   { id: "linkedin_oidc", label: "LinkedIn", note: "Proves the account belongs to you." },
 ] as const;
 

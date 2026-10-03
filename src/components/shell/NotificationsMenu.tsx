@@ -16,7 +16,7 @@ export function NotificationsMenu({ items, unread }: { items: Notification[]; un
     <DropdownMenu onOpenChange={(open) => { if (open && unread > 0) start(() => markNotificationsReadAction()); }}>
       <DropdownMenuTrigger aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} className="relative grid size-9 shrink-0 place-items-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
         <Bell className="size-[1.125rem]" />
-        {unread > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-[#2f5bd3] px-1 text-[0.625rem] font-semibold leading-4 text-white">{unread > 9 ? "9+" : unread}</span>}
+        {unread > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-[#16a34a] px-1 text-[0.625rem] font-semibold leading-4 text-white">{unread > 9 ? "9+" : unread}</span>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[22rem] max-w-[calc(100vw-2rem)]">
         {/* The menu library requires a label to live inside a group, or it throws when opened. */}
@@ -26,7 +26,7 @@ export function NotificationsMenu({ items, unread }: { items: Notification[]; un
         ) : items.map((n) => (
           <DropdownMenuItem key={n.id} render={n.link ? <Link href={n.link} /> : undefined} className="flex flex-col items-start gap-0.5 py-2">
             <span className="flex w-full items-center gap-2 text-sm font-medium">
-              {!n.read && <span className="size-1.5 shrink-0 rounded-full bg-[#2f5bd3]" />}
+              {!n.read && <span className="size-1.5 shrink-0 rounded-full bg-[#16a34a]" />}
               <span className="flex-1">{n.title}</span>
             </span>
             {n.body && <span className="text-[0.8125rem] text-muted-foreground">{n.body}</span>}

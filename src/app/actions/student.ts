@@ -4,10 +4,11 @@
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isAvatarColor } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
 import { acceptApplicant, declineApplicant } from "@/lib/data/applicants";
 import { markAllRead } from "@/lib/data/notifications";
-import { addProfileFile, createApplication, createProject, markDelivered, reanalyzeStoredCv, removeProfileFile, saveCv, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
+import { addProfileFile, createApplication, createProject, markDelivered, reanalyzeStoredCv, removeAvatar, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
 import { str, type FormState } from "@/lib/form";
 import { CATEGORIES, type Category } from "@/lib/types";
 
@@ -174,5 +175,34 @@ export async function toggleSavedAction(projectId: string, save: boolean): Promi
   const res = await toggleSaved(user, projectId, save);
   if (res.error) return res;
   revalidatePath("/projects");
+  return { ok: true };
+}
+
+export async function setAvatarColorAction(color: string | null): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  if (color !== null && !isAvatarColor(color)) return { error: "Pick one of the colours." };
+  const res = await setAvatarColor(user, color);
+  if (res.error) return res;
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function uploadAvatarAction(f: FormData): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  const file = f.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo first." };
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return { error: "Use a JPG, PNG or WebP image." };
+  if (file.size > 2 * 1024 * 1024) return { error: "The photo must be under 2 MB." };
+  const res = await saveAvatar(user, file);
+  if (res.error) return res;
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function removeAvatarAction(): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  const res = await removeAvatar(user);
+  if (res.error) return res;
+  revalidatePath("/", "layout");
   return { ok: true };
 }

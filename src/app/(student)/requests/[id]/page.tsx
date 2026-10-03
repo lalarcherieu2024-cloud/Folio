@@ -14,7 +14,7 @@ export const metadata = { title: "Request · Folio" };
 
 const STATUS = {
   open: ["Open · accepting applications", "bg-[#dcfce7] text-[#166534]"],
-  in_progress: ["In progress", "bg-[#dbeafe] text-[#1e40af]"],
+  in_progress: ["In progress", "bg-[#e0f2fe] text-[#0c4a6e]"],
   delivered: ["Delivered", "bg-[#ede9fe] text-[#5b21b6]"],
   verified: ["Verified", "bg-[#dcfce7] text-[#166534]"],
   cancelled: ["Cancelled", "bg-zinc-100 text-zinc-600"],

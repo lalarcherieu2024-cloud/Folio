@@ -59,7 +59,7 @@ export function DetailsCard({ user }: { user: StudentProfile }) {
   }, [state]);
   return (
     <form action={action} className="flex flex-col gap-4 rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
-      <div className="flex flex-col gap-1"><span className="text-base font-semibold">Details and links</span><span className="text-[0.8125rem] text-muted-foreground">Connect GitHub and LinkedIn to get verified badges.</span></div>
+      <div className="flex flex-col gap-1"><span className="text-base font-semibold">Details and links</span><span className="text-[0.8125rem] text-muted-foreground">Connect LinkedIn to get a verified badge. GitHub is optional, for tech work.</span></div>
       <ConnectAccounts user={user} />
       <div className="grid gap-3">
         <div className="grid gap-1.5"><Label htmlFor="fullName">Name</Label><Input id="fullName" name="fullName" value={v.fullName} onChange={set("fullName")} className="h-9" /></div>

@@ -85,7 +85,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
                 <span className="text-muted-foreground">{savedOnly ? "Tap the heart on a project to keep it on your shortlist." : "Clear a filter, or post your own idea and another student picks it up."}</span>
                 <div className="flex gap-2">
                   <Link href="/projects" className="inline-flex h-9 items-center rounded-md border bg-white px-3.5 text-sm font-medium hover:bg-muted">Clear filters</Link>
-                  <Link href="/projects/new" className="inline-flex h-9 items-center rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-zinc-700">Post a project</Link>
+                  <Link href="/projects/new" className="inline-flex h-9 items-center rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">Post a project</Link>
                 </div>
               </div>
             ) : view === "match" ? (

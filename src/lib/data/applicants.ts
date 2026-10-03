@@ -2,6 +2,7 @@
 // by the company side later (a company reviews applicants exactly the same way).
 import { createClient } from "../supabase/server";
 import type { Applicant, Project, StudentProfile } from "../types";
+import { avatarPublicUrl } from "../avatar";
 import { UUID, toProject } from "./shared";
 
 /** A project the signed-in user posted (any status), or undefined. */
@@ -20,7 +21,7 @@ export async function getApplicants(project: Project): Promise<Applicant[]> {
   if (!apps?.length) return [];
   const ids = apps.map((a) => a.student_id);
   const [{ data: profiles }, { data: files }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, program, github_handle, github_verified, linkedin_url, linkedin_verified, cv_path, cv_name, cv_size_kb, strengths").in("id", ids),
+    supabase.from("profiles").select("id, full_name, avatar_color, avatar_path, program, github_handle, github_verified, linkedin_url, linkedin_verified, cv_path, cv_name, cv_size_kb, strengths").in("id", ids),
     supabase.from("profile_files").select("id, user_id, path, name, size_kb").in("user_id", ids).order("created_at", { ascending: false }),
   ]);
   const signed = async (path: string | null | undefined) => (path ? (await supabase.storage.from("cvs").createSignedUrl(path, HOUR)).data?.signedUrl ?? null : null);
@@ -32,7 +33,7 @@ export async function getApplicants(project: Project): Promise<Applicant[]> {
     return {
       applicationId: a.id, status: a.status, pitch: a.pitch ?? "", includeFiles: !!a.include_files, appliedAt: a.created_at,
       student: {
-        id: a.student_id, fullName: p?.full_name ?? "Student", program: p?.program ?? "", githubHandle: p?.github_handle ?? null, githubVerified: !!p?.github_verified,
+        id: a.student_id, avatarColor: p?.avatar_color ?? null, avatarUrl: avatarPublicUrl(p?.avatar_path), fullName: p?.full_name ?? "Student", program: p?.program ?? "", githubHandle: p?.github_handle ?? null, githubVerified: !!p?.github_verified,
         linkedinUrl: p?.linkedin_url ?? null, linkedinVerified: !!p?.linkedin_verified, topField: (p?.strengths?.fields?.[0]?.label as string | undefined) ?? null,
       },
       cv: p?.cv_name ? { name: p.cv_name, sizeKb: p.cv_size_kb ?? 0, url: await signed(p.cv_path) } : null,

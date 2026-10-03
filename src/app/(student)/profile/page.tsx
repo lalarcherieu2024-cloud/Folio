@@ -4,7 +4,7 @@ import { CredentialCard } from "@/components/shared/CredentialCard";
 import { CvCard, DetailsCard, FilesCard } from "@/components/student/ProfileCards";
 import { requireUser } from "@/lib/auth";
 import { getCredentials, getProfileFiles } from "@/lib/data/student";
-import { initials, softColor } from "@/lib/work";
+import { AvatarEditor } from "@/components/student/AvatarEditor";
 
 export const metadata = { title: "Profile & record · Folio" };
 
@@ -20,7 +20,7 @@ export default async function ProfilePage() {
   return (
     <div className="page-enter flex flex-col gap-8">
       <div className="flex flex-wrap items-center gap-5">
-        <span style={softColor(me.fullName)} className="grid size-[4.5rem] place-items-center rounded-[0.875rem] text-2xl font-semibold">{initials(me.fullName)}</span>
+        <AvatarEditor user={me} />
         <div className="flex flex-col gap-2">
           <div>
             <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em]">{me.fullName}</h1>

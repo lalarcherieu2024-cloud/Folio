@@ -46,7 +46,7 @@ export default async function StudentHome() {
             const pctN = stagePct(s.step);
             return (
               <Link key={a.id} href={`/projects/${a.projectId}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel" style={{ boxShadow: `inset 3px 0 0 ${ring}`, background: tint }}>
-                <div title={`Step ${s.step + 1} of ${STEPS.length}: ${STEPS[s.step]}`} className="grid size-[3.25rem] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${ring} ${pctN}%, #f4f4f5 0)` }}>
+                <div title={`Step ${s.step + 1} of ${STEPS.length}: ${STEPS[s.step]}`} className="grid size-[3.25rem] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${ring} ${pctN}%, #eef4f8 0)` }}>
                   <div className="grid size-[2.625rem] place-items-center rounded-full bg-white font-mono text-xs font-semibold" style={{ color: fg }}>{pctN}%</div>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">

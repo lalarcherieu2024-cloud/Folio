@@ -1,3 +1,4 @@
+import { AVATAR_COLORS } from "./avatar";
 import type { Application, Project } from "./types";
 
 export const eur = (n: number) => "€" + n.toLocaleString("en-GB");
@@ -18,7 +19,7 @@ export function statusInfo(a: Pick<Application, "status">, p: Pick<Project, "sta
 
 export const TONE_CLASS = {
   warning: "bg-[#fef3c7] text-[#92400e]",
-  info: "bg-[#dbeafe] text-[#1e40af]",
+  info: "bg-[#e0f2fe] text-[#0c4a6e]",
   success: "bg-[#dcfce7] text-[#166534]",
   muted: "bg-secondary text-secondary-foreground",
 } as const;
@@ -26,32 +27,26 @@ export const TONE_CLASS = {
 // Colour + progress for each stage of the tracker: [ring, text, row tint].
 export const STAGE_COLORS: Record<number, [string, string, string]> = {
   0: ["#f59e0b", "#b45309", "#fffdf7"],
-  2: ["#3b82f6", "#1d4ed8", "#fafcff"],
+  2: ["#0369a1", "#0c4a6e", "#f8fbfd"],
   3: ["#8b5cf6", "#6d28d9", "#fcfbff"],
-  4: ["#22c55e", "#15803d", "#f9fefb"],
+  4: ["#22c55e", "#166534", "#f9fefb"],
 };
-export const stageColors = (step: number) => STAGE_COLORS[step] ?? ["#a1a1aa", "#52525b", "#ffffff"];
+export const stageColors = (step: number) => STAGE_COLORS[step] ?? ["#94a3b8", "#475569", "#ffffff"];
 export const stagePct = (step: number) => Math.round(((step + 1) / STEPS.length) * 100);
 export const nextLabel = (step: number) => (step >= STEPS.length - 1 ? "Complete" : `Next: ${STEPS[step + 1]}`);
 
 type ChecklistUser = {
-  cv: unknown; linkedinVerified: boolean; linkedinUrl: string | null; githubVerified: boolean; githubHandle: string | null;
-  payoutLink: string | null; fileCount: number; strengths: { fields: { label: string }[] } | null;
+  cv: unknown; linkedinVerified: boolean; payoutLink: string | null; fileCount: number; strengths: { fields: { label: string }[] } | null;
 };
 
-// "Complete your profile": things that make a client say yes. The third item depends on the field:
-// tech -> GitHub, anything else -> a portfolio / extra files, unknown yet -> either one.
+// "Complete your profile": things that make a client say yes. GitHub is optional (it only matters for
+// tech work), so it is not on the list. A portfolio is asked for unless your CV shows you work in tech.
 export function profileChecklist(user: ChecklistUser) {
-  const hasGithub = user.githubVerified; // only a connected (verified) account counts
-  const hasFiles = user.fileCount > 0;
-  const top = user.strengths?.fields[0]?.label;
-  const proof = !top ? { label: "Connect your GitHub or upload a portfolio", done: hasGithub || hasFiles }
-    : top === "Tech & Data" ? { label: "Connect your GitHub", done: hasGithub }
-    : { label: "Upload your portfolio (PDF)", done: hasFiles };
+  const isTech = user.strengths?.fields[0]?.label === "Tech & Data";
   const items = [
     { label: "Add your PayPal payout link", done: !!user.payoutLink },
     { label: "Connect your LinkedIn", done: user.linkedinVerified },
-    proof,
+    ...(isTech ? [] : [{ label: "Upload your portfolio (PDF)", done: user.fileCount > 0 }]),
     { label: "Upload your CV", done: !!user.cv },
   ];
   return { items, pct: Math.round((items.filter((i) => i.done).length / items.length) * 100) };
@@ -105,7 +100,9 @@ export function dueInfo(acceptedAt: string | null, weeks: number, now = new Date
 
 // ---- Soft, stable colour for a person's initials (same name, same colour, every time).
 const SOFT: [string, string][] = [["#dbeafe", "#1e40af"], ["#dcfce7", "#166534"], ["#fef3c7", "#92400e"], ["#fce7f3", "#9d174d"], ["#ede9fe", "#5b21b6"], ["#ffedd5", "#9a3412"], ["#cffafe", "#155e75"], ["#fee2e2", "#991b1b"]];
-export function softColor(name: string): { background: string; color: string } {
+export function softColor(name: string, chosen?: string | null): { background: string; color: string } {
+  const pick = chosen ? AVATAR_COLORS.find((c) => c.bg === chosen) : undefined;
+  if (pick) return { background: pick.bg, color: pick.fg };
   let h = 0;
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const [background, color] = SOFT[h % SOFT.length];

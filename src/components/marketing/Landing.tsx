@@ -21,8 +21,8 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
     <div className="mx-auto w-full max-w-[75rem] px-6">
       <section className="grid items-center gap-12 pb-16 pt-20 md:grid-cols-[1.1fr_.9fr]">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[0.8125rem] font-medium"><span className="size-1.5 rounded-full bg-brand" />For IE University students</span>
-          <h1 className="mt-6 text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real projects.<br />Real pay.<br /><span className="text-brand">Real proof.</span></h1>
+          <span className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[0.8125rem] font-medium"><span className="size-1.5 rounded-full bg-lime" />For IE University students</span>
+          <h1 className="mt-6 text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real projects.<br />Real pay.<br /><span className="text-lime">Real proof.</span></h1>
           <p className="mt-6 max-w-[48ch] text-lg leading-relaxed text-zinc-600">Take paid projects from startups, small businesses and fellow students, in any field. Every finished project becomes a credential the client signs.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4 text-sm")}>Create your account <ArrowRight className="size-4" /></Link>
@@ -39,8 +39,8 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
         <h2 className="mb-5 text-2xl font-semibold tracking-tight">Projects in every field</h2>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (
-            <Link key={c} href={`/signin?next=${encodeURIComponent(`/projects?category=${c}`)}`} className="group inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-1.5 text-sm transition-colors hover:border-brand hover:text-brand">
-              {c}<span className="font-mono text-xs text-zinc-400 group-hover:text-brand">{counts[c] ?? 0}</span>
+            <Link key={c} href={`/signin?next=${encodeURIComponent(`/projects?category=${c}`)}`} className="group inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-1.5 text-sm transition-colors hover:border-lime hover:text-lime">
+              {c}<span className="font-mono text-xs text-zinc-400 group-hover:text-lime">{counts[c] ?? 0}</span>
             </Link>
           ))}
         </div>
@@ -56,7 +56,7 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map(([n, t, d]) => (
             <div key={n} className="rounded-xl border bg-panel p-5">
-              <span className="font-mono text-sm font-medium text-brand">{n}</span>
+              <span className="font-mono text-sm font-medium text-lime">{n}</span>
               <h3 className="mt-3 text-base font-semibold">{t}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{d}</p>
             </div>
@@ -67,7 +67,7 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
       <section className="py-10">
         <div className="flex flex-col items-start gap-5 rounded-2xl bg-primary p-10 text-primary-foreground md:flex-row md:items-center md:justify-between">
           <h2 className="max-w-[20ch] text-3xl font-semibold leading-tight tracking-tight">Your first credential is one project away.</h2>
-          <Link href="/signup" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "h-10 bg-white px-4 text-sm text-zinc-900 hover:bg-zinc-100")}>Create your account <ArrowRight className="size-4" /></Link>
+          <Link href="/signup" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "h-10 bg-[#bbf7d0] px-4 text-sm text-[#14532d] hover:bg-[#86efac]")}>Create your account <ArrowRight className="size-4" /></Link>
         </div>
       </section>
 

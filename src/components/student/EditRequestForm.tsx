@@ -38,7 +38,7 @@ export function EditRequestForm({ project, applicants }: { project: Project; app
           <div className="grid gap-1.5"><Label htmlFor="hoursPerWeek">Hours per week</Label><Input id="hoursPerWeek" name="hoursPerWeek" type="number" min={1} max={60} defaultValue={project.hoursPerWeek ?? ""} className="h-9 font-mono" /></div>
           <div className="grid gap-1.5"><Label htmlFor="learn">What the student will learn</Label><Input id="learn" name="learn" defaultValue={project.learn.join(", ")} placeholder="e.g. Metabase, dashboards" className="h-9" /></div>
         </div>
-        <label className="flex cursor-pointer items-center gap-2.5 text-sm"><input type="checkbox" name="beginnerFriendly" defaultChecked={project.beginnerFriendly} className="size-4 accent-[#18181b]" />A good first project (little experience needed)</label>
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm"><input type="checkbox" name="beginnerFriendly" defaultChecked={project.beginnerFriendly} className="size-4 accent-[#0c4a6e]" />A good first project (little experience needed)</label>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">
         <span className="text-[0.8125rem] text-muted-foreground">

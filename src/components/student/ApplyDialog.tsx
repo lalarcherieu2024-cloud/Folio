@@ -39,7 +39,7 @@ export function ApplyDialog({ projectId, client, cvName, fileCount }: { projectI
     toast.success("Application sent", { description: `${firstName(client)} usually replies within 3 days.` });
   }, [state, client]);
 
-  const box = "mt-0.5 size-4 shrink-0 accent-[#18181b]";
+  const box = "mt-0.5 size-4 shrink-0 accent-[#0c4a6e]";
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button size="lg" className="h-10 w-full justify-start px-4 text-sm" />}>Apply to this project</DialogTrigger>

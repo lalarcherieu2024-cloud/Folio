@@ -45,7 +45,7 @@ export function QuickMatch({ projects, viewer }: { projects: Project[]; viewer: 
         <span className="text-base font-semibold">You&apos;ve seen them all</span>
         <span className="text-muted-foreground">{savedNow ? `You saved ${savedNow} project${savedNow === 1 ? "" : "s"} to your shortlist.` : "Nothing new right now. Check back soon."}</span>
         <div className="flex gap-2">
-          <Link href="/projects?saved=1" className="inline-flex h-9 items-center rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-zinc-700">See my shortlist</Link>
+          <Link href="/projects?saved=1" className="inline-flex h-9 items-center rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">See my shortlist</Link>
           <button type="button" onClick={() => setI(0)} className="inline-flex h-9 items-center rounded-md border bg-white px-3.5 text-sm font-medium hover:bg-muted">Start over</button>
         </div>
       </div>

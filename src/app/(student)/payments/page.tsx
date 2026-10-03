@@ -9,7 +9,7 @@ export const metadata = { title: "Payments · Folio" };
 
 const STATUS: Record<PayKind, [string, string]> = {
   paid: ["Paid", "bg-[#dcfce7] text-[#166534]"],
-  escrow: ["Held in escrow", "bg-[#dbeafe] text-[#1e40af]"],
+  escrow: ["Held in escrow", "bg-[#e0f2fe] text-[#0c4a6e]"],
   review: ["Releases on verification", "bg-[#ede9fe] text-[#5b21b6]"],
 };
 const card = "rounded-xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]";
@@ -34,9 +34,9 @@ export default async function PaymentsPage() {
           <span className="font-mono text-[1.75rem] font-semibold text-[#166534]">{eur(pay.earned)}</span>
           <span className="text-xs text-muted-foreground">{pay.paidCount} payout{pay.paidCount === 1 ? "" : "s"}</span>
         </div>
-        <div className={cn(card, "flex flex-col gap-1.5 p-5 shadow-[inset_0_3px_0_#3b82f6]")}>
+        <div className={cn(card, "flex flex-col gap-1.5 p-5 shadow-[inset_0_3px_0_#0369a1]")}>
           <span className="text-[0.8125rem] text-muted-foreground">On the way</span>
-          <span className="font-mono text-[1.75rem] font-semibold text-[#1d4ed8]">{eur(pay.escrow + pay.review)}</span>
+          <span className="font-mono text-[1.75rem] font-semibold text-[#0c4a6e]">{eur(pay.escrow + pay.review)}</span>
           <span className="text-xs text-muted-foreground">{eur(pay.escrow)} in escrow · {eur(pay.review)} awaiting sign-off</span>
         </div>
         <div className={cn(card, "flex flex-col gap-2.5 p-5")}>

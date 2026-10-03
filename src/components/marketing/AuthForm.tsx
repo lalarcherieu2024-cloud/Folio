@@ -27,7 +27,7 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
       {field("email", "Email", { type: "email", autoComplete: "email", required: true }, up ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
       {field("password", "Password", { type: "password", autoComplete: up ? "new-password" : "current-password", required: true, minLength: up ? 8 : undefined }, up ? "At least 8 characters." : undefined)}
       {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
-      {state.notice && <p role="status" className="rounded-lg bg-[#dbeafe] px-3 py-2.5 text-sm font-medium text-[#1e40af]">{state.notice}</p>}
+      {state.notice && <p role="status" className="rounded-lg bg-[#e0f2fe] px-3 py-2.5 text-sm font-medium text-[#0c4a6e]">{state.notice}</p>}
       <Button type="submit" disabled={pending} className="h-10 w-full">{pending ? "One moment…" : up ? "Create account" : "Sign in"}</Button>
       <p className="text-center text-sm text-muted-foreground">
         {up ? <>Already have an account? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></> : <>New to Folio? <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">Create an account</Link></>}

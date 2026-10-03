@@ -278,3 +278,33 @@ export async function getActivityDates(user: StudentProfile): Promise<string[]> 
     ...(creds ?? []).map((c) => c.issued_at as string),
   ];
 }
+
+// ---- Profile picture: a colour for the initials, or an uploaded photo
+export async function setAvatarColor(user: StudentProfile, color: string | null): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ avatar_color: color }).eq("id", user.id);
+  if (error) { console.error("setAvatarColor", error); return { error: "Couldn't save your colour. Has migration 0014 been run?" }; }
+  return {};
+}
+
+export async function saveAvatar(user: StudentProfile, file: File): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: old } = await supabase.from("profiles").select("avatar_path").eq("id", user.id).single();
+  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage.from("avatars").upload(path, await file.arrayBuffer(), { contentType: file.type });
+  if (upErr) { console.error("saveAvatar upload", upErr); return { error: "Upload failed. Has migration 0014 been run?" }; }
+  const { error } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", user.id);
+  if (error) { await supabase.storage.from("avatars").remove([path]); return { error: "Couldn't save your photo." }; }
+  if (old?.avatar_path) await supabase.storage.from("avatars").remove([old.avatar_path]);
+  return {};
+}
+
+export async function removeAvatar(user: StudentProfile): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: old } = await supabase.from("profiles").select("avatar_path").eq("id", user.id).single();
+  const { error } = await supabase.from("profiles").update({ avatar_path: null }).eq("id", user.id);
+  if (error) return { error: "Couldn't remove your photo." };
+  if (old?.avatar_path) await supabase.storage.from("avatars").remove([old.avatar_path]);
+  return {};
+}

@@ -23,9 +23,3 @@ export function navFor(role: Role, path: string, counts: NavCounts): NavEntry[] 
     { href: "/profile", label: "Profile & record", icon: User, active: path.startsWith("/profile") },
   ];
 }
-
-export const PAGE_TITLES: [string, string][] = [
-  ["/requests", "My work"],
-  ["/company/projects/new", "Post a project"], ["/company/projects", "My projects"], ["/company/applicants", "Applicants"], ["/company", "Dashboard"],
-  ["/projects/new", "Post a project"], ["/projects", "Find projects"], ["/applications", "My work"], ["/payments", "Payments"], ["/progress", "Progress"], ["/profile", "Profile & record"], ["/home", "Home"],
-];

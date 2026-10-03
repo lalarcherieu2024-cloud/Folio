@@ -60,7 +60,7 @@ export type Applicant = {
   pitch: string;
   includeFiles: boolean;
   appliedAt: string;
-  student: { id: string; fullName: string; program: string; githubHandle: string | null; githubVerified: boolean; linkedinUrl: string | null; linkedinVerified: boolean; topField: string | null };
+  student: { id: string; avatarColor: string | null; avatarUrl: string | null; fullName: string; program: string; githubHandle: string | null; githubVerified: boolean; linkedinUrl: string | null; linkedinVerified: boolean; topField: string | null };
   cv: { name: string; sizeKb: number; url: string | null } | null;
   files: { id: string; name: string; sizeKb: number; url: string | null }[];
   matchedSkills: string[]; // skills the project asks for that this student has
@@ -104,6 +104,8 @@ export type StudentProfile = {
   linkedinVerified: boolean; // true only after linking the real LinkedIn account (OAuth)
   cv: CvInfo | null;
   strengths: Strengths | null;
+  avatarColor: string | null; // chosen background colour for the initials
+  avatarUrl: string | null; // uploaded photo, if any
   payoutLink: string | null; // PayPal link where the student gets paid
   fileCount: number; // additional files (portfolio etc.)
 };
