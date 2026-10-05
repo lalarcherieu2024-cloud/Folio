@@ -6,10 +6,13 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
 
-// Header for signed-out visitors. Hidden on the company sign-in pages, which have their own full-screen layout.
+// Jump links into the "How Folio works" section on the front page.
+const NAV = [["/#getting-paid", "Getting paid"], ["/#hiring", "Hiring"], ["/#trust", "Trust & accountability"]] as const;
+
+// Header for signed-out visitors. Hidden on the company pages and student sign-up, which have their own full-screen layout.
 export function SiteHeader() {
   const path = usePathname();
-  if (path.startsWith("/company/")) return null;
+  if (path.startsWith("/company/") || path === "/signup") return null;
   return (
     <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-[75rem] items-center gap-2 px-6">
@@ -18,9 +21,7 @@ export function SiteHeader() {
           <span className="text-2xl font-semibold tracking-tight">Folio</span>
         </Link>
         <nav className="ml-6 hidden items-center gap-1 text-sm md:flex" aria-label="Main">
-          <Link href="/#how" className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3 text-zinc-600")}>How it works</Link>
-          <Link href="/#projects" className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3 text-zinc-600")}>Projects</Link>
-          <Link href="/company/signin" className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3 text-zinc-600")}>For startups</Link>
+          {NAV.map(([href, label]) => <Link key={href} href={href} className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3 text-zinc-600")}>{label}</Link>)}
         </nav>
         <div className="flex-1" />
         <Link href="/signin" className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3.5")}>Sign in</Link>

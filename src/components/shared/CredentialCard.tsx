@@ -1,13 +1,15 @@
 import { Check, Star } from "lucide-react";
 import type { Credential } from "@/lib/types";
 
-export function CredentialCard({ c, className = "" }: { c: Credential; className?: string }) {
+export function CredentialCard({ c, className = "", demo = false }: { c: Credential; className?: string; demo?: boolean }) {
   return (
-    <article aria-label="Verified project credential" className={`overflow-hidden rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)] ${className}`}>
+    <article aria-label={demo ? "Example credential (demo)" : "Verified project credential"} className={`overflow-hidden rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)] ${className}`}>
       <div className="flex flex-col gap-3 p-5">
         <div className="flex items-center justify-between gap-3 text-[0.8125rem] text-muted-foreground">
           <span>{c.orgName ?? "Student project"} · {c.hood}, Madrid</span>
-          <span className="font-mono text-xs">{c.issuedAt}</span>
+          {demo
+            ? <span className="rounded-full border px-2 py-0.5 font-mono text-[0.6875rem] uppercase tracking-wide">Demo</span>
+            : <span className="font-mono text-xs">{c.issuedAt}</span>}
         </div>
         <h3 className="text-lg font-semibold leading-snug tracking-tight">{c.projectTitle}</h3>
         <p className="text-sm italic leading-relaxed text-zinc-600">“{c.review}”</p>

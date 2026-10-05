@@ -17,7 +17,7 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
   const role: Role = str(f, "role") === "company" ? "company" : "student";
   const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const supabase = await createClient();
-  const landing = role === "company" ? "/company/verify" : "/profile?welcome=1";
+  const landing = role === "company" ? "/company/verify" : "/welcome";
   const password = str(f, "password");
 
   if (SKIP_EMAIL_CONFIRMATION) {
@@ -56,6 +56,17 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
   redirect(landing);
 }
 
+// Student sign-up step 2: the 6-digit code from the confirmation email (companies use verifyCompanyEmailAction).
+export async function verifyStudentEmailAction(_: FormState, f: FormData): Promise<FormState> {
+  const email = str(f, "email").toLowerCase(), token = str(f, "code").replace(/\D/g, "");
+  if (!EMAIL.test(email)) return { error: "Start again from Create account." };
+  if (token.length !== 6) return { error: "Enter all 6 digits." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+  if (error) return { error: error.code === "otp_expired" ? "That code has expired. Send a new one." : "That code isn't right. Check the email and try again." };
+  redirect("/welcome");
+}
+
 export async function signInAction(_: FormState, f: FormData): Promise<FormState> {
   const supabase = await createClient();
   const email = str(f, "email").toLowerCase(), password = str(f, "password");
@@ -82,8 +93,8 @@ export async function signInAction(_: FormState, f: FormData): Promise<FormState
     // Each sign-in page is for one kind of account; don't leave a session open on the wrong side.
     await supabase.auth.signOut();
     return { error: actual === "company"
-      ? "This is a company account. Use the company sign-in instead."
-      : "This is a student account. Use the student sign-in instead." };
+      ? "This is a company account. Choose Company above and sign in again."
+      : "This is a student account. Choose Student above and sign in again." };
   }
   redirect(safeNext(str(f, "next")) || homeFor(actual));
 }
