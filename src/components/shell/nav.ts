@@ -1,4 +1,4 @@
-import { Building2, FolderKanban, House, LayoutGrid, ListChecks, PlusCircle, Search, TrendingUp, User, Users, Wallet, type LucideIcon } from "lucide-react";
+import { FolderKanban, House, LayoutGrid, ListChecks, PlusCircle, Search, TrendingUp, User, Users, Wallet, type LucideIcon } from "lucide-react";
 import type { Role } from "@/lib/types";
 
 export type NavEntry = { href: string; label: string; icon: LucideIcon; count?: number; active: boolean };
@@ -12,7 +12,7 @@ export function navFor(role: Role, path: string, counts: NavCounts): NavEntry[] 
       { href: "/company/projects", label: "My projects", icon: FolderKanban, count: counts.projects, active: path.startsWith("/company/projects") && !path.startsWith("/company/projects/new") },
       { href: "/company/applicants", label: "Applicants", icon: Users, count: counts.applicants, active: path.startsWith("/company/applicants") },
       { href: "/company/projects/new", label: "Post a project", icon: PlusCircle, active: path.startsWith("/company/projects/new") },
-      { href: "/company/profile", label: "Company profile", icon: Building2, active: path.startsWith("/company/profile") },
+      // Company profile lives in the menu under your name (Sidebar UserMenu).
     ];
   }
   return [
