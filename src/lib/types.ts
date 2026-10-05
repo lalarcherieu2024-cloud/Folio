@@ -28,6 +28,8 @@ export type Project = {
   clientKind: "company" | "student";
   orgName: string | null; // null when a student is the client
   orgVerified: boolean;
+  orgLogoUrl: string | null; // company logo (migration 0024)
+  clientAvatarUrl: string | null; // photo of the student who posted it, when a student is the client
   hood: string;
   category: Category;
   title: string;
