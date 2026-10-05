@@ -5,6 +5,7 @@ import { createClient } from "../supabase/server";
 import { analyzeCv } from "../strengths";
 import type { Application, Credential, Project, ProfileFile, StudentProfile } from "../types";
 import { UUID, monthYear, toApplication, toProject } from "./shared";
+import { countUnreadMessages } from "./messages";
 import { appliedProjectIds, getOpenProjects, notOwnedBy } from "./projects";
 
 export async function getApplicationFor(user: StudentProfile, projectId: string): Promise<Application | undefined> {
@@ -130,9 +131,9 @@ export async function updateProfile(user: StudentProfile, patch: { fullName: str
   return error ? { error: "Couldn't save your profile." } : {};
 }
 
-export async function getStudentNavCounts(user: StudentProfile): Promise<{ open: number; mine: number }> {
+export async function getStudentNavCounts(user: StudentProfile): Promise<{ open: number; mine: number; messages: number }> {
   const supabase = await createClient();
-  const [open, mine] = await Promise.all([
+  const [open, mine, messages] = await Promise.all([
     (async () => {
       const applied = await appliedProjectIds(user.id);
       let q = supabase.from("project_cards").select("id", { count: "exact", head: true }).eq("status", "open").or(notOwnedBy(user.id));
@@ -140,8 +141,9 @@ export async function getStudentNavCounts(user: StudentProfile): Promise<{ open:
       return q;
     })(),
     supabase.from("applications").select("id", { count: "exact", head: true }).eq("student_id", user.id),
+    countUnreadMessages(user),
   ]);
-  return { open: open.count ?? 0, mine: mine.count ?? 0 };
+  return { open: open.count ?? 0, mine: mine.count ?? 0, messages };
 }
 
 export async function getRecommended(user: StudentProfile, applied: Application[] & { project?: Project }[]): Promise<{ projects: Project[]; basedOn: string[] }> {
