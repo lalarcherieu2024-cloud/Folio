@@ -169,9 +169,30 @@ export async function markDelivered(user: StudentProfile, applicationId: string)
 export async function withdrawApplication(user: StudentProfile, applicationId: string): Promise<{ error?: string }> {
   if (!UUID.test(applicationId)) return { error: "Application not found." };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("applications").delete().eq("id", applicationId).eq("student_id", user.id).eq("status", "pending").select("id");
+  const { data, error } = await supabase.from("applications").delete().eq("id", applicationId).eq("student_id", user.id).in("status", ["pending", "interview"]).select("id");
   if (error) { console.error("withdrawApplication", error); return { error: "Couldn't withdraw. Try again." }; }
-  return data?.length ? {} : { error: "Only pending applications can be withdrawn." };
+  return data?.length ? {} : { error: "Only applications that haven't been decided can be withdrawn." };
+}
+
+/** One of the student's own applications with its project (for the application page). */
+export async function getApplicationDetail(user: StudentProfile, applicationId: string): Promise<(Application & { project: Project }) | null> {
+  if (!UUID.test(applicationId)) return null;
+  const supabase = await createClient();
+  const { data: a } = await supabase.from("applications").select("*").eq("id", applicationId).eq("student_id", user.id).maybeSingle();
+  if (!a) return null;
+  const { data: p } = await supabase.from("project_cards").select("*").eq("id", a.project_id).maybeSingle();
+  return p ? { ...toApplication(a), project: toProject(p) } : null;
+}
+
+/** The student confirms they'll attend the interview (tells the client; migration 0017). */
+export async function confirmInterview(applicationId: string): Promise<{ error?: string }> {
+  if (!UUID.test(applicationId)) return { error: "Application not found." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("confirm_interview", { app_id: applicationId });
+  if (!error) return {};
+  if (error.code === "P0001") return { error: error.message };
+  console.error("confirmInterview", error);
+  return { error: error.code === "PGRST202" ? "Interviews need migration 0017. Run it in the Supabase SQL Editor." : "Couldn't confirm. Try again." };
 }
 
 // Scores the CV already on file (for CVs uploaded before scoring existed, or when it failed).

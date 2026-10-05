@@ -4,8 +4,9 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import { avatarPublicUrl } from "../avatar";
 import { createClient } from "../supabase/server";
-import type { ApplicationStatus, Category, Credential, Project, ProjectStatus, StudentProfile } from "../types";
-import { monthYear, toProject, UUID } from "./shared";
+import type { ApplicationStatus, Category, Credential, Interview, Project, ProjectStatus, StudentProfile } from "../types";
+import { MAX_COMPANY_FILES } from "../form";
+import { monthYear, toInterview, toProject, UUID } from "./shared";
 
 export type CompanyProject = Project & { createdAt: string };
 
@@ -23,6 +24,7 @@ export type Applicant = {
   linkedinVerified: boolean;
   status: ApplicationStatus;
   createdAt: string;
+  interview: Interview | null;
   hasCv: boolean;
   linkCount: number;
   pastCount: number; // verified Folio credentials
@@ -42,6 +44,8 @@ export const DOC_KINDS = ["registry_extract", "representative_id", "bank_certifi
 export type DocKind = (typeof DOC_KINDS)[number];
 export type CompanyDoc = { kind: DocKind; fileName: string; sizeKb: number };
 
+export type CompanyFile = { id: string; fileName: string; sizeKb: number; url: string | null };
+
 export type Organization = {
   id: string;
   name: string; // legal name
@@ -54,9 +58,13 @@ export type Organization = {
   status: OrgStatus;
   reviewNote: string | null;
   docs: CompanyDoc[];
+  linkedinUrl: string; // the company's LinkedIn page (the founder's own LinkedIn is verified on their profile)
+  logoUrl: string | null;
+  logoColor: string | null;
+  files: CompanyFile[]; // shared with students; url is a short-lived signed link
 };
 
-export type OrgDetails = Pick<Organization, "name" | "cif" | "website" | "hood" | "about" | "founded" | "teamSize">;
+export type OrgDetails = Pick<Organization, "name" | "cif" | "website" | "hood" | "about" | "founded" | "teamSize"> & { linkedinUrl?: string };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const toCompanyProject = (r: any): CompanyProject => ({ ...toProject(r), createdAt: r.created_at });
@@ -79,17 +87,25 @@ export async function getOrganization(user: StudentProfile): Promise<Organizatio
   const { data: o } = await supabase.from("organizations").select("*").eq("owner_id", user.id).maybeSingle();
   if (!o) return null;
   const { data: docs } = await supabase.from("company_documents").select("kind, file_name, size_kb").eq("org_id", o.id);
+  // company_files only exists after migration 0016; until then the company simply has no files.
+  const { data: fileRows } = await supabase.from("company_files").select("id, path, file_name, size_kb").eq("org_id", o.id).order("uploaded_at", { ascending: false });
+  const signed = fileRows?.length ? (await supabase.storage.from("company-files").createSignedUrls(fileRows.map((f: any) => f.path), 3600)).data : null;
   return {
     id: o.id, name: o.name ?? "", cif: o.cif ?? "", website: o.website ?? "", hood: o.hood ?? "", about: o.blurb ?? "",
     founded: o.founded ?? "", teamSize: o.size ?? "", status: (o.status as OrgStatus) ?? (o.verified ? "verified" : "draft"),
     reviewNote: o.review_note ?? null,
     docs: (docs ?? []).map((d: any) => ({ kind: d.kind, fileName: d.file_name, sizeKb: d.size_kb })),
+    linkedinUrl: o.linkedin_url ?? "", logoUrl: avatarPublicUrl(o.logo_path), logoColor: o.logo_color ?? null,
+    files: (fileRows ?? []).map((f: any) => ({ id: f.id, fileName: f.file_name, sizeKb: f.size_kb, url: signed?.find((x: any) => x.path === f.path)?.signedUrl ?? null })),
   };
 }
 
 export async function saveOrganization(user: StudentProfile, d: OrgDetails): Promise<{ error?: string }> {
   const supabase = await createClient();
-  const row = { name: d.name, cif: d.cif, website: d.website, hood: d.hood, blurb: d.about, founded: d.founded || null, size: d.teamSize || null };
+  const row = {
+    name: d.name, cif: d.cif, website: d.website, hood: d.hood, blurb: d.about, founded: d.founded || null, size: d.teamSize || null,
+    ...(d.linkedinUrl !== undefined && { linkedin_url: d.linkedinUrl || null }), // only the profile editor sends it
+  };
   const { data: existing } = await supabase.from("organizations").select("id").eq("owner_id", user.id).maybeSingle();
   const { error } = existing
     ? await supabase.from("organizations").update(row).eq("id", existing.id)
@@ -99,6 +115,74 @@ export async function saveOrganization(user: StudentProfile, d: OrgDetails): Pro
   if (error.code === "42703" || error.code === "PGRST204") return { error: NEEDS_MIGRATION };
   console.error("saveOrganization", error);
   return { error: "Couldn't save your company details. Try again." };
+}
+
+// ---------------------------------------------------------------- profile: logo + shared files
+
+async function ownOrg(user: StudentProfile) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("organizations").select("id, logo_path").eq("owner_id", user.id).maybeSingle();
+  return { supabase, org: data as { id: string; logo_path: string | null } | null };
+}
+
+const isMissingColumn = (e: PostgrestError | null) => e?.code === "42703" || e?.code === "PGRST204";
+const PROFILE_MIGRATION = "The database is missing the company profile features. Run supabase/migrations/0016_company_profile.sql in the Supabase SQL Editor.";
+
+export async function saveOrgLogo(user: StudentProfile, file: File): Promise<{ error?: string }> {
+  const { supabase, org } = await ownOrg(user);
+  if (!org) return { error: "Add your company details first." };
+  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${user.id}/logo-${Date.now()}.${ext}`; // public "avatars" bucket, same owner-folder rule as profile photos
+  const { error: upErr } = await supabase.storage.from("avatars").upload(path, await file.arrayBuffer(), { contentType: file.type });
+  if (upErr) { console.error("saveOrgLogo upload", upErr); return { error: "Upload failed. Try again." }; }
+  const { error } = await supabase.from("organizations").update({ logo_path: path }).eq("id", org.id);
+  if (error) {
+    await supabase.storage.from("avatars").remove([path]);
+    return { error: isMissingColumn(error) ? PROFILE_MIGRATION : "Couldn't save the logo." };
+  }
+  if (org.logo_path) await supabase.storage.from("avatars").remove([org.logo_path]);
+  return {};
+}
+
+export async function removeOrgLogo(user: StudentProfile): Promise<{ error?: string }> {
+  const { supabase, org } = await ownOrg(user);
+  if (!org) return {};
+  const { error } = await supabase.from("organizations").update({ logo_path: null }).eq("id", org.id);
+  if (error) return { error: isMissingColumn(error) ? PROFILE_MIGRATION : "Couldn't remove the logo." };
+  if (org.logo_path) await supabase.storage.from("avatars").remove([org.logo_path]);
+  return {};
+}
+
+export async function setOrgLogoColor(user: StudentProfile, color: string): Promise<{ error?: string }> {
+  const { supabase, org } = await ownOrg(user);
+  if (!org) return { error: "Add your company details first." };
+  const { error } = await supabase.from("organizations").update({ logo_color: color }).eq("id", org.id);
+  return error ? { error: isMissingColumn(error) ? PROFILE_MIGRATION : "Couldn't save the colour." } : {};
+}
+
+export async function saveCompanyFile(user: StudentProfile, file: File, ext: string): Promise<{ error?: string }> {
+  const { supabase, org } = await ownOrg(user);
+  if (!org) return { error: "Add your company details first." };
+  const { count, error: countErr } = await supabase.from("company_files").select("id", { count: "exact", head: true }).eq("org_id", org.id);
+  if (countErr) return { error: PROFILE_MIGRATION };
+  if ((count ?? 0) >= MAX_COMPANY_FILES) return { error: `You can share up to ${MAX_COMPANY_FILES} files. Remove one first.` };
+  const path = `${user.id}/${Date.now()}${ext}`;
+  const { error: upErr } = await supabase.storage.from("company-files").upload(path, await file.arrayBuffer(), { contentType: file.type || undefined });
+  if (upErr) {
+    console.error("saveCompanyFile upload", upErr);
+    return { error: /bucket not found/i.test(upErr.message) ? PROFILE_MIGRATION : "Upload failed. Use a PDF, PowerPoint, Word or image under 10 MB." };
+  }
+  const { error } = await supabase.from("company_files").insert({ org_id: org.id, path, file_name: file.name.slice(0, 120), size_kb: Math.max(1, Math.round(file.size / 1024)) });
+  if (error) { console.error("saveCompanyFile", error); await supabase.storage.from("company-files").remove([path]); return { error: "Couldn't save the file. Try again." }; }
+  return {};
+}
+
+export async function deleteCompanyFile(user: StudentProfile, id: string): Promise<{ error?: string }> {
+  const { supabase, org } = await ownOrg(user);
+  if (!org) return {};
+  const { data } = await supabase.from("company_files").delete().eq("id", id).eq("org_id", org.id).select("path");
+  if (data?.length) await supabase.storage.from("company-files").remove(data.map((d: any) => d.path));
+  return {};
 }
 
 export async function saveCompanyDoc(user: StudentProfile, kind: DocKind, file: File, ext: string): Promise<{ error?: string }> {
@@ -178,7 +262,8 @@ export async function countIssuedCredentials(projects: CompanyProject[]): Promis
 
 // ---------------------------------------------------------------- applicants
 
-const APPLICANT_FIELDS = "id, project_id, student_id, status, created_at, pitch, student:profiles(full_name, program, avatar_color, avatar_path, uni_email_verified, github_handle, github_verified, linkedin_url, linkedin_verified, cv_path, cv_name, cv_size_kb)";
+// "*" for the application itself, so newer columns (interview_*, 0017) come along when they exist.
+const APPLICANT_FIELDS = "*, student:profiles(full_name, program, avatar_color, avatar_path, uni_email_verified, github_handle, github_verified, linkedin_url, linkedin_verified, cv_path, cv_name, cv_size_kb)";
 
 const linksOf = (s: any): { label: string; href: string }[] => [
   ...(s?.github_handle ? [{ label: `github.com/${s.github_handle}`, href: `https://github.com/${s.github_handle}` }] : []),
@@ -191,7 +276,7 @@ function toApplicant(a: any, project: Pick<Project, "title" | "status">, ratings
     name: a.student?.full_name ?? "Student", program: a.student?.program ?? "",
     avatarColor: a.student?.avatar_color ?? null, avatarUrl: avatarPublicUrl(a.student?.avatar_path),
     githubVerified: !!a.student?.github_verified, linkedinVerified: !!a.student?.linkedin_verified,
-    status: a.status, createdAt: a.created_at,
+    status: a.status, createdAt: a.created_at, interview: toInterview(a),
     hasCv: !!a.student?.cv_path, linkCount: linksOf(a.student).length,
     pastCount: ratings.length, avgRating: ratings.length ? ratings.reduce((s, n) => s + n, 0) / ratings.length : null,
   };
@@ -251,7 +336,7 @@ export async function acceptApplicant(applicationId: string): Promise<{ declined
   const { data: app } = await supabase.from("applications").select("project_id").eq("id", applicationId).maybeSingle();
   if (!app) return { error: "Application not found." };
   const { count } = await supabase.from("applications").select("id", { count: "exact", head: true })
-    .eq("project_id", app.project_id).eq("status", "pending").neq("id", applicationId);
+    .eq("project_id", app.project_id).in("status", ["pending", "interview"]).neq("id", applicationId);
   const { error } = await supabase.rpc("accept_applicant", { p_application_id: applicationId });
   return error ? { error: rpcError(error, "Couldn't accept this applicant. Try again.") } : { declined: count ?? 0 };
 }
@@ -259,9 +344,19 @@ export async function acceptApplicant(applicationId: string): Promise<{ declined
 export async function declineApplicant(applicationId: string): Promise<{ error?: string }> {
   if (!UUID.test(applicationId)) return { error: "Application not found." };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("applications").update({ status: "declined" }).eq("id", applicationId).eq("status", "pending").select("id");
+  const { data, error } = await supabase.from("applications").update({ status: "declined" }).eq("id", applicationId).in("status", ["pending", "interview"]).select("id");
   if (error) { console.error("declineApplicant", error); return { error: "Couldn't reject this applicant. Try again." }; }
   return data?.length ? {} : { error: "You already decided on this applicant." };
+}
+
+/** Invite an applicant to an interview, or reschedule one (tells the student; migration 0017). */
+export async function inviteToInterview(applicationId: string, atIso: string, place: string, note: string): Promise<{ error?: string }> {
+  if (!UUID.test(applicationId)) return { error: "Application not found." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("invite_to_interview", { app_id: applicationId, at: atIso, place, note });
+  if (!error) return {};
+  if (error.code === "PGRST202") return { error: "Interviews need migration 0017. Run supabase/migrations/0017_interviews_and_messages.sql in the Supabase SQL Editor." };
+  return { error: rpcError(error, "Couldn't send the invitation. Try again.") };
 }
 
 /** Confirms delivered work: issues the student's verified credential and completes the project. */

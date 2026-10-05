@@ -11,18 +11,19 @@ import { RoleSwitch } from "@/components/shared/RoleSwitch";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
 
 // Company sign in / create account + verification frame (design: "Folio Startup", signed-out state).
-const STEPS = [
+const STEPS: readonly (readonly [string, string])[] = [
   ["Create your account", "Name, work email and password"],
-  ["Verify your email", "Enter the 6-digit code we send you"],
+  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Verify your email", "Enter the 6-digit code we send you"],
   ["Company details", "Legal name, CIF, website and location"],
   ["Upload documents", "Registry extract, representative ID, bank certificate"],
   ["Review & submit", "Check everything and confirm"],
   ["Folio verification", "We review within 1–2 business days"],
-] as const;
+];
 
 export const primaryBtn = cn(buttonVariants(), "h-9 px-4");
 export const outlineBtn = cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5");
@@ -157,12 +158,14 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
         </div>
         <form action={action} className="grid gap-4 rounded-xl border bg-white p-7 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
           {next && <input type="hidden" name="next" value={next} />}
+          <input type="hidden" name="role" value="company" />
           <Field id="email" label="Work email" type="email" autoComplete="email" placeholder="you@company.com" required />
           <Field id="password" label="Password" type="password" autoComplete="current-password" placeholder="••••••••" required />
           {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
           <Button type="submit" disabled={pending} className="h-10 w-full">{pending ? "One moment…" : "Sign in"}</Button>
         </form>
         <p className="text-sm text-muted-foreground">New to Folio? <Link href="/company/signup" className="font-medium text-foreground underline underline-offset-4">Create a company account</Link></p>
+        <p className="text-sm text-muted-foreground">Are you a student? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Student sign in</Link></p>
       </>}
 
       {up && !sentTo && <>

@@ -10,13 +10,14 @@ import { RoleSwitch } from "@/components/shared/RoleSwitch";
 import { AuthFrame, Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "@/components/startup/CompanyAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import type { FormState } from "@/lib/form";
 
 // Student sign-up, mirroring the company flow (CompanyAuth + CompanyVerify): same frame, same step tracker.
 // Steps 1–2 happen here; 3–6 run signed in on /welcome (StudentOnboarding).
-export const STUDENT_STEPS = [
+export const STUDENT_STEPS: readonly (readonly [string, string])[] = [
   ["Create your account", "Name, university email and password"],
-  ["Verify your email", "Enter the 6-digit code we send you"],
+  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Verify your email", "Enter the 6-digit code we send you"],
   ["Your details", "Programme, year and payout link"],
   ["Upload your CV", "Clients read it when you apply"],
   ["Verify your accounts", "LinkedIn, and GitHub if you do tech work"],
@@ -64,7 +65,9 @@ function EmailCode({ email }: { email: string }) {
 export function StudentSignup() {
   const [state, action, pending] = useActionState<FormState, FormData>(signUpAction, {});
   const [email, setEmail] = useState("");
-  const sentTo = state.notice ? email.trim().toLowerCase() : null; // account created, waiting for the email code
+  // Account created, waiting for the email code. With SKIP_EMAIL_CONFIRMATION on there is no code: sign-up goes
+  // straight to /welcome, and a notice only means "created, now sign in".
+  const sentTo = state.notice && !SKIP_EMAIL_CONFIRMATION ? email.trim().toLowerCase() : null;
 
   return (
     <AuthFrame title={STUDENT_FRAME.title} sub={STUDENT_FRAME.sub} current={sentTo ? 2 : 1} steps={STUDENT_STEPS} audience="For students">
@@ -80,12 +83,13 @@ export function StudentSignup() {
             <Field id="fullName" label="Full name" autoComplete="name" placeholder="Lucía Fernández" required />
             <div className="grid gap-1.5">
               <Field id="email" label="University email" type="email" autoComplete="email" placeholder="you@student.ie.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              {email.includes("@") && (isUniEmail(email)
+              {email.includes("@") && !SKIP_EMAIL_CONFIRMATION && (isUniEmail(email)
                 ? <span className="flex items-center gap-1.5 text-xs font-medium text-brand"><BadgeCheck className="size-3.5" />You&apos;ll get the verified IE student badge.</span>
                 : <span className="text-xs text-muted-foreground">Use your @student.ie.edu address to get the verified student badge.</span>)}
             </div>
             <Field id="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} required />
             {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
+            {state.notice && SKIP_EMAIL_CONFIRMATION && <p role="status" className="text-sm font-medium text-brand">{state.notice} <Link href="/signin" className="underline underline-offset-4">Sign in</Link></p>}
           </StepCard>
         </form>
         <p className="text-sm text-muted-foreground">Already have an account? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></p>

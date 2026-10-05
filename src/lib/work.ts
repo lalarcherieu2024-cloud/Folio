@@ -6,34 +6,52 @@ export const weeksLabel = (n: number) => `${n} week${n > 1 ? "s" : ""}`;
 export const firstName = (name: string) => name.split(" ")[0];
 export const initials = (name: string) => name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-export const STEPS = ["Applied", "Accepted", "Building", "Delivered", "Verified"] as const;
+// The tracker an application moves through. "Interview" only shows when the client set one up.
+const BASE_STEPS = ["Applied", "Accepted", "Building", "Delivered", "Verified"];
+const WITH_INTERVIEW = ["Applied", "Interview", "Accepted", "Building", "Delivered", "Verified"];
+export const stepsFor = (a: Pick<Application, "interview">) => (a.interview ? WITH_INTERVIEW : BASE_STEPS);
 
-// Where an application sits on the 5-step tracker, plus its badge.
-export function statusInfo(a: Pick<Application, "status">, p: Pick<Project, "status">) {
-  if (a.status === "declined") return { step: -1, label: "Not selected", tone: "muted" as const };
-  if (p.status === "verified" && (a.status === "accepted" || a.status === "delivered")) return { step: 4, label: "Verified", tone: "success" as const };
-  if (a.status === "delivered") return { step: 3, label: "Awaiting verification", tone: "muted" as const };
-  if (a.status === "accepted") return { step: 2, label: "In progress", tone: "info" as const };
-  return { step: 0, label: "Waiting for client", tone: "warning" as const };
+export type Stage = "applied" | "interview" | "building" | "delivered" | "verified" | "declined";
+export type Tone = "warning" | "interview" | "info" | "success" | "muted";
+export type StatusInfo = { stage: Stage; step: number; steps: string[]; label: string; tone: Tone };
+
+// Where an application sits on its tracker, plus its badge.
+export function statusInfo(a: Pick<Application, "status" | "interview">, p: Pick<Project, "status">): StatusInfo {
+  const steps = stepsFor(a);
+  const at = (stage: Stage, label: string, tone: Tone, step: string): StatusInfo => ({ stage, step: steps.indexOf(step), steps, label, tone });
+  if (a.status === "declined") return { stage: "declined", step: -1, steps, label: "Not selected", tone: "muted" };
+  if (p.status === "verified" && (a.status === "accepted" || a.status === "delivered")) return at("verified", "Verified", "success", "Verified");
+  if (a.status === "delivered") return at("delivered", "Awaiting verification", "muted", "Delivered");
+  if (a.status === "accepted") return at("building", "In progress", "info", "Building");
+  if (a.status === "interview") return at("interview", a.interview?.confirmedAt ? "Interview confirmed" : "Interview invite", "interview", "Interview");
+  return at("applied", "Waiting for client", "warning", "Applied");
 }
 
-export const TONE_CLASS = {
+export const TONE_CLASS: Record<Tone, string> = {
   warning: "bg-[#fef3c7] text-[#92400e]",
+  interview: "bg-[#cffafe] text-[#155e75]",
   info: "bg-[#e0f2fe] text-[#0c4a6e]",
   success: "bg-[#dcfce7] text-[#166534]",
   muted: "bg-secondary text-secondary-foreground",
-} as const;
-
-// Colour + progress for each stage of the tracker: [ring, text, row tint].
-export const STAGE_COLORS: Record<number, [string, string, string]> = {
-  0: ["#f59e0b", "#b45309", "#fffdf7"],
-  2: ["#0369a1", "#0c4a6e", "#f8fbfd"],
-  3: ["#8b5cf6", "#6d28d9", "#fcfbff"],
-  4: ["#22c55e", "#166534", "#f9fefb"],
 };
-export const stageColors = (step: number) => STAGE_COLORS[step] ?? ["#94a3b8", "#475569", "#ffffff"];
-export const stagePct = (step: number) => Math.round(((step + 1) / STEPS.length) * 100);
-export const nextLabel = (step: number) => (step >= STEPS.length - 1 ? "Complete" : `Next: ${STEPS[step + 1]}`);
+
+// Colour for each stage of the tracker: [ring, text, row tint].
+export const STAGE_COLORS: Partial<Record<Stage, [string, string, string]>> = {
+  applied: ["#f59e0b", "#b45309", "#fffdf7"],
+  interview: ["#0891b2", "#155e75", "#f7fdfe"],
+  building: ["#0369a1", "#0c4a6e", "#f8fbfd"],
+  delivered: ["#8b5cf6", "#6d28d9", "#fcfbff"],
+  verified: ["#22c55e", "#166534", "#f9fefb"],
+};
+export const stageColors = (stage: Stage) => STAGE_COLORS[stage] ?? ["#94a3b8", "#475569", "#ffffff"];
+export const stagePct = (s: StatusInfo) => Math.round(((s.step + 1) / s.steps.length) * 100);
+export const nextLabel = (s: StatusInfo) => (s.step >= s.steps.length - 1 ? "Complete" : `Next: ${s.steps[s.step + 1]}`);
+
+// "Thu 9 Oct, 17:00", always in Madrid time (the server may run in another timezone).
+export const interviewWhen = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
+export const isLink = (where: string) => /^(https?:\/\/|[\w-]+\.[\w.-]+\/)/i.test(where.trim());
+export const linkHref = (where: string) => (/^https?:\/\//i.test(where) ? where : `https://${where}`);
 
 type ChecklistUser = {
   cv: unknown; linkedinVerified: boolean; payoutLink: string | null; fileCount: number; strengths: { fields: { label: string }[] } | null;

@@ -90,7 +90,7 @@ function Accounts({ user }: { user: StudentProfile }) {
         <Link href={go(4)} className={outlineBtn}>Back</Link>
         <Link href={go(6)} className={primaryBtn}>{user.linkedinVerified || user.githubVerified ? "Continue" : "Skip for now"}</Link>
       </>}>
-        <ConnectAccounts user={user} returnTo={go(5)} />
+        <ConnectAccounts user={user} next={go(5)} />
       </StepCard>
     </>
   );

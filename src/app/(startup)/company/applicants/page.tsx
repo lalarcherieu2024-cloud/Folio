@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { CalendarClock, Check, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { ApplicantActions } from "@/components/startup/ApplicantActions";
@@ -6,11 +6,12 @@ import { ago, card, chip, PageHeader, pastLabel, TONES } from "@/components/star
 import { requireUser } from "@/lib/auth";
 import { getCompanyApplicants, getCompanyProjects, type Applicant } from "@/lib/data/startup";
 import { cn } from "@/lib/utils";
+import { interviewWhen } from "@/lib/work";
 
 export const metadata = { title: "Applicants · Folio" };
 
-// Waiting on you first: pending applicants, then work to verify, then everything already decided.
-const order = (a: Applicant) => (a.status === "pending" ? 0 : a.status === "delivered" && a.projectStatus !== "verified" ? 1 : 2);
+// Waiting on you first: undecided applicants (new or interviewing), then work to verify, then everything already decided.
+const order = (a: Applicant) => (a.status === "pending" || a.status === "interview" ? 0 : a.status === "delivered" && a.projectStatus !== "verified" ? 1 : 2);
 
 // STARTUP INTERFACE (owner: startup builder).
 export default async function CompanyApplicants({ searchParams }: PageProps<"/company/applicants">) {
@@ -55,6 +56,10 @@ export default async function CompanyApplicants({ searchParams }: PageProps<"/co
                     <span className="text-base font-semibold leading-tight group-hover:underline">{a.name}</span>
                     <span className="text-[0.8125rem] text-muted-foreground">{a.program || "IE student"} · {a.projectTitle} · {ago(a.createdAt)}</span>
                     <span className="flex flex-wrap gap-1.5">
+                      {a.status === "interview" && a.interview && (
+                        <span className={cn(chip, "bg-[#cffafe] text-[#155e75]")}><CalendarClock className="size-3" />Interview {interviewWhen(a.interview.at)}{a.interview.confirmedAt ? " · confirmed" : ""}</span>
+                      )}
+                      {working && <span className={cn(chip, TONES.info)}><MessageSquare className="size-3" />Messages</span>}
                       {a.githubVerified && <span className={cn(chip, TONES.success)}><Check className="size-3" strokeWidth={3} />GitHub</span>}
                       {a.linkedinVerified && <span className={cn(chip, TONES.success)}><Check className="size-3" strokeWidth={3} />LinkedIn</span>}
                       <span className={cn(chip, a.pastCount ? TONES.success : TONES.muted)}>{pastLabel(a.pastCount, a.avgRating)}</span>

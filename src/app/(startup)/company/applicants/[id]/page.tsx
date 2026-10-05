@@ -1,13 +1,17 @@
 import { ArrowLeft, Check, ExternalLink, FileText } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChatPanel } from "@/components/shared/ChatPanel";
 import { CredentialCard } from "@/components/shared/CredentialCard";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { ApplicantActions } from "@/components/startup/ApplicantActions";
+import { InterviewSummary } from "@/components/startup/InterviewSummary";
 import { ago, card, chip, TONES } from "@/components/startup/ui";
 import { requireUser } from "@/lib/auth";
+import { getMessages } from "@/lib/data/messages";
 import { getApplicant } from "@/lib/data/startup";
 import { cn } from "@/lib/utils";
+import { firstName } from "@/lib/work";
 
 export const metadata = { title: "Applicant · Folio" };
 
@@ -19,6 +23,9 @@ export default async function ApplicantProfile(props: PageProps<"/company/applic
   const user = await requireUser(`/company/applicants/${id}`, "company");
   const a = await getApplicant(user, id);
   if (!a) notFound();
+  // Once the student is hired, the two can message each other.
+  const hired = a.status === "accepted" || a.status === "delivered";
+  const messages = hired ? await getMessages(user, a.id) : [];
 
   return (
     <div className="page-enter flex max-w-[60rem] flex-col gap-6">
@@ -41,6 +48,10 @@ export default async function ApplicantProfile(props: PageProps<"/company/applic
       <Link href={`/company/projects/${a.projectId}`} className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600 hover:border-zinc-400">
         Applied to <span className="font-medium text-foreground">{a.projectTitle}</span> · {ago(a.createdAt)}
       </Link>
+
+      {a.status === "interview" && a.interview && <InterviewSummary interview={a.interview} name={firstName(a.name)} />}
+
+      {hired && <ChatPanel applicationId={a.id} messages={messages} otherName={firstName(a.name)} intro="Share extra information, links or files they'll need, and answer their questions here." />}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className={cn(card, "flex flex-col gap-5 p-5")}>

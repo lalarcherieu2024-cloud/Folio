@@ -5,9 +5,10 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { isAvatarColor } from "@/lib/avatar";
 import {
-  acceptApplicant, createCompanyProject, declineApplicant, DOC_KINDS, getOrganization, removeCompanyDoc,
-  saveCompanyDoc, saveOrganization, submitVerification, verifyDelivery, type DocKind,
+  acceptApplicant, createCompanyProject, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc,
+  removeOrgLogo, saveCompanyDoc, saveCompanyFile, saveOrganization, saveOrgLogo, setOrgLogoColor, submitVerification, verifyDelivery, type DocKind,
 } from "@/lib/data/startup";
 import { EMAIL, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";
@@ -44,11 +45,74 @@ export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promi
   if (!name || !cif || !website || !about) return { error: "Fill in the legal name, CIF / NIF, website and what the company does." };
   if (!/^[A-Z0-9]{8,10}$/.test(cif)) return { error: "A CIF / NIF is 9 letters and numbers, like B12345678." };
   if (founded && !(/^\d{4}$/.test(founded) && Number(founded) <= new Date().getFullYear())) return { error: "Enter the year the company was founded, like 2024." };
-  const res = await saveOrganization(user, { name, cif, website, hood, about, founded, teamSize });
+  // The LinkedIn field only exists on the profile editor; leave it untouched when it isn't sent.
+  let linkedinUrl: string | undefined;
+  if (f.has("linkedinUrl")) {
+    const raw = str(f, "linkedinUrl");
+    if (raw && !/^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/(company|school)\/[^\s]+$/i.test(raw)) return { error: "Use your company's LinkedIn page, like linkedin.com/company/nubolabs." };
+    linkedinUrl = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`) : "";
+    // Unchanged (e.g. before migration 0016 adds the column): don't write it, so other edits still save.
+    if (linkedinUrl === ((await getOrganization(user))?.linkedinUrl ?? "")) linkedinUrl = undefined;
+  }
+  const res = await saveOrganization(user, { name, cif, website, hood, about, founded, teamSize, linkedinUrl });
   if (res.error) return res;
   refresh();
-  if (str(f, "then") === "profile") redirect("/company/profile");
+  if (str(f, "then") === "profile") return { ok: true }; // saved from the profile page: stay there and show a toast
   redirect("/company/verify?step=4");
+}
+
+// ---------------------------------------------------------------- company profile: logo + shared files
+
+export async function uploadLogoAction(f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/profile", "company");
+  const file = f.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose an image first." };
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return { error: "Use a JPG, PNG or WebP image." };
+  if (file.size > 2 * 1024 * 1024) return { error: "The logo must be under 2 MB." };
+  const res = await saveOrgLogo(user, file);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
+}
+
+export async function removeLogoAction(): Promise<FormState> {
+  const user = await requireUser("/company/profile", "company");
+  const res = await removeOrgLogo(user);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
+}
+
+export async function setLogoColorAction(color: string): Promise<FormState> {
+  const user = await requireUser("/company/profile", "company");
+  if (!isAvatarColor(color)) return { error: "Pick one of the colours." };
+  const res = await setOrgLogoColor(user, color);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
+}
+
+const FILE_TYPES = new Set([".pdf", ".pptx", ".docx", ".jpg", ".jpeg", ".png", ".webp"]);
+
+export async function uploadCompanyFileAction(f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/profile", "company");
+  const file = f.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a file first." };
+  const ext = path.extname(file.name).toLowerCase();
+  if (!FILE_TYPES.has(ext)) return { error: "Upload a PDF, PowerPoint, Word document or image." };
+  if (file.size > 10 * 1024 * 1024) return { error: "The file must be under 10 MB." };
+  const res = await saveCompanyFile(user, file, ext);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
+}
+
+export async function deleteCompanyFileAction(id: string): Promise<FormState> {
+  const user = await requireUser("/company/profile", "company");
+  const res = await deleteCompanyFile(user, id);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
 }
 
 const DOC_TYPES = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
@@ -115,6 +179,19 @@ export async function acceptApplicantAction(applicationId: string): Promise<Form
   refresh();
   const n = res.declined ?? 0;
   return { ok: true, notice: n ? `${n} other applicant${n > 1 ? "s" : ""} declined. Project is now in progress.` : "Project is now in progress." };
+}
+
+// The date and time arrive as an ISO string built in the company's browser (so it's their local time).
+export async function inviteToInterviewAction(_: FormState, f: FormData): Promise<FormState> {
+  await requireUser("/company/applicants", "company");
+  const at = str(f, "at"), place = str(f, "place"), note = str(f, "note").slice(0, 600);
+  if (!at || Number.isNaN(Date.parse(at))) return { error: "Pick a date and a time." };
+  if (Date.parse(at) < Date.now()) return { error: "Pick a date and time in the future." };
+  if (place.length < 3) return { error: "Add a meeting link or an address." };
+  const res = await inviteToInterview(str(f, "applicationId"), new Date(at).toISOString(), place.slice(0, 300), note);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
 }
 
 export async function declineApplicantAction(applicationId: string): Promise<FormState> {

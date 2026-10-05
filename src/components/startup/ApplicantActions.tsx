@@ -1,11 +1,13 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { CalendarClock, Star } from "lucide-react";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { acceptApplicantAction, declineApplicantAction, verifyDeliveryAction } from "@/app/actions/startup";
+import { acceptApplicantAction, declineApplicantAction, inviteToInterviewAction, verifyDeliveryAction } from "@/app/actions/startup";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Applicant } from "@/lib/data/startup";
 import type { FormState } from "@/lib/form";
@@ -53,10 +55,66 @@ function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "na
   );
 }
 
-/** Accept / Decline for a pending applicant, Verify for delivered work, otherwise the outcome as a badge. */
+// "2026-10-09" and "17:00" in the company's own timezone, for pre-filling a reschedule.
+const localParts = (iso: string) => {
+  const d = new Date(iso), pad = (n: number) => String(n).padStart(2, "0");
+  return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:${pad(d.getMinutes())}` };
+};
+
+function InterviewDialog({ a, open, onOpenChange }: { a: Applicant; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const prev = a.interview ? localParts(a.interview.at) : null;
+  const [date, setDate] = useState(prev?.date ?? "");
+  const [time, setTime] = useState(prev?.time ?? "");
+  const [place, setPlace] = useState(a.interview?.where ?? "");
+  const [note, setNote] = useState(a.interview?.note ?? "");
+  const [state, action, pending] = useActionState<FormState, FormData>(inviteToInterviewAction, {});
+  const handled = useRef(state);
+  useEffect(() => {
+    if (state === handled.current || !state.ok) return;
+    handled.current = state;
+    onOpenChange(false);
+    toast.success(a.interview ? "Interview rescheduled" : "Interview invitation sent", { description: `${firstName(a.name)} gets a notification and can confirm.` });
+  }, [state, a.name, a.interview, onOpenChange]);
+  // Built in the browser, so the time is the company's local time.
+  const at = date && time ? new Date(`${date}T${time}`).toISOString() : "";
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="p-6 sm:max-w-[30rem]">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">{a.interview ? "Reschedule the interview" : `Invite ${firstName(a.name)} to an interview`}</DialogTitle>
+          <DialogDescription>Pick a time and add a video-call link or an address. {firstName(a.name)} is notified and can confirm. You can accept or decline after you&apos;ve met.</DialogDescription>
+        </DialogHeader>
+        <form action={action} className="grid gap-3">
+          <input type="hidden" name="applicationId" value={a.id} />
+          <input type="hidden" name="at" value={at} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5"><Label htmlFor="i-date">Date</Label><Input id="i-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" required /></div>
+            <div className="grid gap-1.5"><Label htmlFor="i-time">Time</Label><Input id="i-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-9" required /></div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="i-place">Meeting link or address</Label>
+            <Input id="i-place" name="place" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="https://meet.google.com/… or Calle Mayor 1, Madrid" className="h-9" required />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="i-note">Note (optional)</Label>
+            <Textarea id="i-note" name="note" value={note} onChange={(e) => setNote(e.target.value.slice(0, 600))} rows={3} placeholder="20 minutes. Bring two pieces of work you're proud of." className="resize-none" />
+          </div>
+          {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
+          <DialogFooter className="mt-1 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={!at || place.trim().length < 3 || pending}>{pending ? "Sending…" : a.interview ? "Update interview" : "Send invitation"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Decline / Interview / Accept while undecided, Verify for delivered work, otherwise the outcome as a badge. */
 export function ApplicantActions({ a, size = "sm" }: { a: Applicant; size?: "sm" | "lg" }) {
   const [busy, start] = useTransition();
   const [verifying, setVerifying] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const h = size === "lg" ? "h-9 px-3.5 text-sm" : "h-8 px-3 text-[0.8125rem]";
 
   const accept = () => start(async () => {
@@ -68,11 +126,15 @@ export function ApplicantActions({ a, size = "sm" }: { a: Applicant; size?: "sm"
     if (r.error) toast.error(r.error); else toast.success("Applicant declined");
   });
 
-  if (a.status === "pending") {
+  if (a.status === "pending" || a.status === "interview") {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" disabled={busy} onClick={decline} className={cn("bg-white", h)}>Decline</Button>
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => setInviting(true)} className={cn("gap-1.5 bg-white", h)}>
+          <CalendarClock className="size-3.5" />{a.status === "interview" ? "Reschedule" : "Interview"}
+        </Button>
         <Button size="sm" disabled={busy} onClick={accept} className={h}>Accept</Button>
+        <InterviewDialog key={a.interview?.at ?? "new"} a={a} open={inviting} onOpenChange={setInviting} />
       </div>
     );
   }

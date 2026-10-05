@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { getApplications, getRecommended, getSavedIds } from "@/lib/data/student";
 import { cn } from "@/lib/utils";
-import { STEPS, TONE_CLASS, dueInfo, eur, firstName, nextLabel, profileChecklist, stageColors, stagePct, statusInfo, viewerFrom } from "@/lib/work";
+import { TONE_CLASS, dueInfo, eur, firstName, interviewWhen, nextLabel, profileChecklist, stageColors, stagePct, statusInfo, viewerFrom } from "@/lib/work";
 import { Check } from "lucide-react";
 
 function greeting() {
@@ -42,17 +42,17 @@ export default async function StudentHome() {
             <div className="border-t border-zinc-100 px-5 py-6 text-sm text-muted-foreground">No applications yet. Your first one is usually the hardest: pick a project that matches your skills and send a short note. <Link href="/projects" className="font-medium text-foreground underline underline-offset-4">Find your first project</Link>.</div>
           ) : apps.slice(0, 4).map((a) => {
             const s = statusInfo(a, a.project);
-            const [ring, fg, tint] = stageColors(s.step);
-            const pctN = stagePct(s.step);
+            const [ring, fg, tint] = stageColors(s.stage);
+            const pctN = stagePct(s);
             return (
-              <Link key={a.id} href={`/projects/${a.projectId}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel" style={{ boxShadow: `inset 3px 0 0 ${ring}`, background: tint }}>
-                <div title={`Step ${s.step + 1} of ${STEPS.length}: ${STEPS[s.step]}`} className="grid size-[3.25rem] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${ring} ${pctN}%, #eef4f8 0)` }}>
+              <Link key={a.id} href={s.stage === "applied" || s.stage === "declined" ? `/projects/${a.projectId}` : `/applications/${a.id}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel" style={{ boxShadow: `inset 3px 0 0 ${ring}`, background: tint }}>
+                <div title={`Step ${s.step + 1} of ${s.steps.length}: ${s.steps[s.step]}`} className="grid size-[3.25rem] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${ring} ${pctN}%, #eef4f8 0)` }}>
                   <div className="grid size-[2.625rem] place-items-center rounded-full bg-white font-mono text-xs font-semibold" style={{ color: fg }}>{pctN}%</div>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate text-sm font-medium">{a.project.title}</span>
                   <span className="text-[0.8125rem] text-muted-foreground">{a.project.orgName ?? a.project.clientName} · {eur(a.project.priceEur)}</span>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: fg }}><span className="size-1.5 rounded-full" style={{ background: ring }} />{s.step === 2 ? (dueInfo(a.acceptedAt, a.project.weeks)?.label ?? nextLabel(s.step)) : nextLabel(s.step)}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: fg }}><span className="size-1.5 rounded-full" style={{ background: ring }} />{s.stage === "building" ? (dueInfo(a.acceptedAt, a.project.weeks)?.label ?? nextLabel(s)) : s.stage === "interview" && a.interview ? `Interview ${interviewWhen(a.interview.at)}` : nextLabel(s)}</span>
                 </div>
                 <span className={cn("inline-flex h-[1.375rem] shrink-0 items-center rounded-md px-2 text-xs font-medium", TONE_CLASS[s.tone])}>{s.label}</span>
               </Link>

@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import type { FormState } from "@/lib/form";
 import { signInAction, signUpAction } from "@/app/actions/auth";
 import { RoleSwitch, type AccountRole } from "@/components/shared/RoleSwitch";
+import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,10 +32,11 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
         <p className="text-sm text-muted-foreground">{up ? (role === "company" ? "For startups and small businesses. Post a project in minutes." : "Free for IE students. Add your CV next.") : copy.sub}</p>
       </div>
       {next && <input type="hidden" name="next" value={next} />}
-      {up && <input type="hidden" name="role" value={role} />}
+      {/* Sign-in checks the account matches the side picked in the switch (signInAction). */}
+      <input type="hidden" name="role" value={up ? role : who} />
       {up && field("fullName", "Full name", { autoComplete: "name", required: true })}
       {up && field("program", "Programme and year (optional)", { placeholder: "e.g. BBA, 2027" })}
-      {field("email", up ? "Email" : copy.email, { type: "email", autoComplete: "email", required: true, placeholder: up ? undefined : copy.placeholder }, up ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
+      {field("email", up ? "Email" : copy.email, { type: "email", autoComplete: "email", required: true, placeholder: up ? undefined : copy.placeholder }, up && !SKIP_EMAIL_CONFIRMATION ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
       {field("password", "Password", { type: "password", autoComplete: up ? "new-password" : "current-password", required: true, minLength: up ? 8 : undefined }, up ? "At least 8 characters." : undefined)}
       {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
       {state.notice && <p role="status" className="rounded-lg bg-[#e0f2fe] px-3 py-2.5 text-sm font-medium text-[#0c4a6e]">{state.notice}</p>}
@@ -43,7 +45,6 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
         {up
           ? <>Already have an account? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></>
           : <>New to Folio? <Link href={copy.signup} className="font-medium text-foreground underline underline-offset-4">{who === "company" ? "Create a company account" : "Create an account"}</Link></>}
-      </p>
-    </form>
+      </p>    </form>
   );
 }
