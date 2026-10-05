@@ -1,10 +1,13 @@
 import { Check, Plus } from "lucide-react";
+import { headers } from "next/headers";
 import { Badge } from "@/components/ui/badge";
 import { CredentialCard } from "@/components/shared/CredentialCard";
 import { CvCard, DetailsCard, FilesCard } from "@/components/student/ProfileCards";
 import { requireUser } from "@/lib/auth";
+import { getSignatureStates } from "@/lib/data/signatures";
 import { getCredentials, getProfileFiles } from "@/lib/data/student";
 import { AvatarEditor } from "@/components/student/AvatarEditor";
+import { CredentialActions } from "@/components/student/CredentialActions";
 
 export const metadata = { title: "Profile & record · Folio" };
 
@@ -17,6 +20,9 @@ function Status({ on, yes, no }: { on: boolean; yes: string; no: string }) {
 export default async function ProfilePage() {
   const me = await requireUser("/profile", "student");
   const [creds, files] = await Promise.all([getCredentials(me), getProfileFiles(me)]);
+  const sigs = await getSignatureStates(creds.map((c) => c.id));
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`; // the address people use to reach Folio, for the verify link
   return (
     <div className="page-enter flex flex-col gap-8">
       <div className="flex flex-wrap items-center gap-5">
@@ -42,7 +48,7 @@ export default async function ProfilePage() {
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold tracking-tight">Verified record</h2>
         <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
-          {creds.map((c) => <CredentialCard key={c.id} c={c} />)}
+          {creds.map((c) => <div key={c.id} className="flex flex-col gap-2.5"><CredentialCard c={c} /><CredentialActions c={c} origin={origin} sig={sigs[c.id]} /></div>)}
           <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 p-5 text-center text-sm text-muted-foreground">
             <Plus className="size-5" /><span className="font-medium text-foreground">Next credential</span><span>Finish a project and the client signs it here.</span>
           </div>

@@ -3,7 +3,9 @@
 import { CalendarClock, Star } from "lucide-react";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { requestChangesAction } from "@/app/actions/submissions";
 import { acceptApplicantAction, declineApplicantAction, inviteToInterviewAction, verifyDeliveryAction } from "@/app/actions/startup";
+import { SignaturePad } from "@/components/shared/SignaturePad";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,7 @@ import { chip, TONES } from "./ui";
 function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "name" | "projectTitle">; open: boolean; onOpenChange: (o: boolean) => void }) {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
+  const [signature, setSignature] = useState<string | null>(null);
   const [state, action, pending] = useActionState<FormState, FormData>(verifyDeliveryAction, {});
   const handled = useRef(state);
   useEffect(() => {
@@ -36,6 +39,7 @@ function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "na
         <form action={action} className="grid gap-3">
           <input type="hidden" name="applicationId" value={a.id} />
           <input type="hidden" name="rating" value={rating} />
+          <input type="hidden" name="signature" value={signature ?? ""} />
           <div className="flex gap-1" role="radiogroup" aria-label="Rating">
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} star${n > 1 ? "s" : ""}`} onClick={() => setRating(n)} className="p-0.5">
@@ -43,11 +47,59 @@ function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "na
               </button>
             ))}
           </div>
-          <Textarea name="review" value={review} onChange={(e) => setReview(e.target.value.slice(0, 600))} rows={4} aria-label="Review" placeholder="What did they deliver, and how was it to work with them?" className="resize-none" />
+          <div className="grid gap-1.5">
+            <Textarea name="review" value={review} onChange={(e) => setReview(e.target.value.slice(0, 600))} rows={4} aria-label="Review" placeholder="What did they deliver, and how was it to work with them?" className="resize-none" />
+            <span className={cn("text-xs", review.trim().length >= 10 ? "text-muted-foreground" : "text-[#92400e]")}>
+              {review.trim().length >= 10 ? "Looks good." : `Write at least 10 characters (${review.trim().length}/10).`}
+            </span>
+          </div>
+          <div className="grid gap-1.5">
+            <span className="text-sm font-medium">Sign the certificate</span>
+            <SignaturePad onChange={setSignature} disabled={pending} />
+            <span className="text-xs text-muted-foreground">Your signature appears on {firstName(a.name)}&apos;s certificate. They sign it next.</span>
+          </div>
+          {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
+          <DialogFooter className="mt-1 items-center sm:justify-end">
+            {/* Say what's still missing, so a greyed-out button never looks broken. */}
+            {(!rating || review.trim().length < 10 || !signature) && (
+              <span className="mr-auto text-xs text-muted-foreground">
+                Still needed: {[!rating && "a star rating", review.trim().length < 10 && "a longer review", !signature && "your signature"].filter(Boolean).join(", ")}
+              </span>
+            )}
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={!rating || review.trim().length < 10 || !signature || pending}>{pending ? "Verifying…" : "Sign and issue credential"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ChangesDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "name" | "projectTitle">; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const [feedback, setFeedback] = useState("");
+  const [state, action, pending] = useActionState<FormState, FormData>(requestChangesAction, {});
+  const handled = useRef(state);
+  useEffect(() => {
+    if (state === handled.current || !state.ok) return;
+    handled.current = state;
+    onOpenChange(false);
+    setFeedback("");
+    toast.success("Feedback sent", { description: `${firstName(a.name)} can update the work and resubmit it.` });
+  }, [state, a.name, onOpenChange]);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="p-6 sm:max-w-[30rem]">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">Ask {firstName(a.name)} for changes</DialogTitle>
+          <DialogDescription>Say what needs to change in “{a.projectTitle}”. The submission goes back to {firstName(a.name)} with your feedback, and they can send it again.</DialogDescription>
+        </DialogHeader>
+        <form action={action} className="grid gap-3">
+          <input type="hidden" name="applicationId" value={a.id} />
+          <Textarea name="feedback" value={feedback} onChange={(e) => setFeedback(e.target.value.slice(0, 1500))} rows={5} aria-label="Feedback" placeholder="Be specific: what is missing or wrong, and what you'd like to see instead." className="resize-none" />
           {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
           <DialogFooter className="mt-1 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={!rating || review.trim().length < 10 || pending}>{pending ? "Verifying…" : "Verify and issue credential"}</Button>
+            <Button type="submit" disabled={feedback.trim().length < 10 || pending}>{pending ? "Sending…" : "Send back to student"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -115,6 +167,7 @@ export function ApplicantActions({ a, size = "sm" }: { a: Applicant; size?: "sm"
   const [busy, start] = useTransition();
   const [verifying, setVerifying] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [changing, setChanging] = useState(false);
   const h = size === "lg" ? "h-9 px-3.5 text-sm" : "h-8 px-3 text-[0.8125rem]";
 
   const accept = () => start(async () => {
@@ -140,10 +193,12 @@ export function ApplicantActions({ a, size = "sm" }: { a: Applicant; size?: "sm"
   }
   if (a.status === "delivered" && a.projectStatus !== "verified") {
     return (
-      <>
-        <Button size="sm" onClick={() => setVerifying(true)} className={h}>Verify delivery</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => setChanging(true)} className={cn("bg-white", h)}>Request changes</Button>
+        <Button size="sm" onClick={() => setVerifying(true)} className={h}>Approve and verify</Button>
         <VerifyDialog a={a} open={verifying} onOpenChange={setVerifying} />
-      </>
+        <ChangesDialog a={a} open={changing} onOpenChange={setChanging} />
+      </div>
     );
   }
   const [label, tone] = a.status === "declined" ? ["Declined", TONES.muted] : a.projectStatus === "verified" ? ["Verified", TONES.success] : ["Working on it", TONES.success];

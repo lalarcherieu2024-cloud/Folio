@@ -19,7 +19,10 @@ export default async function StudentHome() {
   const viewer = viewerFrom(user, savedIds);
   const { projects: recommended, basedOn } = await getRecommended(user, apps as never);
   const { items, pct } = profileChecklist(user);
-  const inMotion = apps.filter((a) => a.status !== "declined").length;
+  // "In progress" is only what is still moving: finished (verified) and declined applications drop out of it.
+  const stageOf = (a: (typeof apps)[number]) => statusInfo(a, a.project).stage;
+  const active = apps.filter((a) => stageOf(a) !== "verified" && stageOf(a) !== "declined");
+  const inMotion = active.length;
   const left = items.filter((i) => !i.done).length;
   const card = "rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
 
@@ -38,9 +41,13 @@ export default async function StudentHome() {
             <div className="flex flex-col gap-1"><span className="text-base font-semibold">In progress</span><span className="text-[0.8125rem] text-muted-foreground">Track each project from pitch to payout</span></div>
             <Link href="/applications" className={cn(buttonVariants({ variant: "ghost" }), "h-8 px-3 text-[0.8125rem]")}>View all</Link>
           </div>
-          {apps.length === 0 ? (
+          {active.length === 0 ? (
+            apps.length > 0 ? (
+              <div className="border-t border-zinc-100 px-5 py-6 text-sm text-muted-foreground">Nothing in progress right now. <Link href="/projects" className="font-medium text-foreground underline underline-offset-4">Find your next project</Link>.</div>
+            ) : (
             <div className="border-t border-zinc-100 px-5 py-6 text-sm text-muted-foreground">No applications yet. Your first one is usually the hardest: pick a project that matches your skills and send a short note. <Link href="/projects" className="font-medium text-foreground underline underline-offset-4">Find your first project</Link>.</div>
-          ) : apps.slice(0, 4).map((a) => {
+            )
+          ) : active.slice(0, 4).map((a) => {
             const s = statusInfo(a, a.project);
             const [ring, fg, tint] = stageColors(s.stage);
             const pctN = stagePct(s);

@@ -15,7 +15,7 @@ export type Category = (typeof CATEGORIES)[number];
 
 export type Role = "student" | "company";
 
-export type ProjectStatus = "open" | "in_progress" | "delivered" | "verified" | "cancelled";
+export type ProjectStatus = "draft" | "open" | "in_progress" | "delivered" | "verified" | "cancelled";
 export type ApplicationStatus = "pending" | "interview" | "accepted" | "declined" | "delivered";
 
 /** An interview the client set up (migration 0017). `where` is a meeting link or an address. */

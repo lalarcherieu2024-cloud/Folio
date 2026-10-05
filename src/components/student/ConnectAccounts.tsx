@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,15 +15,27 @@ const PROVIDERS = [
 
 type ProviderId = (typeof PROVIDERS)[number]["id"];
 
+// Supabase's messages, in plain words.
+function explain(reason: string | null) {
+  if (!reason) return "The account couldn't be connected. Try again.";
+  if (/already linked|already exists|identity.*(in use|exists)/i.test(reason)) return "That account is already connected to another Folio login. Disconnect it there first, or use a different account.";
+  if (/manual linking/i.test(reason)) return "Linking is switched off in Supabase (Authentication settings → Allow manual linking).";
+  if (/access_denied|denied|cancel/i.test(reason)) return "The connection was cancelled.";
+  return `The account couldn't be connected: ${reason}`;
+}
+
 export function ConnectAccounts({ user, providers, next = "/profile", title = "Verify your accounts", notes }: {
   user: StudentProfile; providers?: ProviderId[]; next?: string; title?: string; notes?: Partial<Record<ProviderId, string>>;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const verified = { github: user.githubVerified, linkedin_oidc: user.linkedinVerified };
+  // After a failed link, /auth/callback sends you back here with ?error=link&reason=…
+  const params = useSearchParams();
+  const linkError = params.get("error") === "link" ? explain(params.get("reason")) : null;
 
   async function connect(provider: "github" | "linkedin_oidc") {
     setBusy(provider);
-    const { error } = await createClient().auth.linkIdentity({ provider, options: { redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}` } });
+    const { error } = await createClient().auth.linkIdentity({ provider, options: { redirectTo: `${location.origin}/auth/callback?provider=${provider}&next=${encodeURIComponent(next)}` } });
     if (error) {
       setBusy(null);
       toast.error(/manual linking/i.test(error.message) ? "Linking is switched off in Supabase (Authentication settings → Allow manual linking)." : error.message);
@@ -32,6 +45,7 @@ export function ConnectAccounts({ user, providers, next = "/profile", title = "V
   return (
     <div className="grid gap-2.5 rounded-lg border bg-panel p-3.5">
       <span className="text-sm font-medium">{title}</span>
+      {linkError && <p role="alert" className="rounded-md bg-[#fee2e2] px-3 py-2 text-[0.8125rem] text-[#991b1b]">{linkError}</p>}
       {PROVIDERS.filter((p) => !providers || providers.includes(p.id)).map((p) => (
         <div key={p.id} className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-col leading-tight"><span className="text-sm">{p.label}</span><span className="text-xs text-muted-foreground">{notes?.[p.id] ?? p.note}</span></div>

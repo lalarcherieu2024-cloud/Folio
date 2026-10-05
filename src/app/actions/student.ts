@@ -8,7 +8,7 @@ import { isAvatarColor } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
 import { acceptApplicant, declineApplicant } from "@/lib/data/applicants";
 import { markAllRead } from "@/lib/data/notifications";
-import { addProfileFile, confirmInterview, createApplication, createProject, markDelivered, reanalyzeStoredCv, removeAvatar, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
+import { addProfileFile, confirmInterview, createApplication, createProject, markDelivered, reanalyzeStoredCv, deleteCv, removeAvatar, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
 import { str, type FormState } from "@/lib/form";
 import { CATEGORIES, type Category } from "@/lib/types";
 
@@ -211,6 +211,14 @@ export async function uploadAvatarAction(f: FormData): Promise<FormState> {
 export async function removeAvatarAction(): Promise<FormState> {
   const user = await requireUser("/profile", "student");
   const res = await removeAvatar(user);
+  if (res.error) return res;
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function deleteCvAction(): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  const res = await deleteCv(user);
   if (res.error) return res;
   revalidatePath("/", "layout");
   return { ok: true };
