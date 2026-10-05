@@ -141,6 +141,14 @@
 .slide-in { animation: slide-in-left .45s cubic-bezier(.2, .8, .2, 1) both; }
 .pop-count { display: inline-block; animation: pop-count .35s cubic-bezier(.2, .8, .2, 1) both; }
 
+/* Empty-state symbol: the bubble pops in, a soft ring ripples out, and the icon bobs and swings gently. */
+@keyframes empty-pop { 0% { opacity: 0; transform: scale(.6); } 70% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes empty-ripple { 0% { opacity: .4; transform: scale(1); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes empty-bob { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-3px) rotate(-6deg); } 50% { transform: translateY(0) rotate(0); } 75% { transform: translateY(-2px) rotate(5deg); } }
+.empty-icon { position: relative; animation: empty-pop .65s cubic-bezier(.2, .8, .2, 1) both; }
+.empty-icon::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 2px solid currentColor; opacity: 0; pointer-events: none; animation: empty-ripple 3s cubic-bezier(.2, .8, .2, 1) .65s infinite; }
+.empty-icon > svg { transform-origin: 50% 25%; animation: empty-bob 4s ease-in-out .65s infinite; }
+
 /* Cards: a gentle lift and a soft shadow, like a physical card being picked up. */
 .card-hover { transition: border-color .2s, box-shadow .25s, transform .25s cubic-bezier(.2, .8, .2, 1); }
 .card-hover:hover { border-color: #5b9bbd; box-shadow: 0 12px 28px -14px rgba(0,0,0,.22); transform: translateY(-3px); }

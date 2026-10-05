@@ -28,7 +28,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
 
       {conversations.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-panel px-6 py-12 text-center">
-          <MessageSquare className="size-6 text-muted-foreground" />
+          <span className="empty-icon grid size-12 place-items-center rounded-full bg-soft text-brand"><MessageSquare className="size-5" /></span>
           <p className="max-w-[44ch] text-sm text-muted-foreground">No conversations yet. When a company accepts you on one of their projects, you can message them here.</p>
           <Link href="/projects" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5")}>Find a project</Link>
         </div>
