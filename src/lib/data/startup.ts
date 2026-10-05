@@ -4,9 +4,9 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import { avatarPublicUrl } from "../avatar";
 import { createClient } from "../supabase/server";
-import type { ApplicationStatus, Category, Credential, Project, ProjectStatus, StudentProfile } from "../types";
+import type { ApplicationStatus, Category, Credential, Interview, Project, ProjectStatus, StudentProfile } from "../types";
 import { MAX_COMPANY_FILES } from "../form";
-import { monthYear, toProject, UUID } from "./shared";
+import { monthYear, toInterview, toProject, UUID } from "./shared";
 
 export type CompanyProject = Project & { createdAt: string };
 
@@ -24,6 +24,7 @@ export type Applicant = {
   linkedinVerified: boolean;
   status: ApplicationStatus;
   createdAt: string;
+  interview: Interview | null;
   hasCv: boolean;
   linkCount: number;
   pastCount: number; // verified Folio credentials
@@ -261,7 +262,8 @@ export async function countIssuedCredentials(projects: CompanyProject[]): Promis
 
 // ---------------------------------------------------------------- applicants
 
-const APPLICANT_FIELDS = "id, project_id, student_id, status, created_at, pitch, student:profiles(full_name, program, avatar_color, avatar_path, uni_email_verified, github_handle, github_verified, linkedin_url, linkedin_verified, cv_path, cv_name, cv_size_kb)";
+// "*" for the application itself, so newer columns (interview_*, 0017) come along when they exist.
+const APPLICANT_FIELDS = "*, student:profiles(full_name, program, avatar_color, avatar_path, uni_email_verified, github_handle, github_verified, linkedin_url, linkedin_verified, cv_path, cv_name, cv_size_kb)";
 
 const linksOf = (s: any): { label: string; href: string }[] => [
   ...(s?.github_handle ? [{ label: `github.com/${s.github_handle}`, href: `https://github.com/${s.github_handle}` }] : []),
@@ -274,7 +276,7 @@ function toApplicant(a: any, project: Pick<Project, "title" | "status">, ratings
     name: a.student?.full_name ?? "Student", program: a.student?.program ?? "",
     avatarColor: a.student?.avatar_color ?? null, avatarUrl: avatarPublicUrl(a.student?.avatar_path),
     githubVerified: !!a.student?.github_verified, linkedinVerified: !!a.student?.linkedin_verified,
-    status: a.status, createdAt: a.created_at,
+    status: a.status, createdAt: a.created_at, interview: toInterview(a),
     hasCv: !!a.student?.cv_path, linkCount: linksOf(a.student).length,
     pastCount: ratings.length, avgRating: ratings.length ? ratings.reduce((s, n) => s + n, 0) / ratings.length : null,
   };
@@ -334,7 +336,7 @@ export async function acceptApplicant(applicationId: string): Promise<{ declined
   const { data: app } = await supabase.from("applications").select("project_id").eq("id", applicationId).maybeSingle();
   if (!app) return { error: "Application not found." };
   const { count } = await supabase.from("applications").select("id", { count: "exact", head: true })
-    .eq("project_id", app.project_id).eq("status", "pending").neq("id", applicationId);
+    .eq("project_id", app.project_id).in("status", ["pending", "interview"]).neq("id", applicationId);
   const { error } = await supabase.rpc("accept_applicant", { p_application_id: applicationId });
   return error ? { error: rpcError(error, "Couldn't accept this applicant. Try again.") } : { declined: count ?? 0 };
 }
@@ -342,9 +344,19 @@ export async function acceptApplicant(applicationId: string): Promise<{ declined
 export async function declineApplicant(applicationId: string): Promise<{ error?: string }> {
   if (!UUID.test(applicationId)) return { error: "Application not found." };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("applications").update({ status: "declined" }).eq("id", applicationId).eq("status", "pending").select("id");
+  const { data, error } = await supabase.from("applications").update({ status: "declined" }).eq("id", applicationId).in("status", ["pending", "interview"]).select("id");
   if (error) { console.error("declineApplicant", error); return { error: "Couldn't reject this applicant. Try again." }; }
   return data?.length ? {} : { error: "You already decided on this applicant." };
+}
+
+/** Invite an applicant to an interview, or reschedule one (tells the student; migration 0017). */
+export async function inviteToInterview(applicationId: string, atIso: string, place: string, note: string): Promise<{ error?: string }> {
+  if (!UUID.test(applicationId)) return { error: "Application not found." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("invite_to_interview", { app_id: applicationId, at: atIso, place, note });
+  if (!error) return {};
+  if (error.code === "PGRST202") return { error: "Interviews need migration 0017. Run supabase/migrations/0017_interviews_and_messages.sql in the Supabase SQL Editor." };
+  return { error: rpcError(error, "Couldn't send the invitation. Try again.") };
 }
 
 /** Confirms delivered work: issues the student's verified credential and completes the project. */

@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { isAvatarColor } from "@/lib/avatar";
 import {
-  acceptApplicant, createCompanyProject, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, removeCompanyDoc,
+  acceptApplicant, createCompanyProject, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc,
   removeOrgLogo, saveCompanyDoc, saveCompanyFile, saveOrganization, saveOrgLogo, setOrgLogoColor, submitVerification, verifyDelivery, type DocKind,
 } from "@/lib/data/startup";
 import { EMAIL, str, type FormState } from "@/lib/form";
@@ -179,6 +179,19 @@ export async function acceptApplicantAction(applicationId: string): Promise<Form
   refresh();
   const n = res.declined ?? 0;
   return { ok: true, notice: n ? `${n} other applicant${n > 1 ? "s" : ""} declined. Project is now in progress.` : "Project is now in progress." };
+}
+
+// The date and time arrive as an ISO string built in the company's browser (so it's their local time).
+export async function inviteToInterviewAction(_: FormState, f: FormData): Promise<FormState> {
+  await requireUser("/company/applicants", "company");
+  const at = str(f, "at"), place = str(f, "place"), note = str(f, "note").slice(0, 600);
+  if (!at || Number.isNaN(Date.parse(at))) return { error: "Pick a date and a time." };
+  if (Date.parse(at) < Date.now()) return { error: "Pick a date and time in the future." };
+  if (place.length < 3) return { error: "Add a meeting link or an address." };
+  const res = await inviteToInterview(str(f, "applicationId"), new Date(at).toISOString(), place.slice(0, 300), note);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
 }
 
 export async function declineApplicantAction(applicationId: string): Promise<FormState> {

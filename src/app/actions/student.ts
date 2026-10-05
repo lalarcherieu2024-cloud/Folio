@@ -8,7 +8,7 @@ import { isAvatarColor } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
 import { acceptApplicant, declineApplicant } from "@/lib/data/applicants";
 import { markAllRead } from "@/lib/data/notifications";
-import { addProfileFile, createApplication, createProject, markDelivered, reanalyzeStoredCv, removeAvatar, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
+import { addProfileFile, confirmInterview, createApplication, createProject, markDelivered, reanalyzeStoredCv, removeAvatar, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
 import { str, type FormState } from "@/lib/form";
 import { CATEGORIES, type Category } from "@/lib/types";
 
@@ -78,6 +78,15 @@ export async function markDeliveredAction(applicationId: string): Promise<FormSt
   if (res.error) return res;
   revalidatePath("/applications");
   revalidatePath("/");
+  return { ok: true };
+}
+
+export async function confirmInterviewAction(applicationId: string): Promise<FormState> {
+  await requireUser("/applications", "student");
+  const res = await confirmInterview(applicationId);
+  if (res.error) return res;
+  revalidatePath("/applications", "layout");
+  revalidatePath("/home");
   return { ok: true };
 }
 

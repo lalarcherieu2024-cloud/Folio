@@ -16,7 +16,10 @@ export type Category = (typeof CATEGORIES)[number];
 export type Role = "student" | "company";
 
 export type ProjectStatus = "open" | "in_progress" | "delivered" | "verified" | "cancelled";
-export type ApplicationStatus = "pending" | "accepted" | "declined" | "delivered";
+export type ApplicationStatus = "pending" | "interview" | "accepted" | "declined" | "delivered";
+
+/** An interview the client set up (migration 0017). `where` is a meeting link or an address. */
+export type Interview = { at: string; where: string; note: string | null; confirmedAt: string | null };
 
 export type Project = {
   id: string;
@@ -52,6 +55,7 @@ export type Application = {
   createdAt: string;
   includeFiles: boolean; // student chose to share their additional files
   acceptedAt: string | null; // when the client chose this student (starts the clock)
+  interview: Interview | null; // set once the client invites the student to an interview
 };
 
 export type Applicant = {

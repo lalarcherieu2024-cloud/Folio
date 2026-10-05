@@ -1,25 +1,29 @@
 "use client";
 
-import { Check, Clock } from "lucide-react";
+import { Check, Clock, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import { markDeliveredAction, withdrawApplicationAction } from "@/app/actions/student";
+import { InterviewCard } from "@/components/student/InterviewCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Application, Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { STEPS, TONE_CLASS, dueInfo, eur, firstName, stageColors, statusInfo, weeksLabel } from "@/lib/work";
+import { TONE_CLASS, dueInfo, eur, firstName, stageColors, statusInfo, weeksLabel } from "@/lib/work";
 
 type Row = Application & { project: Project };
 
+const clientOf = (p: Project) => p.orgName ?? firstName(p.clientName);
+
 function note(a: Row) {
-  const client = firstName(a.project.clientName);
+  const client = clientOf(a.project);
   const s = statusInfo(a, a.project);
-  if (s.step === 0) return `${client} is reviewing ${a.project.applicantCount} application${a.project.applicantCount === 1 ? "" : "s"}. Most clients reply within 3 days.`;
-  if (s.step === 2) return `Done when: ${a.project.doneWhen}`;
-  if (s.step === 3) return `Delivered. ${client} checks it against “done when”, then signs your credential.`;
-  if (s.step === 4) return `Verified. This credential is now on your public record.`;
+  if (s.stage === "applied") return `${client} is reviewing ${a.project.applicantCount} application${a.project.applicantCount === 1 ? "" : "s"}. Most clients reply within 3 days.`;
+  if (s.stage === "interview") return `${client} wants to meet you before deciding. Confirm the time below, then they'll accept you or let you know.`;
+  if (s.stage === "building") return `Done when: ${a.project.doneWhen}`;
+  if (s.stage === "delivered") return `Delivered. ${client} checks it against “done when”, then signs your credential.`;
+  if (s.stage === "verified") return `Verified. This credential is now on your public record.`;
   return "This project went with another student. Your CV stays on file for the next one.";
 }
 
@@ -27,8 +31,10 @@ function AppCard({ a }: { a: Row }) {
   const [pending, start] = useTransition();
   const s = statusInfo(a, a.project);
   const run = (fn: () => Promise<{ error?: string }>, ok: string) => start(async () => { const r = await fn(); if (r.error) toast.error(r.error); else toast.success(ok); });
-  const [ring, fg] = stageColors(s.step);
-  const due = s.step === 2 ? dueInfo(a.acceptedAt, a.project.weeks) : null;
+  const [ring, fg] = stageColors(s.stage);
+  const due = s.stage === "building" ? dueInfo(a.acceptedAt, a.project.weeks) : null;
+  // The message channel exists for company projects once you're hired.
+  const canMessage = a.project.clientKind === "company" && (a.status === "accepted" || a.status === "delivered");
   const date = new Date(a.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   return (
     <div className="flex flex-col gap-[1.125rem] rounded-xl border bg-white p-5" style={{ boxShadow: `inset 4px 0 0 ${ring}, 0 1px 2px rgba(0,0,0,.04)` }}>
@@ -42,16 +48,18 @@ function AppCard({ a }: { a: Row }) {
         </div>
         <div className="flex gap-2">
           <Link href={`/projects/${a.projectId}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 bg-white px-3 text-[0.8125rem]")}>View brief</Link>
-          {a.status === "accepted" && s.step === 2 && <Button size="sm" disabled={pending} className="h-8 px-3 text-[0.8125rem]" onClick={() => run(() => markDeliveredAction(a.id), "Marked as delivered")}>Mark as delivered</Button>}
-          {a.status === "pending" && <Button size="sm" variant="ghost" disabled={pending} className="h-8 px-3 text-[0.8125rem] text-destructive hover:bg-red-50 hover:text-destructive" onClick={() => run(() => withdrawApplicationAction(a.id), "Application withdrawn")}>Withdraw</Button>}
+          {canMessage && <Link href={`/applications/${a.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 gap-1.5 bg-white px-3 text-[0.8125rem]")}><MessageSquare className="size-3.5" />Messages</Link>}
+          {a.status === "accepted" && s.stage === "building" && <Button size="sm" disabled={pending} className="h-8 px-3 text-[0.8125rem]" onClick={() => run(() => markDeliveredAction(a.id), "Marked as delivered")}>Mark as delivered</Button>}
+          {(a.status === "pending" || a.status === "interview") && <Button size="sm" variant="ghost" disabled={pending} className="h-8 px-3 text-[0.8125rem] text-destructive hover:bg-red-50 hover:text-destructive" onClick={() => run(() => withdrawApplicationAction(a.id), "Application withdrawn")}>Withdraw</Button>}
         </div>
       </div>
       {due && (
         <p className={cn("inline-flex w-fit items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8125rem] font-medium", due.tone === "late" ? "bg-[#fee2e2] text-[#991b1b]" : due.tone === "soon" ? "bg-[#fef3c7] text-[#92400e]" : "bg-muted text-zinc-700")}><Clock className="size-3.5" />{due.label}</p>
       )}
+      {a.status === "interview" && a.interview && <InterviewCard applicationId={a.id} interview={a.interview} client={clientOf(a.project)} />}
       {s.step >= 0 && (
-        <div className="grid grid-cols-5 gap-1.5">
-          {STEPS.map((label, i) => (
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${s.steps.length}, minmax(0, 1fr))` }}>
+          {s.steps.map((label, i) => (
             <div key={label} className="flex flex-col gap-2">
               <div className="h-1.5 rounded-full" style={{ background: i <= s.step ? ring : "#dde7ee", boxShadow: i === s.step ? `0 0 0 3px ${ring}22` : "none" }} />
               <span className="inline-flex items-center gap-1 text-xs" style={{ color: i <= s.step ? fg : "#94a3b8", fontWeight: i === s.step ? 600 : 500 }}>
