@@ -7,8 +7,8 @@ import { Topbar } from "@/components/shell/Topbar";
 import type { Notification, StudentProfile } from "@/lib/types";
 import type { NavCounts } from "./nav";
 
-// Pages that draw their own full-screen layout (company verification) skip the sidebar and top bar.
-const FULL_SCREEN = ["/company/verify"];
+// Pages that draw their own full-screen layout (company verification, student onboarding) skip the sidebar and top bar.
+const FULL_SCREEN = ["/company/verify", "/welcome"];
 
 // Holds the one piece of shell state: is the sidebar collapsed to icons? The choice is kept in a cookie,
 // so the server renders the right width on the next page load (no flash of the wrong size).

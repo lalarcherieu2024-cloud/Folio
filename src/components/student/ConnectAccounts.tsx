@@ -12,13 +12,13 @@ const PROVIDERS = [
   { id: "linkedin_oidc", label: "LinkedIn", note: "Proves the account belongs to you." },
 ] as const;
 
-export function ConnectAccounts({ user }: { user: StudentProfile }) {
+export function ConnectAccounts({ user, returnTo = "/profile" }: { user: StudentProfile; returnTo?: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const verified = { github: user.githubVerified, linkedin_oidc: user.linkedinVerified };
 
   async function connect(provider: "github" | "linkedin_oidc") {
     setBusy(provider);
-    const { error } = await createClient().auth.linkIdentity({ provider, options: { redirectTo: `${location.origin}/auth/callback?next=/profile` } });
+    const { error } = await createClient().auth.linkIdentity({ provider, options: { redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}` } });
     if (error) {
       setBusy(null);
       toast.error(/manual linking/i.test(error.message) ? "Linking is switched off in Supabase (Authentication settings → Allow manual linking)." : error.message);

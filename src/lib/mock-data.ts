@@ -1,11 +1,12 @@
 import type { Credential } from "./types";
 
-// Sample plaques shown on the marketing pages (not stored in the database).
+// Demo plaques shown on the marketing pages (not stored in the database).
+// Placeholder content only: no real clients, people or reviews.
 export const SAMPLE_CREDENTIALS: Credential[] = [
-  { id: "s1", projectId: "x", projectTitle: "Delivery route cost model", clientName: "Javier Olmo", orgName: "Huerta Box",
-    hood: "Arganzuela", rating: 5, issuedAt: "July 2026", category: "Business & Finance", priceEur: 400,
-    review: "Lucía found that two zones were losing money on every order. We repriced them the next week." },
-  { id: "s2", projectId: "x", projectTitle: "Onboarding email sequence", clientName: "Irene Castro", orgName: "Lumen Health",
-    hood: "Salamanca", rating: 5, issuedAt: "June 2026", category: "Marketing & Growth", priceEur: 350,
-    review: "Five emails, live in a week. Open rates doubled what we had expected." },
+  { id: "s1", projectId: "x", projectTitle: "Delivery route cost model", clientName: "the client", orgName: "Example startup",
+    hood: "Arganzuela", rating: 5, issuedAt: "Demo", category: "Business & Finance", priceEur: 400,
+    review: "When you finish a project, the client writes a short review of your work here." },
+  { id: "s2", projectId: "x", projectTitle: "Onboarding email sequence", clientName: "the client", orgName: "Example business",
+    hood: "Salamanca", rating: 5, issuedAt: "Demo", category: "Marketing & Growth", priceEur: 350,
+    review: "Each signed review becomes a verified credential on your profile." },
 ];

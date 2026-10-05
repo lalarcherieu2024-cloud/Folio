@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { signInAction, signUpAction } from "@/app/actions/auth";
 import { resendCompanyCodeAction, verifyCompanyEmailAction } from "@/app/actions/startup";
 import { Logo } from "@/components/shared/Logo";
+import { RoleSwitch } from "@/components/shared/RoleSwitch";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,23 +27,26 @@ const STEPS = [
 export const primaryBtn = cn(buttonVariants(), "h-9 px-4");
 export const outlineBtn = cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5");
 
-/** Deep-ocean panel with the 6-step tracker on the left, content on the right. `current` null = just listing the steps. */
-export function AuthFrame({ title, sub, current, allDone, children }: { title: string; sub: string; current: number | null; allDone?: boolean; children: React.ReactNode }) {
+/** Deep-ocean panel with the 6-step tracker on the left, content on the right. `current` null = just listing the steps.
+ *  Students reuse it with their own `steps` and `audience` (see student/StudentSignup.tsx). */
+export function AuthFrame({ title, sub, current, allDone, children, steps = STEPS, audience = "For companies" }: {
+  title: string; sub: string; current: number | null; allDone?: boolean; children: React.ReactNode; steps?: readonly (readonly [string, string])[]; audience?: string;
+}) {
   return (
     <div className="flex min-h-screen flex-wrap bg-background">
       <aside className="flex max-w-[32.5rem] flex-[1_1_23.75rem] flex-col gap-10 bg-brand-navy px-11 py-10 text-white">
         <Link href="/" className="self-start text-[0.8125rem] text-brand-low hover:text-white">← Back to Folio</Link>
         <div className="flex items-center gap-3">
           <Logo size={48} onDark />
-          <div className="flex flex-col leading-tight"><span className="text-xl font-semibold tracking-tight">Folio</span><span className="text-xs text-brand-low">For companies</span></div>
+          <div className="flex flex-col leading-tight"><span className="text-xl font-semibold tracking-tight">Folio</span><span className="text-xs text-brand-low">{audience}</span></div>
         </div>
         <div className="flex flex-col gap-2.5">
           <h2 className="text-balance text-[1.75rem] font-semibold leading-tight tracking-[-0.02em]">{title}</h2>
           <p className="text-pretty text-[0.9375rem] leading-relaxed text-brand-low">{sub}</p>
         </div>
         <ol className="flex flex-col">
-          {STEPS.map(([label, s], i) => {
-            const n = i + 1, done = current !== null && (n < current || !!allDone), cur = n === current && !done, last = n === STEPS.length;
+          {steps.map(([label, s], i) => {
+            const n = i + 1, done = current !== null && (n < current || !!allDone), cur = n === current && !done, last = n === steps.length;
             return (
               <li key={label} className="flex gap-3.5" aria-current={cur ? "step" : undefined}>
                 <div className="flex flex-col items-center">
@@ -141,16 +145,10 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
   const [email, setEmail] = useState("");
   const sentTo = up && state.notice ? email.trim().toLowerCase() : null; // account created, waiting for the email code
   const [title, sub] = COPY[mode];
-  const tab = (on: boolean) => cn("grid h-[2.125rem] place-items-center rounded-md text-sm font-medium transition-colors", on ? "bg-white text-foreground shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.08)]" : "text-muted-foreground hover:text-foreground");
 
   return (
     <AuthFrame title={title} sub={sub} current={up ? (sentTo ? 2 : 1) : null}>
-      {!sentTo && (
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          <Link href="/company/signin" className={tab(!up)} aria-current={!up ? "page" : undefined}>Sign in</Link>
-          <Link href="/company/signup" className={tab(up)} aria-current={up ? "page" : undefined}>Create account</Link>
-        </div>
-      )}
+      {up && !sentTo && <RoleSwitch role="company" />}
 
       {!up && <>
         <div className="flex flex-col gap-1.5">
@@ -181,6 +179,7 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
             {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
           </StepCard>
         </form>
+        <p className="text-sm text-muted-foreground">Already have an account? <Link href="/signin?as=company" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></p>
       </>}
 
       {sentTo && <EmailCode email={sentTo} />}
