@@ -1,24 +1,30 @@
-import { Check, Pencil } from "lucide-react";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UserAvatar } from "@/components/shared/UserAvatar";
+import { CompanyDetailsCard } from "@/components/startup/CompanyDetailsCard";
+import { CompanyFilesCard } from "@/components/startup/CompanyFiles";
+import { CompanyLogoEditor } from "@/components/startup/CompanyLogoEditor";
 import { CompanyProjectCard } from "@/components/startup/CompanyProjectCard";
-import { card, chip, TONES } from "@/components/startup/ui";
-import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
 import { countIssuedCredentials, getCompanyProjects, getOrganization } from "@/lib/data/startup";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Company profile · Folio" };
 
-const STATUS_BADGE = {
-  verified: ["Verified", TONES.success],
-  pending: ["Under review", TONES.warning],
-  rejected: ["Changes needed", TONES.danger],
-  draft: ["Not verified", TONES.muted],
+const STATUS = {
+  verified: ["Company verified", true],
+  pending: ["Verification under review", false],
+  rejected: ["Changes needed", false],
+  draft: ["Not verified yet", false],
 } as const;
 
-// STARTUP INTERFACE (owner: startup builder). The company as students see it.
+function Status({ on, yes, no }: { on: boolean; yes: string; no: string }) {
+  return on
+    ? <Badge className="h-[1.375rem] gap-1 rounded-md bg-[#dcfce7] px-2 text-xs font-medium text-[#166534] hover:bg-[#dcfce7]"><Check className="size-3" strokeWidth={3} />{yes}</Badge>
+    : <Badge variant="outline" className="h-[1.375rem] rounded-md px-2 text-xs font-medium text-muted-foreground">{no}</Badge>;
+}
+
+// STARTUP INTERFACE (owner: startup builder). The company profile, laid out like the student profile.
 export default async function CompanyProfile() {
   const user = await requireUser("/company/profile", "company");
   const org = await getOrganization(user);
@@ -26,48 +32,36 @@ export default async function CompanyProfile() {
   const projects = await getCompanyProjects(user);
   const issued = await countIssuedCredentials(projects);
   const open = projects.filter((p) => p.status === "open");
-  const [badge, tone] = STATUS_BADGE[org.status];
-  const details = [
-    ["Founded", org.founded || "–"],
-    ["Team", org.teamSize || "–"],
-    ["Website", org.website],
-    ["Projects posted", String(projects.length)],
-    ["Verified credentials issued", String(issued)],
-  ];
+  const [statusLabel, verified] = STATUS[org.status];
 
   return (
-    <div className="page-enter flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <UserAvatar name={org.name} className="size-16 rounded-xl text-xl" />
-        <div className="flex min-w-[15rem] flex-1 flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-[1.875rem] font-semibold leading-tight tracking-[-0.025em]">{org.name}</h1>
-            <span className={cn(chip, tone)}>{org.status === "verified" && <Check className="size-3" strokeWidth={3} />}{badge}</span>
+    <div className="page-enter flex flex-col gap-8">
+      <div className="flex flex-wrap items-center gap-5">
+        <CompanyLogoEditor org={org} />
+        <div className="flex flex-col gap-2">
+          <div>
+            <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em]">{org.name}</h1>
+            <p className="text-sm text-muted-foreground">{org.hood || "Add your neighbourhood"} · {projects.length} project{projects.length === 1 ? "" : "s"} · {issued} credential{issued === 1 ? "" : "s"} issued</p>
           </div>
-          {org.hood && <p className="text-[0.9375rem] text-muted-foreground">{org.hood}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Status on={verified} yes={statusLabel} no={statusLabel} />
+            <Status on={user.linkedinVerified} yes="LinkedIn verified" no="LinkedIn not connected" />
+            <Status on={!!org.linkedinUrl} yes="Company page added" no="No company page" />
+            <Status on={!!org.website} yes={org.website} no="No website" />
+            <Status on={org.files.length > 0} yes={`${org.files.length} file${org.files.length === 1 ? "" : "s"} shared`} no="No files shared" />
+          </div>
         </div>
-        <Link href="/company/profile/edit" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 gap-1.5 bg-white px-3 text-[0.8125rem]")}><Pencil className="size-3.5" />Edit profile</Link>
       </div>
 
       {org.status !== "verified" && (
-        <Link href="/company/verify" className="rounded-lg border border-dashed border-zinc-300 bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600 hover:border-zinc-400">
+        <Link href="/company/verify" className="-mt-3 rounded-lg border border-dashed border-zinc-300 bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600 hover:border-zinc-400">
           Students only see verified companies’ projects. <span className="font-medium text-foreground underline underline-offset-4">{org.status === "pending" ? "Check your verification" : "Finish verification"}</span>
         </Link>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className={cn(card, "p-5")}>
-          <h2 className="text-sm font-semibold">About</h2>
-          <p className="mt-2 whitespace-pre-wrap text-pretty text-[0.9375rem] leading-relaxed">{org.about}</p>
-        </div>
-        <div className={cn(card, "overflow-hidden")}>
-          {details.map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-3 border-b border-zinc-100 px-5 py-3 text-sm last:border-b-0">
-              <span className="text-muted-foreground">{k}</span>
-              {k === "Website" && v ? <a href={`https://${v}`} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4">{v}</a> : <span className="font-medium">{v}</span>}
-            </div>
-          ))}
-        </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21.25rem),1fr))] items-start gap-4">
+        <CompanyFilesCard files={org.files} />
+        <CompanyDetailsCard user={user} org={org} />
       </div>
 
       <div className="flex flex-col gap-4">

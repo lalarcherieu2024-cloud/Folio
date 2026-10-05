@@ -40,6 +40,10 @@ export function CompanyDetailsForm({ org, then, backHref, backLabel = "Back", su
             <Field id="teamSize" label="Team size (optional)" defaultValue={org?.teamSize} placeholder="11–50 employees" />
           </div>
         )}
+        {extended && (
+          <Field id="linkedinUrl" label="Company LinkedIn page (optional)" defaultValue={org?.linkedinUrl} placeholder="linkedin.com/company/nubolabs" inputMode="url"
+            hint="Students see this link on your profile." />
+        )}
         {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
       </StepCard>
     </form>

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { softColor } from "@/lib/work";
 
 // Crops to a centred square and shrinks to 512px before upload, so photos stay small and look right.
-async function squareResize(file: File): Promise<File> {
+export async function squareResize(file: File): Promise<File> {
   try {
     const bmp = await createImageBitmap(file);
     const side = Math.min(bmp.width, bmp.height);
