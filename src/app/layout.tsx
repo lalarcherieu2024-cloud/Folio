@@ -20,7 +20,8 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getSession();
   const counts = !user ? null : user.role === "company" ? await getCompanyNavCounts(user) : await getStudentNavCounts(user).then((c) => ({ ...c }));
-  const sidebarCollapsed = (await cookies()).get("folio_sidebar")?.value === "1";
+  // Collapsed by default; only someone who expanded it ("0") gets the full sidebar.
+  const sidebarCollapsed = (await cookies()).get("folio_sidebar")?.value !== "0";
   const notifications = user ? await getNotifications(user) : { items: [], unread: 0 };
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} h-full`}>
