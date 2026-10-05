@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Clock, Sparkles, Sprout } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/shared/UserAvatar";
 import { SaveButton } from "@/components/student/SaveButton";
 import { eur, weeksLabel, whyFits, type Viewer } from "@/lib/work";
 import type { Project } from "@/lib/types";
@@ -11,10 +12,13 @@ export function ProjectCard({ p, applied, href, viewer }: { p: Project; applied?
   const mine = new Set(viewer?.skills ?? []);
   const canApply = !applied && (!viewer?.id || p.postedById !== viewer.id);
   const fit = viewer ? whyFits(p, viewer) : null;
+  const pic = p.orgName ? p.orgLogoUrl : p.clientAvatarUrl;
   return (
     <Link href={href ?? `/projects/${p.id}`} scroll={false} className="card-hover flex flex-col gap-3 rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
       <div className="flex items-center justify-between gap-2 text-[0.8125rem] text-muted-foreground">
         <span className="flex min-w-0 items-center gap-1">
+          {/* The company's logo (or the posting student's photo) so a brand is recognisable at a glance. Both are required at onboarding. */}
+          {pic && <UserAvatar name={p.orgName ?? p.clientName} url={pic} className="mr-1.5 size-7 rounded-md" />}
           <span className="truncate font-medium text-foreground">{p.orgName ?? p.clientName}</span>
           {p.orgVerified && <Check className="size-3.5 shrink-0 text-[#16a34a]" strokeWidth={2.5} aria-label="Verified" />}
           <span className="truncate">· {p.hood}</span>

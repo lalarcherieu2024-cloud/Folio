@@ -1,15 +1,13 @@
 "use client";
 
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Mail } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { signUpAction, verifyStudentEmailAction } from "@/app/actions/auth";
+import { signUpAction } from "@/app/actions/auth";
 import { resendCompanyCodeAction } from "@/app/actions/startup";
 import { RoleSwitch } from "@/components/shared/RoleSwitch";
 import { AuthFrame, Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "@/components/startup/CompanyAuth";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import type { FormState } from "@/lib/form";
 
@@ -17,8 +15,8 @@ import type { FormState } from "@/lib/form";
 // Steps 1–2 happen here; 3–6 run signed in on /welcome (StudentOnboarding).
 export const STUDENT_STEPS: readonly (readonly [string, string])[] = [
   ["Create your account", "Name, university email and password"],
-  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Verify your email", "Enter the 6-digit code we send you"],
-  ["Your details", "Programme, year and payout link"],
+  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Confirm your email", "Click the link we email you"],
+  ["Your photo and details", "Photo, programme and payout link"],
   ["Upload your CV", "Clients read it when you apply"],
   ["Verify your accounts", "LinkedIn, and GitHub if you do tech work"],
   ["Start applying", "Find a project that fits you"],
@@ -29,35 +27,33 @@ export const STUDENT_FRAME = { title: "Start doing real, paid work", sub: "Set u
 // Mirrors allowed_email_domains in supabase/migrations/0001_init.sql.
 const isUniEmail = (e: string) => ["ie.edu", "student.ie.edu"].includes(e.trim().split("@")[1]?.toLowerCase() ?? "");
 
-function EmailCode({ email }: { email: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(verifyStudentEmailAction, {});
-  const [code, setCode] = useState("");
+// Step 2: Supabase's confirmation email carries a link (no 6-digit code). Clicking it lands on
+// /auth/callback, which signs the student in and continues to /welcome.
+function CheckEmail({ email }: { email: string }) {
   const [resending, startResend] = useTransition();
   // The resend call is generic (Supabase "signup" email), despite living with the company actions.
   const resend = () => startResend(async () => {
     const r = await resendCompanyCodeAction(email);
-    if (r.error) toast.error(r.error); else toast("Code sent", { description: `Check ${email}.` });
+    if (r.error) toast.error(r.error); else toast("Email sent again", { description: `Check ${email}.` });
   });
   return (
     <>
-      <StepHeading eyebrow="Step 2 of 6" title="Verify your email" sub={`Enter the 6-digit code we sent to ${email}. You can also click the link in that email.`} />
-      <form action={action}>
-        <input type="hidden" name="email" value={email} />
-        <StepCard footer={<>
-          <Link href="/signup" className={outlineBtn}>Back</Link>
-          <div className="flex items-center gap-3">
-            {code.length < 6 && <span className="text-xs text-muted-foreground">Enter all 6 digits</span>}
-            <button type="submit" disabled={code.length < 6 || pending} className={primaryBtn}>{pending ? "Checking…" : "Continue"}</button>
-          </div>
-        </>}>
-          <div className="grid gap-1.5">
-            <Label htmlFor="code">Verification code</Label>
-            <Input id="code" name="code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="h-[3.25rem] bg-white px-4 font-mono text-2xl tracking-[0.4em]" />
-          </div>
-          {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
-          <button type="button" onClick={resend} disabled={resending} className="self-start text-[0.8125rem] font-medium underline underline-offset-4 disabled:opacity-50">{resending ? "Sending…" : "Resend code"}</button>
-        </StepCard>
-      </form>
+      <StepHeading eyebrow="Step 2 of 6" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to set up your profile.</>} />
+      <StepCard footer={<>
+        <Link href="/signup" className={outlineBtn}>Back</Link>
+        <Link href="/signin" className={primaryBtn}>I&apos;ve confirmed, sign in</Link>
+      </>}>
+        <div className="flex items-start gap-3.5 rounded-lg bg-panel p-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-brand ring-1 ring-border"><Mail className="size-5" /></span>
+          <ol className="grid gap-1.5 text-sm text-zinc-600">
+            <li><span className="font-mono text-xs text-brand">1</span> Open the email from Folio</li>
+            <li><span className="font-mono text-xs text-brand">2</span> Click the confirmation link</li>
+            <li><span className="font-mono text-xs text-brand">3</span> Carry on with your details, CV and accounts</li>
+          </ol>
+        </div>
+        <p className="text-xs text-muted-foreground">Open the link in this browser so you stay signed in. No email after a few minutes? Check your spam folder.</p>
+        <button type="button" onClick={resend} disabled={resending} className="self-start text-[0.8125rem] font-medium underline underline-offset-4 disabled:opacity-50">{resending ? "Sending…" : "Send the email again"}</button>
+      </StepCard>
     </>
   );
 }
@@ -65,7 +61,7 @@ function EmailCode({ email }: { email: string }) {
 export function StudentSignup() {
   const [state, action, pending] = useActionState<FormState, FormData>(signUpAction, {});
   const [email, setEmail] = useState("");
-  // Account created, waiting for the email code. With SKIP_EMAIL_CONFIRMATION on there is no code: sign-up goes
+  // Account created, waiting for the confirmation link. With SKIP_EMAIL_CONFIRMATION on there is no email step: sign-up goes
   // straight to /welcome, and a notice only means "created, now sign in".
   const sentTo = state.notice && !SKIP_EMAIL_CONFIRMATION ? email.trim().toLowerCase() : null;
 
@@ -94,7 +90,7 @@ export function StudentSignup() {
         </form>
         <p className="text-sm text-muted-foreground">Already have an account? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></p>
       </>}
-      {sentTo && <EmailCode email={sentTo} />}
+      {sentTo && <CheckEmail email={sentTo} />}
     </AuthFrame>
   );
 }

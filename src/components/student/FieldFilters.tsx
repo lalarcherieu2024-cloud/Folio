@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export type FilterItem = { key: string; label: string; count?: number; href: string; active: boolean };
+export type FilterItem = { key: string; label: string; count?: number; href: string; active: boolean; tone?: { bg: string; fg: string } };
 
 // Sidebar filters with a highlight that glides between choices (spring-like), items that
 // slide in one after another, and radio dots that pop. The links stay plain links, so
@@ -23,11 +23,13 @@ export function FieldFilters({ fields, kinds }: { fields: FilterItem[]; kinds: F
           {fields.map((f, i) => (
             <Link
               key={f.key} href={f.href} scroll={false} aria-current={f.active ? "true" : undefined}
-              style={{ animationDelay: `${60 + i * 35}ms` }}
-              className={cn("slide-in group relative z-10 flex h-8 items-center justify-between rounded-md px-2 text-sm transition-[color,transform] duration-200 hover:translate-x-0.5 active:scale-[.98]", f.active ? "font-medium text-foreground" : "text-zinc-600 hover:text-foreground")}
+              // Fields carry their own soft colour; the active one gets an outline in its accent colour.
+              style={{ animationDelay: `${60 + i * 35}ms`, ...(f.tone && { background: f.tone.bg, color: f.tone.fg, boxShadow: f.active ? `inset 0 0 0 1.5px ${f.tone.fg}` : undefined }) }}
+              className={cn("slide-in group relative z-10 flex h-8 items-center justify-between rounded-md px-2 text-sm transition-[color,transform,filter] duration-200 hover:translate-x-0.5 active:scale-[.98]",
+                f.tone ? cn("hover:brightness-[.97]", f.active && "font-semibold") : f.active ? "font-medium text-foreground" : "text-zinc-600 hover:text-foreground")}
             >
               <span>{f.label}</span>
-              <span key={`${f.key}-${f.count}`} className={cn("pop-count font-mono text-xs tabular-nums transition-colors", f.active ? "text-zinc-600" : "text-zinc-400 group-hover:text-zinc-600")}>{f.count}</span>
+              <span key={`${f.key}-${f.count}`} className={cn("pop-count font-mono text-xs tabular-nums transition-colors", f.tone ? "opacity-70" : f.active ? "text-zinc-600" : "text-zinc-400 group-hover:text-zinc-600")}>{f.count}</span>
             </Link>
           ))}
         </div>
