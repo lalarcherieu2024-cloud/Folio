@@ -1,11 +1,12 @@
 "use client";
 
-import { Check, FileText, Upload } from "lucide-react";
+import { Camera, Check, FileText, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { UserAvatar } from "@/components/shared/UserAvatar";
 import { toast } from "sonner";
-import { updateProfileAction, uploadCvAction } from "@/app/actions/student";
+import { updateProfileAction, uploadAvatarAction, uploadCvAction } from "@/app/actions/student";
 import { AuthFrame, Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "@/components/startup/CompanyAuth";
 import { ConnectAccounts } from "@/components/student/ConnectAccounts";
 import { STUDENT_FRAME, STUDENT_STEPS } from "@/components/student/StudentSignup";
@@ -27,6 +28,34 @@ function useResult(state: FormState, onOk: () => void) {
   }, [state, onOk]);
 }
 
+/** Required profile photo: clients see it on applications and on any project the student posts. */
+function Photo({ user }: { user: StudentProfile }) {
+  const router = useRouter();
+  const [uploading, startUpload] = useTransition();
+  const input = useRef<HTMLInputElement>(null);
+  const upload = (file: File) => startUpload(async () => {
+    const f = new FormData();
+    f.set("photo", file);
+    const r = await uploadAvatarAction(f);
+    if (r.error) toast.error(r.error); else { toast.success("Photo uploaded"); router.refresh(); }
+  });
+  return (
+    <div className="flex items-center gap-4">
+      <button type="button" onClick={() => input.current?.click()} disabled={uploading} aria-label={user.avatarUrl ? "Replace photo" : "Upload a photo"}
+        className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {user.avatarUrl
+          ? <UserAvatar name={user.fullName} url={user.avatarUrl} className="size-16 rounded-full" />
+          : <span className="grid size-16 place-items-center rounded-full border-2 border-dashed border-zinc-300 bg-white text-muted-foreground"><Camera className="size-5" /></span>}
+      </button>
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Profile photo</span>
+        <span className="text-xs text-muted-foreground">{uploading ? "Uploading…" : user.avatarUrl ? "Looks good. Click it to replace." : "Required. A clear photo of your face, JPG, PNG or WebP, up to 2 MB."}</span>
+      </div>
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
+    </div>
+  );
+}
+
 function Details({ user }: { user: StudentProfile }) {
   const router = useRouter();
   const [state, action, pending] = useActionState<FormState, FormData>(updateProfileAction, {});
@@ -34,13 +63,14 @@ function Details({ user }: { user: StudentProfile }) {
   useResult(state, () => router.push(go(4)));
   return (
     <>
-      <StepHeading eyebrow="Step 3 of 6" title="Your details" sub="Clients see your programme when you apply. The payout link is where you get paid." />
+      <StepHeading eyebrow="Step 3 of 6" title="Your photo and details" sub="Clients see your photo and programme when you apply. The payout link is where you get paid." />
       <form action={action}>
         <input type="hidden" name="fullName" value={user.fullName} />
         <StepCard footer={<>
-          <span />
-          <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Saving…" : "Continue"}</button>
+          <span className="text-xs text-muted-foreground">{!user.avatarUrl && "Add a photo to continue"}</span>
+          <button type="submit" disabled={pending || !user.avatarUrl} className={primaryBtn}>{pending ? "Saving…" : "Continue"}</button>
         </>}>
+          <Photo user={user} />
           <Field id="program" label="Programme and year" placeholder="e.g. BBA, 2027" value={v.program} onChange={(e) => setV({ ...v, program: e.target.value })} hint="Helps clients match you to the right projects." />
           <Field id="payout" label="PayPal payout link (optional)" placeholder="https://paypal.me/yourname" value={v.payout} onChange={(e) => setV({ ...v, payout: e.target.value })} hint="You can add this later, before your first project is paid." />
         </StepCard>

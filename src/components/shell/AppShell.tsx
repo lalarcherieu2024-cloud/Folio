@@ -10,18 +10,28 @@ import type { NavCounts } from "./nav";
 // Pages that draw their own full-screen layout (company verification, student onboarding) skip the sidebar and top bar.
 const FULL_SCREEN = ["/company/verify", "/welcome"];
 
+// Pages that need the width (the project browser) start with the sidebar collapsed to icons.
+const AUTO_COLLAPSE = ["/projects"];
+
 // Holds the one piece of shell state: is the sidebar collapsed to icons? The choice is kept in a cookie,
 // so the server renders the right width on the next page load (no flash of the wrong size).
 export function AppShell({ user, counts, notifications, defaultCollapsed, children }: {
   user: StudentProfile; counts: NavCounts; notifications: { items: Notification[]; unread: number }; defaultCollapsed: boolean; children: React.ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const path = usePathname();
+  const [saved, setSaved] = useState(defaultCollapsed);
+  // On auto-collapse pages the sidebar is collapsed unless opened on this very page; that choice isn't saved,
+  // so the visitor's own preference comes back everywhere else.
+  const [openedOn, setOpenedOn] = useState<string | null>(null);
+  const auto = AUTO_COLLAPSE.some((p) => path.startsWith(p));
+  const collapsed = auto ? openedOn !== path : saved;
 
   const toggle = useCallback(() => {
-    const next = !collapsed;
-    setCollapsed(next);
-    document.cookie = `folio_sidebar=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
-  }, [collapsed]);
+    if (auto) { setOpenedOn(collapsed ? path : null); return; }
+    const next = !saved;
+    setSaved(next);
+    document.cookie = `folio_sidebar_v2=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
+  }, [auto, collapsed, path, saved]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -31,7 +41,6 @@ export function AppShell({ user, counts, notifications, defaultCollapsed, childr
     return () => window.removeEventListener("keydown", onKey);
   }, [toggle]);
 
-  const path = usePathname();
   if (FULL_SCREEN.some((p) => path.startsWith(p))) return <>{children}</>;
   return (
     <div className="flex min-h-screen">

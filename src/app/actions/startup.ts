@@ -143,8 +143,9 @@ export async function removeCompanyDocAction(kind: DocKind): Promise<FormState> 
 }
 
 export async function submitVerificationAction(_: FormState, f: FormData): Promise<FormState> {
-  await requireUser("/company/verify", "company");
+  const user = await requireUser("/company/verify", "company");
   if (f.get("agree") !== "on") return { error: "Tick the declaration to submit." };
+  if (!(await getOrganization(user))?.logoUrl) return { error: "Upload your company logo first (step 4)." };
   const res = await submitVerification();
   if (res.error) return res;
   refresh();

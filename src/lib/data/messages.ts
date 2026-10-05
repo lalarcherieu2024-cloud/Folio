@@ -29,6 +29,59 @@ export async function getMessages(user: StudentProfile, applicationId: string): 
   return rows.map((r: any) => ({ id: r.id, mine: r.sender_id === user.id, senderName: nameOf(r.sender_id), body: r.body, createdAt: r.created_at, files: filesOf(r.id) }));
 }
 
+export type Conversation = {
+  applicationId: string; projectTitle: string; otherName: string; closed: boolean; unread: number;
+  last: { body: string; mine: boolean; createdAt: string; hasFiles: boolean } | null;
+};
+
+/** Every conversation the student has (hired on a company project), newest activity first.
+ *  "Unread" counts the message notifications for that conversation the student hasn't opened yet. */
+export async function getConversations(user: StudentProfile): Promise<Conversation[]> {
+  const supabase = await createClient();
+  const { data: apps } = await supabase.from("applications").select("id, project_id, accepted_at, created_at")
+    .eq("student_id", user.id).in("status", ["accepted", "delivered"]);
+  if (!apps?.length) return [];
+  const { data: projects } = await supabase.from("project_cards").select("id, title, client_name, org_id, org_name, status").in("id", apps.map((a: any) => a.project_id));
+  const byProject = new Map((projects ?? []).filter((p: any) => p.org_id).map((p: any) => [p.id, p]));
+  const convos = apps.filter((a: any) => byProject.has(a.project_id));
+  if (!convos.length) return [];
+  const ids = convos.map((a: any) => a.id);
+
+  const [{ data: rows }, { data: unread }] = await Promise.all([
+    supabase.from("messages").select("id, application_id, sender_id, body, created_at").in("application_id", ids).order("created_at", { ascending: false }).limit(500),
+    supabase.from("notifications").select("link").eq("user_id", user.id).eq("kind", "message").is("read_at", null),
+  ]);
+  const latest = new Map<string, any>();
+  for (const r of rows ?? []) if (!latest.has(r.application_id)) latest.set(r.application_id, r);
+  const { data: fileRows } = latest.size
+    ? await supabase.from("message_files").select("message_id").in("message_id", [...latest.values()].map((r) => r.id))
+    : { data: [] };
+  const withFiles = new Set((fileRows ?? []).map((f: any) => f.message_id));
+
+  return convos.map((a: any): Conversation => {
+    const p = byProject.get(a.project_id);
+    const m = latest.get(a.id);
+    return {
+      applicationId: a.id, projectTitle: p.title, otherName: p.org_name ?? p.client_name, closed: p.status === "verified",
+      unread: (unread ?? []).filter((n: any) => n.link === `/applications/${a.id}`).length,
+      last: m ? { body: m.body, mine: m.sender_id === user.id, createdAt: m.created_at, hasFiles: withFiles.has(m.id) } : null,
+    };
+  }).sort((x, y) => (y.last?.createdAt ?? "").localeCompare(x.last?.createdAt ?? ""));
+}
+
+/** Opening a conversation clears its message notifications (the bell and the unread badges). */
+export async function markConversationRead(user: StudentProfile, applicationId: string) {
+  const supabase = await createClient();
+  await supabase.from("notifications").update({ read_at: new Date().toISOString() })
+    .eq("user_id", user.id).eq("kind", "message").eq("link", `/applications/${applicationId}`).is("read_at", null);
+}
+
+/** How many new messages are waiting, across all conversations (for the sidebar badge). */
+export async function countUnreadMessages(user: StudentProfile): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "message").is("read_at", null);
+  return count ?? 0;
+}
 
 /** A finished (verified) project's conversation is history only. */
 async function isClosed(applicationId: string): Promise<boolean> {
