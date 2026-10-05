@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { Message } from "@/lib/data/messages";
 import type { FormState } from "@/lib/form";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-const REFRESH_MS = 8000; // new messages show up within a few seconds while the page is open
+// New messages arrive instantly through Supabase Realtime (migration 0018). The slow poll is only a
+// safety net in case the live connection drops.
+const FALLBACK_REFRESH_MS = 15000;
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
 
@@ -30,10 +33,34 @@ export function ChatPanel({ applicationId, messages, otherName, intro }: { appli
   // Keep the newest message in view.
   useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [messages.length]);
 
-  // Pick up replies while the page is open.
+  // Live updates: re-render as soon as either person sends a message in this conversation.
+  // The database only lets the two participants see these rows, so the subscription carries their session.
   useEffect(() => {
-    const id = setInterval(() => { if (document.visibilityState === "visible") router.refresh(); }, REFRESH_MS);
-    return () => clearInterval(id);
+    const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data.session) supabase.realtime.setAuth(data.session.access_token);
+      channel = supabase.channel(`messages:${applicationId}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `application_id=eq.${applicationId}` }, () => router.refresh())
+        .subscribe();
+    })();
+    return () => { cancelled = true; if (channel) void supabase.removeChannel(channel); };
+  }, [applicationId, router]);
+
+  // Catch up straight away when you come back to the tab, and every so often as a fallback.
+  useEffect(() => {
+    const refreshIfVisible = () => { if (document.visibilityState === "visible") router.refresh(); };
+    const id = setInterval(refreshIfVisible, FALLBACK_REFRESH_MS);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    window.addEventListener("focus", refreshIfVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+      window.removeEventListener("focus", refreshIfVisible);
+    };
   }, [router]);
 
   return (
