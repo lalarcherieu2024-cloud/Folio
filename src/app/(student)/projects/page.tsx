@@ -11,6 +11,7 @@ import { SortSelect } from "@/components/student/SortSelect";
 import { getSession } from "@/lib/auth";
 import { getCategoryCounts, getOpenProjects, type Sort } from "@/lib/data/projects";
 import { getApplications, getSavedIds } from "@/lib/data/student";
+import { FIELD_TONES } from "@/lib/fields";
 import { CATEGORIES } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { eur, viewerFrom, weeksLabel } from "@/lib/work";
@@ -46,19 +47,15 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
   return (
     <PublicWrap signedIn={!!user}>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">Find projects</h1>
-          <p className="max-w-[60ch] text-[0.9375rem] text-muted-foreground">Paid work from startups, small businesses and fellow students. Fixed price, clear finish line.</p>
-        </div>
-
         <div className="flex flex-wrap items-start gap-8">
           <aside className="flex max-w-60 flex-[1_1_12.5rem] flex-col gap-5">
+            <h1 className="px-2 text-[1.875rem] font-semibold leading-none tracking-[-0.025em]">Find projects</h1>
             <FieldFilters
               fields={[
                 { key: "all", label: "All fields", count: total, href: href({ category: undefined }), active: !category },
-                ...CATEGORIES.map((c) => ({ key: c, label: c, count: counts[c] ?? 0, href: href({ category: category === c ? undefined : c }), active: category === c })),
+                ...CATEGORIES.map((c) => ({ key: c, label: c, count: counts[c] ?? 0, href: href({ category: category === c ? undefined : c }), active: category === c, tone: FIELD_TONES[c] })),
               ]}
-              kinds={([["", "Anyone"], ["company", "Companies"], ["student", "Students"]] as const).map(([k, label]) => ({ key: k || "any", label, href: href({ kind: k || undefined }), active: (kindVal ?? "") === k }))}
+              kinds={([["", "Anyone"], ["company", "Companies"]] as const).map(([k, label]) => ({ key: k || "any", label, href: href({ kind: k || undefined }), active: (kindVal ?? "") === k }))}
             />
           </aside>
 

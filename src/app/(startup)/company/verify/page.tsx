@@ -9,7 +9,7 @@ export default async function VerifyCompany({ searchParams }: PageProps<"/compan
   const user = await requireUser("/company/verify", "company");
   const org = await getOrganization(user);
   const asked = Number((await searchParams).step);
-  const docsDone = org?.docs.length === 3;
+  const docsDone = org?.docs.length === 3 && !!org.logoUrl; // three documents and a logo (required for brand recognition)
 
   // Submitted or verified companies only see their status; drafts move through 3 → 4 → 5.
   let step: 3 | 4 | 5 | 6;

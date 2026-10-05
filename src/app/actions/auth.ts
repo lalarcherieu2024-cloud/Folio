@@ -56,17 +56,6 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
   redirect(landing);
 }
 
-// Student sign-up step 2: the 6-digit code from the confirmation email (companies use verifyCompanyEmailAction).
-export async function verifyStudentEmailAction(_: FormState, f: FormData): Promise<FormState> {
-  const email = str(f, "email").toLowerCase(), token = str(f, "code").replace(/\D/g, "");
-  if (!EMAIL.test(email)) return { error: "Start again from Create account." };
-  if (token.length !== 6) return { error: "Enter all 6 digits." };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-  if (error) return { error: error.code === "otp_expired" ? "That code has expired. Send a new one." : "That code isn't right. Check the email and try again." };
-  redirect("/welcome");
-}
-
 export async function signInAction(_: FormState, f: FormData): Promise<FormState> {
   const supabase = await createClient();
   const email = str(f, "email").toLowerCase(), password = str(f, "password");
