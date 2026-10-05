@@ -30,7 +30,7 @@ export function AppShell({ user, counts, notifications, defaultCollapsed, childr
     if (auto) { setOpenedOn(collapsed ? path : null); return; }
     const next = !saved;
     setSaved(next);
-    document.cookie = `folio_sidebar=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
+    document.cookie = `folio_sidebar_v2=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
   }, [auto, collapsed, path, saved]);
 
   useEffect(() => {
