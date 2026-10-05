@@ -35,6 +35,35 @@ export default async function StudentHome() {
         </div>
       </div>
 
+      {/* An unfinished profile is the first thing to fix: clients see it before they accept you. */}
+      {pct < 100 && (
+        <div className={cn(card, "grid gap-6 border-[#fdba74] p-6 md:grid-cols-[1fr_1.2fr] md:gap-10")} style={{ boxShadow: "inset 4px 0 0 #f97316" }}>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium uppercase tracking-wide text-[#c2410c]">Start here</span>
+              <h2 className="text-xl font-semibold tracking-tight">Complete your profile</h2>
+              <p className="text-sm text-muted-foreground">Clients see this before they accept you. {left} step{left === 1 ? "" : "s"} to go.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded bg-muted"><div className="h-full rounded transition-[width] duration-500" style={{ width: `${pct}%`, background: "#f97316" }} /></div>
+              <span className="font-mono text-[0.8125rem] font-medium">{pct}%</span>
+            </div>
+            <Link href="/profile" className={cn(buttonVariants(), "mt-auto h-9 w-fit px-4")}>Finish your profile</Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            {items.map((c) => (
+              <Link key={c.label} href="/profile" className={cn("flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm", c.done ? "pointer-events-none border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]" : "border-[#fed7aa] bg-[#fff7ed] text-[#9a3412] hover:border-[#fb923c]")}>
+                <span className={cn("grid size-[1.125rem] shrink-0 place-items-center rounded-full border", c.done ? "border-[#16a34a] bg-[#16a34a]" : "border-[#fb923c] bg-white")}>
+                  {c.done ? <Check className="size-2.5 text-white" strokeWidth={3.5} /> : <span className="size-1.5 rounded-full bg-[#f97316]" />}
+                </span>
+                <span className="flex-1">{c.label}</span>
+                <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-[0.6875rem] font-medium", c.done ? "bg-[#dcfce7] text-[#166534]" : "bg-[#ffedd5] text-[#c2410c]")}>{c.done ? "Done" : "Pending"}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22.5rem),1fr))] gap-4">
         <div className={cn(card, "flex flex-col")}>
           <div className="flex items-center justify-between px-5 pb-3 pt-5">
@@ -67,27 +96,6 @@ export default async function StudentHome() {
           })}
         </div>
 
-        {pct < 100 && (
-          <div className={cn(card, "flex flex-col gap-4 p-5")}>
-            <div className="flex flex-col gap-1"><span className="text-base font-semibold">Complete your profile</span><span className="text-[0.8125rem] text-muted-foreground">Clients see this before they accept you</span></div>
-            <div className="flex items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded bg-muted"><div className="h-full rounded transition-[width] duration-500" style={{ width: `${pct}%`, background: "#f97316" }} /></div>
-              <span className="font-mono text-[0.8125rem] font-medium">{pct}%</span>
-            </div>
-            <div className="flex flex-col gap-2.5">
-              {items.map((c) => (
-                <Link key={c.label} href="/profile" className={cn("flex items-center gap-2.5 text-sm", c.done ? "pointer-events-none text-[#166534]" : "text-[#9a3412] hover:underline")}>
-                  <span className={cn("grid size-[1.125rem] shrink-0 place-items-center rounded-full border", c.done ? "border-[#16a34a] bg-[#16a34a]" : "border-[#fb923c] bg-[#fff7ed]")}>
-                    {c.done ? <Check className="size-2.5 text-white" strokeWidth={3.5} /> : <span className="size-1.5 rounded-full bg-[#f97316]" />}
-                  </span>
-                  <span className="flex-1">{c.label}</span>
-                  <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-[0.6875rem] font-medium", c.done ? "bg-[#dcfce7] text-[#166534]" : "bg-[#ffedd5] text-[#c2410c]")}>{c.done ? "Done" : "Pending"}</span>
-                </Link>
-              ))}
-            </div>
-            <Link href="/profile" className={cn(buttonVariants({ variant: "outline" }), "h-9 justify-start bg-white px-3.5")}>Finish your profile</Link>
-          </div>
-        )}
       </div>
 
 
