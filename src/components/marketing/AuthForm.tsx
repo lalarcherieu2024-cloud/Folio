@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import type { FormState } from "@/lib/form";
 import { signInAction, signUpAction } from "@/app/actions/auth";
+import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,16 +22,19 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
         <p className="text-sm text-muted-foreground">{up ? (role === "company" ? "For startups and small businesses. Post a project in minutes." : "Free for IE students. Add your CV next.") : "Sign in to apply and track your work."}</p>
       </div>
       {next && <input type="hidden" name="next" value={next} />}
-      {up && <input type="hidden" name="role" value={role} />}
+      <input type="hidden" name="role" value={role} />
       {up && field("fullName", "Full name", { autoComplete: "name", required: true })}
       {up && field("program", "Programme and year (optional)", { placeholder: "e.g. BBA, 2027" })}
-      {field("email", "Email", { type: "email", autoComplete: "email", required: true }, up ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
+      {field("email", "Email", { type: "email", autoComplete: "email", required: true }, up && !SKIP_EMAIL_CONFIRMATION ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
       {field("password", "Password", { type: "password", autoComplete: up ? "new-password" : "current-password", required: true, minLength: up ? 8 : undefined }, up ? "At least 8 characters." : undefined)}
       {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
       {state.notice && <p role="status" className="rounded-lg bg-[#e0f2fe] px-3 py-2.5 text-sm font-medium text-[#0c4a6e]">{state.notice}</p>}
       <Button type="submit" disabled={pending} className="h-10 w-full">{pending ? "One moment…" : up ? "Create account" : "Sign in"}</Button>
       <p className="text-center text-sm text-muted-foreground">
         {up ? <>Already have an account? <Link href="/signin" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></> : <>New to Folio? <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">Create an account</Link></>}
+      </p>
+      <p className="border-t pt-4 text-center text-sm text-muted-foreground">
+        Hiring students? <Link href={up ? "/company/signup" : "/company/signin"} className="font-medium text-foreground underline underline-offset-4">{up ? "Create a company account" : "Company sign in"}</Link>
       </p>
     </form>
   );

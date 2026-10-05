@@ -28,7 +28,7 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
             <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4 text-sm")}>Create your account <ArrowRight className="size-4" /></Link>
             <Link href="/projects" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-10 px-4 text-sm")}>See open projects</Link>
           </div>
-          <p className="mt-5 text-[0.8125rem] text-muted-foreground">{projects.length} open projects · paid {prices.length ? `${eur(Math.min(...prices))}–${eur(Math.max(...prices))}` : "per project"} · sign in with your @student.ie.edu email</p>
+          <p className="mt-5 text-[0.8125rem] text-muted-foreground">{projects.length} open projects · paid {prices.length ? `${eur(Math.min(...prices))}–${eur(Math.max(...prices))}` : "per project"}</p>
         </div>
         <div className="grid gap-5">
           {SAMPLE_CREDENTIALS.map((c, i) => <CredentialCard key={c.id} c={c} className={i === 0 ? "-rotate-1" : "translate-x-3 rotate-1"} />)}
