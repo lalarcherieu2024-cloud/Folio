@@ -1,10 +1,14 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 import type { Notification, StudentProfile } from "@/lib/types";
 import type { NavCounts } from "./nav";
+
+// Pages that draw their own full-screen layout (company verification) skip the sidebar and top bar.
+const FULL_SCREEN = ["/company/verify"];
 
 // Holds the one piece of shell state: is the sidebar collapsed to icons? The choice is kept in a cookie,
 // so the server renders the right width on the next page load (no flash of the wrong size).
@@ -27,6 +31,8 @@ export function AppShell({ user, counts, notifications, defaultCollapsed, childr
     return () => window.removeEventListener("keydown", onKey);
   }, [toggle]);
 
+  const path = usePathname();
+  if (FULL_SCREEN.some((p) => path.startsWith(p))) return <>{children}</>;
   return (
     <div className="flex min-h-screen">
       <Sidebar user={user} counts={counts} collapsed={collapsed} />

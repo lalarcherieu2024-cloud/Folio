@@ -37,7 +37,7 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
 // account out: a student opening a /company page lands on their own home, and vice versa.
 export async function requireUser(next = "/", role?: Role): Promise<StudentProfile> {
   const user = await getSession();
-  if (!user) redirect(`/signin?next=${encodeURIComponent(next)}`);
+  if (!user) redirect(`${role === "company" ? "/company/signin" : "/signin"}?next=${encodeURIComponent(next)}`);
   if (role && user.role !== role) redirect(homeFor(user.role));
   return user;
 }

@@ -1,9 +1,138 @@
+"use server";
+
 // Startup / SME server actions. Owner: startup interface.
-//
-// Add "use server" at the top once the first action exists, then put actions here, e.g.:
-//   acceptApplicantAction(applicationId)    -> data/startup.ts acceptApplicant()
-//   declineApplicantAction(applicationId)
-//   verifyDeliveryAction(projectId, rating, review)
-//   postCompanyProjectAction(formData)      -> like postProjectAction but with org_id set
-// Always start with: const user = await requireUser(path, "company");
-export {};
+import path from "node:path";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import {
+  acceptApplicant, createCompanyProject, declineApplicant, DOC_KINDS, getOrganization, removeCompanyDoc,
+  saveCompanyDoc, saveOrganization, submitVerification, verifyDelivery, type DocKind,
+} from "@/lib/data/startup";
+import { EMAIL, str, type FormState } from "@/lib/form";
+import { createClient } from "@/lib/supabase/server";
+import { CATEGORIES, type Category } from "@/lib/types";
+
+const refresh = () => { revalidatePath("/company", "layout"); revalidatePath("/projects"); revalidatePath("/applications"); };
+
+// ---------------------------------------------------------------- sign-up: email code (step 2)
+
+export async function verifyCompanyEmailAction(_: FormState, f: FormData): Promise<FormState> {
+  const email = str(f, "email").toLowerCase(), token = str(f, "code").replace(/\D/g, "");
+  if (!EMAIL.test(email)) return { error: "Start again from Create account." };
+  if (token.length !== 6) return { error: "Enter all 6 digits." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+  if (error) return { error: error.code === "otp_expired" ? "That code has expired. Send a new one." : "That code isn't right. Check the email and try again." };
+  redirect("/company/verify");
+}
+
+export async function resendCompanyCodeAction(email: string): Promise<FormState> {
+  if (!EMAIL.test(email)) return { error: "Start again from Create account." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({ type: "signup", email: email.toLowerCase() });
+  if (error) return { error: error.code === "over_email_send_rate_limit" ? "Wait a minute before asking for another code." : "Couldn't send a new code. Try again." };
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- company verification (steps 3–5) + profile
+
+export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/verify", "company");
+  const name = str(f, "name"), cif = str(f, "cif").toUpperCase().replace(/[\s-]/g, ""), website = str(f, "website").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const hood = str(f, "hood"), about = str(f, "about"), teamSize = str(f, "teamSize"), founded = str(f, "founded");
+  if (!name || !cif || !website || !about) return { error: "Fill in the legal name, CIF / NIF, website and what the company does." };
+  if (!/^[A-Z0-9]{8,10}$/.test(cif)) return { error: "A CIF / NIF is 9 letters and numbers, like B12345678." };
+  if (founded && !(/^\d{4}$/.test(founded) && Number(founded) <= new Date().getFullYear())) return { error: "Enter the year the company was founded, like 2024." };
+  const res = await saveOrganization(user, { name, cif, website, hood, about, founded, teamSize });
+  if (res.error) return res;
+  refresh();
+  if (str(f, "then") === "profile") redirect("/company/profile");
+  redirect("/company/verify?step=4");
+}
+
+const DOC_TYPES = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
+
+export async function uploadCompanyDocAction(_: FormState, f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/verify", "company");
+  const kind = str(f, "kind") as DocKind, file = f.get("file");
+  if (!DOC_KINDS.includes(kind)) return { error: "Unknown document." };
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a file first." };
+  const ext = path.extname(file.name).toLowerCase();
+  if (!DOC_TYPES.has(ext)) return { error: "Upload a PDF, JPG or PNG." };
+  if (file.size > 10 * 1024 * 1024) return { error: "The file must be under 10 MB." };
+  const res = await saveCompanyDoc(user, kind, file, ext);
+  if (res.error) return res;
+  revalidatePath("/company/verify");
+  return { ok: true };
+}
+
+export async function removeCompanyDocAction(kind: DocKind): Promise<FormState> {
+  const user = await requireUser("/company/verify", "company");
+  if (!DOC_KINDS.includes(kind)) return { error: "Unknown document." };
+  const res = await removeCompanyDoc(user, kind);
+  if (res.error) return res;
+  revalidatePath("/company/verify");
+  return { ok: true };
+}
+
+export async function submitVerificationAction(_: FormState, f: FormData): Promise<FormState> {
+  await requireUser("/company/verify", "company");
+  if (f.get("agree") !== "on") return { error: "Tick the declaration to submit." };
+  const res = await submitVerification();
+  if (res.error) return res;
+  refresh();
+  redirect("/company/verify");
+}
+
+// ---------------------------------------------------------------- projects
+
+export async function postCompanyProjectAction(_: FormState, f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/projects/new", "company");
+  const org = await getOrganization(user);
+  if (org?.status !== "verified") return { error: "Your company needs to be verified before you can post." };
+  const title = str(f, "title"), summary = str(f, "summary"), deliverable = str(f, "deliverable");
+  const category = str(f, "category") as Category;
+  const priceEur = Number(f.get("priceEur")), weeks = Number(f.get("weeks"));
+  const skills = f.getAll("skills").map(String).map((s) => s.trim()).filter(Boolean).slice(0, 8);
+  if (!title || !summary) return { error: "Add a title and description." };
+  if (!CATEGORIES.includes(category)) return { error: "Pick a category." };
+  if (!deliverable || skills.length === 0) return { error: "Describe the deliverable and pick at least one skill." };
+  if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
+  if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
+  const res = await createCompanyProject(user, org, { title, summary, deliverable, category, priceEur: Math.round(priceEur), weeks, skills });
+  if (res.error) return { error: res.error };
+  refresh();
+  redirect(`/company/projects/${res.id}?posted=1`);
+}
+
+// ---------------------------------------------------------------- applicants
+
+export async function acceptApplicantAction(applicationId: string): Promise<FormState> {
+  await requireUser("/company/applicants", "company");
+  const res = await acceptApplicant(applicationId);
+  if (res.error) return { error: res.error };
+  refresh();
+  const n = res.declined ?? 0;
+  return { ok: true, notice: n ? `${n} other applicant${n > 1 ? "s" : ""} declined. Project is now in progress.` : "Project is now in progress." };
+}
+
+export async function declineApplicantAction(applicationId: string): Promise<FormState> {
+  await requireUser("/company/applicants", "company");
+  const res = await declineApplicant(applicationId);
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
+}
+
+export async function verifyDeliveryAction(_: FormState, f: FormData): Promise<FormState> {
+  await requireUser("/company/applicants", "company");
+  const rating = Number(f.get("rating")), review = str(f, "review");
+  if (!(rating >= 1 && rating <= 5)) return { error: "Pick a rating from 1 to 5 stars." };
+  if (review.length < 10) return { error: "Write a short review (at least 10 characters)." };
+  const res = await verifyDelivery(str(f, "applicationId"), rating, review.slice(0, 600));
+  if (res.error) return res;
+  refresh();
+  revalidatePath("/profile");
+  return { ok: true };
+}

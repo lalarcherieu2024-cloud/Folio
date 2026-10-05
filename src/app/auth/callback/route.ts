@@ -10,11 +10,13 @@ export async function GET(request: Request) {
   const next = safeNext(searchParams.get("next") ?? "");
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       // Copy the freshly linked identities onto the profile (safe to run after any sign-in).
       await supabase.rpc("sync_verified_identities");
-      return NextResponse.redirect(`${origin}${next || "/profile?welcome=1"}`);
+      // Companies continue their verification; students land on their profile.
+      const home = data.user?.user_metadata?.role === "company" ? "/company/verify" : "/profile?welcome=1";
+      return NextResponse.redirect(`${origin}${next || home}`);
     }
   }
   const failed = next || "/signin";

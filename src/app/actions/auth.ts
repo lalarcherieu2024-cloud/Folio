@@ -30,7 +30,7 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
   }
   // With "Confirm email" on, there's no session until the link is clicked.
   if (!data.session) return { ok: true, notice: `Check ${email} for a confirmation link, then sign in.` };
-  redirect(role === "company" ? "/company?welcome=1" : "/profile?welcome=1");
+  redirect(role === "company" ? "/company/verify" : "/profile?welcome=1");
 }
 
 export async function signInAction(_: FormState, f: FormData): Promise<FormState> {
