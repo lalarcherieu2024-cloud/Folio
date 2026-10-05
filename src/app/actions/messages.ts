@@ -13,6 +13,7 @@ export async function sendMessageAction(applicationId: string, _: FormState, f: 
   if (res.error) return res;
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath(`/company/applicants/${applicationId}`);
+  revalidatePath("/messages");
   return { ok: true };
 }
 
@@ -25,5 +26,6 @@ export async function sendMessageWithFilesAction(applicationId: string, body: st
   if (res.error) return res;
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath(`/company/applicants/${applicationId}`);
+  revalidatePath("/messages");
   return { ok: true };
 }

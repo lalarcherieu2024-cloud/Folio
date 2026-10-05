@@ -8,7 +8,7 @@ import { InterviewCard } from "@/components/student/InterviewCard";
 import { SubmitWorkDialog } from "@/components/student/SubmitWorkDialog";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
-import { getMessages } from "@/lib/data/messages";
+import { getMessages, markConversationRead } from "@/lib/data/messages";
 import { getApplicationDetail } from "@/lib/data/student";
 import { getBriefFiles, getSubmissions } from "@/lib/data/submissions";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ export default async function ApplicationPage(props: PageProps<"/applications/[i
   const client = p.orgName ?? firstName(p.clientName);
   const hired = a.status === "accepted" || a.status === "delivered";
   const canMessage = hired && p.clientKind === "company";
-  const messages = canMessage ? await getMessages(user, a.id) : [];
+  const [messages] = canMessage ? await Promise.all([getMessages(user, a.id), markConversationRead(user, a.id)]) : [[]];
   const [briefFiles, submissions] = hired ? await Promise.all([getBriefFiles(p.id), getSubmissions(a.id)]) : [[], []];
   const latest = submissions.at(-1);
   const changes = latest?.status === "changes_requested";
