@@ -195,6 +195,18 @@ export async function confirmInterview(applicationId: string): Promise<{ error?:
   return { error: error.code === "PGRST202" ? "Interviews need migration 0017. Run it in the Supabase SQL Editor." : "Couldn't confirm. Try again." };
 }
 
+// Deletes the CV from storage and clears everything derived from it (the strengths scores).
+// Applications already sent stay, but clients reviewing them will see "no CV on file".
+export async function deleteCv(user: StudentProfile): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: p } = await supabase.from("profiles").select("cv_path").eq("id", user.id).single();
+  if (!p?.cv_path) return { error: "There's no CV to delete." };
+  const { error } = await supabase.from("profiles").update({ cv_path: null, cv_name: null, cv_size_kb: null, cv_uploaded_at: null, strengths: null }).eq("id", user.id);
+  if (error) { console.error("deleteCv", error); return { error: "Couldn't delete your CV. Try again." }; }
+  await supabase.storage.from("cvs").remove([p.cv_path]);
+  return {};
+}
+
 // Scores the CV already on file (for CVs uploaded before scoring existed, or when it failed).
 export async function reanalyzeStoredCv(user: StudentProfile): Promise<{ error?: string }> {
   const supabase = await createClient();

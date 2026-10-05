@@ -16,6 +16,7 @@ export const TONES = {
 } as const;
 
 const STATUS: Record<ProjectStatus, [label: string, tone: keyof typeof TONES]> = {
+  draft: ["Awaiting payment", "warning"],
   open: ["Open", "success"],
   in_progress: ["In progress", "info"],
   delivered: ["Delivered", "violet"],

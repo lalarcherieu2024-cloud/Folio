@@ -241,15 +241,25 @@ export async function getCompanyProject(user: StudentProfile, id: string): Promi
 
 export type NewCompanyProject = { title: string; summary: string; deliverable: string; category: Category; priceEur: number; weeks: number; skills: string[] };
 
-/** Posts a project under the company's verified organization (its name and badge show on the card). */
-export async function createCompanyProject(user: StudentProfile, org: Organization, p: NewCompanyProject): Promise<{ id?: string; error?: string }> {
+/**
+ * Posts a project under the company's verified organization (its name and badge show on the card).
+ * With payments set up (migration 0022) it is saved as a DRAFT that students can't see until the company pays;
+ * `unpaid` tells the caller to continue to payment. Before that migration it opens straight away, as it used to.
+ */
+export async function createCompanyProject(user: StudentProfile, org: Organization, p: NewCompanyProject): Promise<{ id?: string; unpaid?: boolean; error?: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("projects").insert({
+  const row = {
     client_id: user.id, client_name: org.name, org_id: org.id, hood: org.hood || "Madrid", category: p.category, title: p.title.slice(0, 70),
     summary: p.summary, deliverables: [p.deliverable], done_when: p.deliverable, price_eur: p.priceEur, weeks: p.weeks, skills: p.skills,
-  }).select("id").single();
-  if (error) { console.error("createCompanyProject", error); return { error: error.code === "42501" ? "Your company needs to be verified before you can post." : "Couldn't post your project. Check the fields and try again." }; }
-  return { id: data.id };
+  };
+  let { data, error } = await supabase.from("projects").insert({ ...row, status: "draft" }).select("id").single();
+  let unpaid = true;
+  if (error?.code === "22P02") { // "draft" isn't a project status yet: the payments migration hasn't been run
+    ({ data, error } = await supabase.from("projects").insert(row).select("id").single());
+    unpaid = false;
+  }
+  if (error || !data) { console.error("createCompanyProject", error); return { error: error?.code === "42501" ? "Your company needs to be verified before you can post." : "Couldn't post your project. Check the fields and try again." }; }
+  return { id: data.id, unpaid };
 }
 
 /** How many verified credentials this company has issued (for the profile). */
@@ -360,10 +370,10 @@ export async function inviteToInterview(applicationId: string, atIso: string, pl
 }
 
 /** Confirms delivered work: issues the student's verified credential and completes the project. */
-export async function verifyDelivery(applicationId: string, rating: number, review: string): Promise<{ error?: string }> {
+export async function verifyDelivery(applicationId: string, rating: number, review: string, signature?: string): Promise<{ error?: string }> {
   if (!UUID.test(applicationId)) return { error: "Application not found." };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("verify_delivery", { app_id: applicationId, stars: rating, review_text: review });
+  const { error } = await supabase.rpc("verify_delivery", { app_id: applicationId, stars: rating, review_text: review, ...(signature ? { p_signature: signature } : {}) });
   return error ? { error: rpcError(error, "Couldn't verify the delivery. Try again.") } : {};
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, ListChecks, LogOut, User } from "lucide-react";
+import { ChevronsUpDown, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
@@ -57,7 +57,6 @@ export function UserMenu({ user, side = "top", collapsed = false }: { user: Stud
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {user.role === "student" && <><DropdownMenuItem render={<Link href="/profile" />}><User className="size-4" />Profile &amp; record</DropdownMenuItem>
-        <DropdownMenuItem render={<Link href="/applications" />}><ListChecks className="size-4" />My work</DropdownMenuItem>
         <DropdownMenuSeparator /></>}
         <DropdownMenuItem variant="destructive" onClick={() => { toast("Signed out"); void signOutAction(); }}><LogOut className="size-4" />Sign out</DropdownMenuItem>
       </DropdownMenuContent>

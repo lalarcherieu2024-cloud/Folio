@@ -21,7 +21,7 @@ export function statusInfo(a: Pick<Application, "status" | "interview">, p: Pick
   const at = (stage: Stage, label: string, tone: Tone, step: string): StatusInfo => ({ stage, step: steps.indexOf(step), steps, label, tone });
   if (a.status === "declined") return { stage: "declined", step: -1, steps, label: "Not selected", tone: "muted" };
   if (p.status === "verified" && (a.status === "accepted" || a.status === "delivered")) return at("verified", "Verified", "success", "Verified");
-  if (a.status === "delivered") return at("delivered", "Awaiting verification", "muted", "Delivered");
+  if (a.status === "delivered") return at("delivered", "Awaiting review", "muted", "Delivered");
   if (a.status === "accepted") return at("building", "In progress", "info", "Building");
   if (a.status === "interview") return at("interview", a.interview?.confirmedAt ? "Interview confirmed" : "Interview invite", "interview", "Interview");
   return at("applied", "Waiting for client", "warning", "Applied");

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChatPanel } from "@/components/shared/ChatPanel";
 import { CredentialCard } from "@/components/shared/CredentialCard";
+import { SignCertificateDialog } from "@/components/shared/SignCertificateDialog";
+import { SubmissionHistory } from "@/components/shared/SubmissionHistory";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { ApplicantActions } from "@/components/startup/ApplicantActions";
 import { InterviewSummary } from "@/components/startup/InterviewSummary";
@@ -10,6 +12,8 @@ import { ago, card, chip, TONES } from "@/components/startup/ui";
 import { requireUser } from "@/lib/auth";
 import { getMessages } from "@/lib/data/messages";
 import { getApplicant } from "@/lib/data/startup";
+import { getCredentialForProject } from "@/lib/data/signatures";
+import { getSubmissions } from "@/lib/data/submissions";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/work";
 
@@ -26,6 +30,8 @@ export default async function ApplicantProfile(props: PageProps<"/company/applic
   // Once the student is hired, the two can message each other.
   const hired = a.status === "accepted" || a.status === "delivered";
   const messages = hired ? await getMessages(user, a.id) : [];
+  const submissions = hired ? await getSubmissions(a.id) : [];
+  const certificate = a.projectStatus === "verified" ? await getCredentialForProject(a.projectId) : null;
 
   return (
     <div className="page-enter flex max-w-[60rem] flex-col gap-6">
@@ -51,7 +57,25 @@ export default async function ApplicantProfile(props: PageProps<"/company/applic
 
       {a.status === "interview" && a.interview && <InterviewSummary interview={a.interview} name={firstName(a.name)} />}
 
-      {hired && <ChatPanel applicationId={a.id} messages={messages} otherName={firstName(a.name)} intro="Share extra information, links or files they'll need, and answer their questions here." />}
+      {a.status === "delivered" && a.projectStatus !== "verified" && (
+        <div className="rounded-xl border border-[#ddd6fe] bg-[#f5f3ff] px-5 py-4 text-sm text-[#5b21b6]">
+          <b className="font-semibold">{firstName(a.name)} submitted their work.</b> Open the files below, then approve it to issue their credential, or send it back with feedback.
+        </div>
+      )}
+      {certificate && !certificate.clientSignedAt && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-5 py-4 text-sm text-[#166534]">
+          <span><b className="font-semibold">{firstName(a.name)}&apos;s certificate is waiting for your signature.</b> It is issued, but it only counts as signed once you add yours.</span>
+          <SignCertificateDialog credentialId={certificate.credentialId} as="company" project={a.projectTitle} otherParty={firstName(a.name)} />
+        </div>
+      )}
+      {certificate?.clientSignedAt && (
+        <div className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-5 py-3 text-sm text-[#166534]">
+          Certificate signed by you{certificate.studentSignedAt ? ` and by ${firstName(a.name)}.` : `. ${firstName(a.name)} signs it next.`}
+        </div>
+      )}
+      <SubmissionHistory submissions={submissions} title="Submitted work" />
+
+      {hired && <ChatPanel applicationId={a.id} userId={user.id} readOnly={a.projectStatus === "verified"} messages={messages} otherName={firstName(a.name)} intro="Share extra information, links or files they'll need, and answer their questions here." />}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className={cn(card, "flex flex-col gap-5 p-5")}>

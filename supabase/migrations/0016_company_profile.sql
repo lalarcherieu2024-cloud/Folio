@@ -19,10 +19,13 @@ create table if not exists company_files (
 );
 alter table company_files enable row level security;
 
+drop policy if exists "signed-in users read files of verified companies and own files" on company_files;
 create policy "signed-in users read files of verified companies and own files" on company_files for select to authenticated
   using (exists (select 1 from organizations o where o.id = org_id and (o.verified or o.owner_id = auth.uid())));
+drop policy if exists "owner adds files" on company_files;
 create policy "owner adds files" on company_files for insert to authenticated
   with check (exists (select 1 from organizations o where o.id = org_id and o.owner_id = auth.uid()));
+drop policy if exists "owner removes files" on company_files;
 create policy "owner removes files" on company_files for delete to authenticated
   using (exists (select 1 from organizations o where o.id = org_id and o.owner_id = auth.uid()));
 
@@ -33,9 +36,12 @@ values ('company-files', 'company-files', false, 10485760,
               'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
 on conflict (id) do nothing;
 
+drop policy if exists "signed-in users open company files" on storage.objects;
 create policy "signed-in users open company files" on storage.objects for select to authenticated
   using (bucket_id = 'company-files');
+drop policy if exists "upload own company files" on storage.objects;
 create policy "upload own company files" on storage.objects for insert to authenticated
   with check (bucket_id = 'company-files' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "delete own company files" on storage.objects;
 create policy "delete own company files" on storage.objects for delete to authenticated
   using (bucket_id = 'company-files' and (storage.foldername(name))[1] = auth.uid()::text);

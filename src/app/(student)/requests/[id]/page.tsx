@@ -1,6 +1,7 @@
 import { ArrowLeft, Check, Lock, Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteProjectButton } from "@/components/shared/DeleteProjectButton";
 import { RequestApplicants } from "@/components/student/RequestApplicants";
 import { SavedToast } from "@/components/student/SavedToast";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { eur, weeksLabel } from "@/lib/work";
 export const metadata = { title: "Request · Folio" };
 
 const STATUS = {
+  draft: ["Not published yet", "bg-[#fef3c7] text-[#92400e]"],
   open: ["Open · accepting applications", "bg-[#dcfce7] text-[#166534]"],
   in_progress: ["In progress", "bg-[#e0f2fe] text-[#0c4a6e]"],
   delivered: ["Delivered", "bg-[#ede9fe] text-[#5b21b6]"],
@@ -44,7 +46,10 @@ export default async function RequestPage(props: PageProps<"/requests/[id]">) {
           <h1 className="text-[1.875rem] font-semibold leading-tight tracking-[-0.025em]">{project.title}</h1>
           <span className={cn("inline-flex h-[1.375rem] items-center rounded-md px-2 text-xs font-medium", tone)}>{label}</span>
           {canEdit ? (
-            <Link href={`/requests/${project.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto h-8 gap-1.5 bg-white px-3 text-[0.8125rem]")}><Pencil className="size-3.5" />Edit request</Link>
+            <div className="ml-auto flex flex-wrap gap-2">
+              <DeleteProjectButton projectId={project.id} title={project.title} redirectTo="/applications?tab=requests" noun="request" />
+              <Link href={`/requests/${project.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 gap-1.5 bg-white px-3 text-[0.8125rem]")}><Pencil className="size-3.5" />Edit request</Link>
+            </div>
           ) : (
             <span className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md bg-zinc-100 px-3 text-[0.8125rem] text-zinc-600"><Lock className="size-3.5" />Locked: someone is working on this</span>
           )}

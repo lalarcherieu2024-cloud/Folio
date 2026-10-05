@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { isAvatarColor } from "@/lib/avatar";
+import { createEscrow } from "@/lib/data/payments";
+import { paymentsMode } from "@/lib/payments/config";
 import {
   acceptApplicant, createCompanyProject, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc,
   removeOrgLogo, saveCompanyDoc, saveCompanyFile, saveOrganization, saveOrgLogo, setOrgLogoColor, submitVerification, verifyDelivery, type DocKind,
@@ -164,10 +166,14 @@ export async function postCompanyProjectAction(_: FormState, f: FormData): Promi
   if (!deliverable || skills.length === 0) return { error: "Describe the deliverable and pick at least one skill." };
   if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
   if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
+  if (paymentsMode() === "off") return { error: "Payments aren't available yet, so projects can't be published right now." };
   const res = await createCompanyProject(user, org, { title, summary, deliverable, category, priceEur: Math.round(priceEur), weeks, skills });
-  if (res.error) return { error: res.error };
+  if (res.error || !res.id) return { error: res.error ?? "Couldn't post your project." };
   refresh();
-  redirect(`/company/projects/${res.id}?posted=1`);
+  if (!res.unpaid) redirect(`/company/projects/${res.id}?posted=1`);                // before the payments migration
+  const escrow = await createEscrow(user, res.id, Math.round(priceEur));
+  if (escrow.error) return { error: escrow.error };
+  redirect(`/company/projects/${res.id}/pay`);                                        // the project opens once it's paid
 }
 
 // ---------------------------------------------------------------- applicants
@@ -207,7 +213,9 @@ export async function verifyDeliveryAction(_: FormState, f: FormData): Promise<F
   const rating = Number(f.get("rating")), review = str(f, "review");
   if (!(rating >= 1 && rating <= 5)) return { error: "Pick a rating from 1 to 5 stars." };
   if (review.length < 10) return { error: "Write a short review (at least 10 characters)." };
-  const res = await verifyDelivery(str(f, "applicationId"), rating, review.slice(0, 600));
+  const signature = str(f, "signature");
+  if (signature && !(signature.startsWith("data:image/png;base64,") && signature.length < 200_000)) return { error: "Draw or type your signature again." };
+  const res = await verifyDelivery(str(f, "applicationId"), rating, review.slice(0, 600), signature || undefined);
   if (res.error) return res;
   refresh();
   revalidatePath("/profile");

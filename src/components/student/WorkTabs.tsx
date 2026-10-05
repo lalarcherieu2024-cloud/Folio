@@ -4,10 +4,12 @@ import { Check, Clock, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useTransition } from "react";
 import { toast } from "sonner";
-import { markDeliveredAction, withdrawApplicationAction } from "@/app/actions/student";
+import { withdrawApplicationAction } from "@/app/actions/student";
 import { InterviewCard } from "@/components/student/InterviewCard";
+import { SubmitWorkDialog } from "@/components/student/SubmitWorkDialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Submission } from "@/lib/data/submissions";
 import type { Application, Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { TONE_CLASS, dueInfo, eur, firstName, stageColors, statusInfo, weeksLabel } from "@/lib/work";
@@ -16,25 +18,29 @@ type Row = Application & { project: Project };
 
 const clientOf = (p: Project) => p.orgName ?? firstName(p.clientName);
 
-function note(a: Row) {
+function note(a: Row, latest?: Submission) {
   const client = clientOf(a.project);
   const s = statusInfo(a, a.project);
+  if (s.stage === "building" && latest?.status === "changes_requested") return `${client} asked for changes${latest.feedback ? `: “${latest.feedback}”` : "."} Fix them and resubmit.`;
   if (s.stage === "applied") return `${client} is reviewing ${a.project.applicantCount} application${a.project.applicantCount === 1 ? "" : "s"}. Most clients reply within 3 days.`;
   if (s.stage === "interview") return `${client} wants to meet you before deciding. Confirm the time below, then they'll accept you or let you know.`;
   if (s.stage === "building") return `Done when: ${a.project.doneWhen}`;
-  if (s.stage === "delivered") return `Delivered. ${client} checks it against “done when”, then signs your credential.`;
+  if (s.stage === "delivered") return `Submitted. ${client} checks it against “done when”, then signs your credential or sends feedback.`;
   if (s.stage === "verified") return `Verified. This credential is now on your public record.`;
   return "This project went with another student. Your CV stays on file for the next one.";
 }
 
-function AppCard({ a }: { a: Row }) {
+function AppCard({ a, userId, latest }: { a: Row; userId: string; latest?: Submission }) {
   const [pending, start] = useTransition();
-  const s = statusInfo(a, a.project);
+  const base = statusInfo(a, a.project);
+  const changes = base.stage === "building" && latest?.status === "changes_requested";
+  const s = changes ? { ...base, label: "Changes requested", tone: "warning" as const } : base;
   const run = (fn: () => Promise<{ error?: string }>, ok: string) => start(async () => { const r = await fn(); if (r.error) toast.error(r.error); else toast.success(ok); });
   const [ring, fg] = stageColors(s.stage);
   const due = s.stage === "building" ? dueInfo(a.acceptedAt, a.project.weeks) : null;
   // The message channel exists for company projects once you're hired.
   const canMessage = a.project.clientKind === "company" && (a.status === "accepted" || a.status === "delivered");
+  const hired = a.status === "accepted" || a.status === "delivered";
   const date = new Date(a.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   return (
     <div className="flex flex-col gap-[1.125rem] rounded-xl border bg-white p-5" style={{ boxShadow: `inset 4px 0 0 ${ring}, 0 1px 2px rgba(0,0,0,.04)` }}>
@@ -48,8 +54,11 @@ function AppCard({ a }: { a: Row }) {
         </div>
         <div className="flex gap-2">
           <Link href={`/projects/${a.projectId}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 bg-white px-3 text-[0.8125rem]")}>View brief</Link>
-          {canMessage && <Link href={`/applications/${a.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 gap-1.5 bg-white px-3 text-[0.8125rem]")}><MessageSquare className="size-3.5" />Messages</Link>}
-          {a.status === "accepted" && s.stage === "building" && <Button size="sm" disabled={pending} className="h-8 px-3 text-[0.8125rem]" onClick={() => run(() => markDeliveredAction(a.id), "Marked as delivered")}>Mark as delivered</Button>}
+          {hired && <Link href={`/applications/${a.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 gap-1.5 bg-white px-3 text-[0.8125rem]")}><MessageSquare className="size-3.5" />{canMessage ? "Messages & files" : "Files"}</Link>}
+          {a.status === "accepted" && base.stage === "building" && (
+            <SubmitWorkDialog applicationId={a.id} userId={userId} title={a.project.title} deliverables={a.project.deliverables} doneWhen={a.project.doneWhen}
+              feedback={changes ? latest?.feedback : null} round={latest?.round ?? 0} />
+          )}
           {(a.status === "pending" || a.status === "interview") && <Button size="sm" variant="ghost" disabled={pending} className="h-8 px-3 text-[0.8125rem] text-destructive hover:bg-red-50 hover:text-destructive" onClick={() => run(() => withdrawApplicationAction(a.id), "Application withdrawn")}>Withdraw</Button>}
         </div>
       </div>
@@ -69,27 +78,40 @@ function AppCard({ a }: { a: Row }) {
           ))}
         </div>
       )}
-      <p className="rounded-lg bg-panel px-3.5 py-3 text-[0.8125rem] text-zinc-600">{note(a)}</p>
+      <p className={cn("rounded-lg px-3.5 py-3 text-[0.8125rem]", changes ? "bg-[#fffbeb] text-[#92400e]" : "bg-panel text-zinc-600")}>{note(a, latest)}</p>
     </div>
   );
 }
 
-export function WorkTabs({ apps, requests, tab, posted }: { apps: Row[]; requests: Project[]; tab: "applications" | "requests"; posted: boolean }) {
+export function WorkTabs({ apps, requests, tab, posted, userId, submissions }: { apps: Row[]; requests: Project[]; tab: "applications" | "past" | "requests"; posted: boolean; userId: string; submissions: Record<string, Submission> }) {
+  // Active = still moving (applied, interview, building, delivered). Past = finished (verified) or not selected.
+  const isPast = (a: Row) => { const stage = statusInfo(a, a.project).stage; return stage === "verified" || stage === "declined"; };
+  const active = apps.filter((a) => !isPast(a));
+  const past = apps.filter(isPast);
   useEffect(() => { if (posted) toast.success("Project posted", { description: "Every IE student can see it now." }); }, [posted]);
   return (
     <Tabs defaultValue={tab} className="gap-5">
       <TabsList className="h-9 self-start">
-        <TabsTrigger value="applications" className="px-3 text-[0.8125rem]">Applications · {apps.length}</TabsTrigger>
+        <TabsTrigger value="applications" className="px-3 text-[0.8125rem]">Active · {active.length}</TabsTrigger>
+        <TabsTrigger value="past" className="px-3 text-[0.8125rem]">Past · {past.length}</TabsTrigger>
         <TabsTrigger value="requests" className="px-3 text-[0.8125rem]">Posted by me · {requests.length}</TabsTrigger>
       </TabsList>
       <TabsContent value="applications" className="flex flex-col gap-3">
-        {apps.length === 0 ? (
+        {active.length === 0 ? (
           <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-zinc-300 px-6 py-12">
-            <span className="text-base font-semibold">No applications yet</span>
-            <span className="text-muted-foreground">Your first one is usually the hardest. Pick a project that matches your skills and send a short note.</span>
+            <span className="text-base font-semibold">{apps.length === 0 ? "No applications yet" : "Nothing active right now"}</span>
+            <span className="text-muted-foreground">{apps.length === 0 ? "Your first one is usually the hardest. Pick a project that matches your skills and send a short note." : "Your finished projects are under Past. Find a new one to keep going."}</span>
             <Link href="/projects" className={cn(buttonVariants(), "h-9 px-3.5")}>Find projects</Link>
           </div>
-        ) : apps.map((a) => <AppCard key={a.id} a={a} />)}
+        ) : active.map((a) => <AppCard key={a.id} a={a} userId={userId} latest={submissions[a.id]} />)}
+      </TabsContent>
+      <TabsContent value="past" className="flex flex-col gap-3">
+        {past.length === 0 ? (
+          <div className="flex flex-col items-start gap-2 rounded-xl border border-dashed border-zinc-300 px-6 py-12">
+            <span className="text-base font-semibold">No past projects yet</span>
+            <span className="text-muted-foreground">Verified projects and applications that weren&apos;t selected end up here.</span>
+          </div>
+        ) : past.map((a) => <AppCard key={a.id} a={a} userId={userId} latest={submissions[a.id]} />)}
       </TabsContent>
       <TabsContent value="requests" className="flex flex-col gap-3">
         {requests.length === 0 ? (
