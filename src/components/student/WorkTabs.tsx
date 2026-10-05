@@ -99,7 +99,7 @@ export function WorkTabs({ apps, requests, tab, posted, userId, submissions }: {
       <TabsContent value="applications" className="flex flex-col gap-3">
         {active.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-zinc-300 bg-white/60 px-6 py-14 text-center">
-            <span className="grid size-12 place-items-center rounded-full bg-soft text-brand"><Briefcase className="size-5" /></span>
+            <span className="empty-icon grid size-12 place-items-center rounded-full bg-soft text-brand"><Briefcase className="size-5" /></span>
             <span className="text-xl font-semibold tracking-tight">{apps.length === 0 ? "You have no work yet!" : "Nothing active right now"}</span>
             {apps.length > 0 && <span className="-mt-2 text-muted-foreground">Your finished projects are under Past.</span>}
             <Link href="/projects" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>Find projects <ArrowRight className="size-4" /></Link>
