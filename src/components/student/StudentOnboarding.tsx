@@ -180,7 +180,9 @@ function Done({ user }: { user: StudentProfile }) {
 
 export function StudentOnboarding({ step, user, account }: { step: OnboardingStep; user: StudentProfile; account?: SignupAccount }) {
   return (
-    <AuthFrame title={STUDENT_FRAME.title} sub={STUDENT_FRAME.sub} current={step} allDone={step === 6} steps={STUDENT_STEPS} audience="For students" account={account}>
+    <AuthFrame title={STUDENT_FRAME.title} sub={STUDENT_FRAME.sub} current={step} allDone={step === 6} steps={STUDENT_STEPS} audience="For students" account={account}
+      // Once the photo is in (and the IE email, which is step 2), any of the profile steps can be opened from the panel.
+      stepHref={(n) => step > 2 && user.avatarUrl && n >= 3 ? go(n as OnboardingStep) : null}>
       {step === 2 && <IeEmail user={user} />}
       {step === 3 && <Details user={user} />}
       {step === 4 && <Cv user={user} />}
