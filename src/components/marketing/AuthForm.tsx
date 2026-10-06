@@ -33,8 +33,8 @@ export function AuthForm({ mode, next, role = "student", error }: { mode: "signi
         <h1 className="text-2xl font-semibold tracking-tight">{up ? "Create your account" : "Welcome back"}</h1>
         <p className="text-sm text-muted-foreground">{up ? (role === "company" ? "For startups and small businesses. Post a project in minutes." : "Free for IE students. Add your CV next.") : copy.sub}</p>
       </div>
-      {/* LinkedIn sign-in is for students only: a new LinkedIn account always becomes a student. */}
-      {!up && who === "student" && <><LinkedInButton next={next} /><TermsNotice /><OrDivider>or with email</OrDivider></>}
+      {/* With the Company switch on, a brand-new LinkedIn account becomes a company (/auth/callback). */}
+      {!up && <><LinkedInButton next={next} as={who === "company" ? "company" : undefined} /><TermsNotice /><OrDivider>or with email</OrDivider></>}
       {next && <input type="hidden" name="next" value={next} />}
       {/* Sign-in checks the account matches the side picked in the switch (signInAction). */}
       <input type="hidden" name="role" value={up ? role : who} />

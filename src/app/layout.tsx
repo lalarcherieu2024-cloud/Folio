@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <AppShell user={user} counts={counts} notifications={notifications} defaultCollapsed={sidebarCollapsed}>{children}</AppShell>
           ) : (
             <div className="flex min-h-screen flex-col overflow-x-clip">
-              <SiteHeader onboarding={!!user && isOnboarding(user)} />
+              <SiteHeader onboarding={user && isOnboarding(user) ? { name: user.fullName, email: user.email } : undefined} />
               <main className="flex-1">{children}</main>
               <SiteFooter />
             </div>

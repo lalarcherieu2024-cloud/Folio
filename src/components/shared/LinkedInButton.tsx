@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
@@ -11,14 +11,22 @@ const LinkedInLogo = () => (
   </svg>
 );
 
-// Signs a student in, or up, with LinkedIn. The trip ends on /auth/callback (via=linkedin), which picks
-// where they land: /welcome for a new account, their home otherwise.
-export function LinkedInButton({ label = "Continue with LinkedIn", next }: { label?: string; next?: string }) {
+// Signs someone in, or up, with LinkedIn. The trip ends on /auth/callback (via=linkedin), which picks where they
+// land: onboarding for a new account (/welcome, or /company/verify with as=company), their home otherwise.
+export function LinkedInButton({ label = "Continue with LinkedIn", next, as }: { label?: string; next?: string; as?: "company" }) {
   const [busy, setBusy] = useState(false);
+  // Coming back from LinkedIn with the browser's Back button restores this page as it was left (back-forward
+  // cache), still showing "Opening LinkedIn…"; reset it so the button works again.
+  useEffect(() => {
+    const reset = (e: PageTransitionEvent) => { if (e.persisted) setBusy(false); };
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
   async function go() {
     setBusy(true);
     const params = new URLSearchParams({ via: "linkedin" });
     if (next) params.set("next", next);
+    if (as) params.set("as", as);
     const { error } = await createClient().auth.signInWithOAuth({
       provider: "linkedin_oidc",
       options: { redirectTo: `${location.origin}/auth/callback?${params}` },
