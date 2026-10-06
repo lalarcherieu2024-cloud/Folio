@@ -42,7 +42,9 @@ export type ApplicantDetail = Applicant & {
 };
 
 export type OrgStatus = "draft" | "pending" | "verified" | "rejected";
-export const DOC_KINDS = ["registry_extract", "representative_id", "bank_certificate"] as const;
+// The documents a company uploads before its first payment (migration 0030). The bank certificate is no longer asked
+// for; older uploads of it stay readable.
+export const DOC_KINDS = ["registry_extract", "representative_id"] as const;
 export type DocKind = (typeof DOC_KINDS)[number];
 export type CompanyDoc = { kind: DocKind; fileName: string; sizeKb: number };
 
@@ -117,6 +119,14 @@ export async function saveOrganization(user: StudentProfile, d: OrgDetails): Pro
   if (error.code === "42703" || error.code === "PGRST204") return { error: NEEDS_MIGRATION };
   console.error("saveOrganization", error);
   return { error: "Couldn't save your company details. Try again." };
+}
+
+/** The founder's LinkedIn profile link (verification stage 1, when LinkedIn isn't connected). */
+export async function saveFounderLinkedin(user: StudentProfile, url: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ linkedin_url: url }).eq("id", user.id);
+  if (error) { console.error("saveFounderLinkedin", error); return { error: "Couldn't save your LinkedIn link. Try again." }; }
+  return {};
 }
 
 // ---------------------------------------------------------------- profile: logo + shared files

@@ -44,7 +44,7 @@ export function ConnectAccounts({ user, providers, next = "/profile", title = "V
 
   return (
     <div className="grid gap-2.5 rounded-lg border bg-panel p-3.5">
-      <span className="text-sm font-medium">{title}</span>
+      {title && <span className="text-sm font-medium">{title}</span>}
       {linkError && <p role="alert" className="rounded-md bg-[#fee2e2] px-3 py-2 text-[0.8125rem] text-[#991b1b]">{linkError}</p>}
       {PROVIDERS.filter((p) => !providers || providers.includes(p.id)).map((p) => (
         <div key={p.id} className="flex items-center justify-between gap-3">

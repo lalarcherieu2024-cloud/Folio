@@ -60,8 +60,9 @@ export default async function CompanyHome() {
   const queue = [...toVerify, ...pending];
   const steps = setupSteps(user, org, rows);
   const done = steps.filter((s) => s.done).length;
-  // Verification steps done (details, logo and documents, submitted), for the card's progress.
-  const verifyDone = org?.status === "pending" ? 3 : !detailsComplete(org) ? 0 : org!.docs.length >= 3 && org!.logoUrl ? 2 : 1;
+  // Verification steps done (details, then submitted with LinkedIn), for the card's progress. Documents come later,
+  // on the payment page.
+  const verifyDone = org?.status === "pending" ? 2 : detailsComplete(org) ? 1 : 0;
   const tourStage = org?.status !== "verified" ? (org?.status === "pending" ? null : "verify")
     : rows.every((r) => r.stage.key === "draft" || r.stage.key === "cancelled") ? "post"
     : pending.length > 0 ? "applicants" : null;
@@ -110,11 +111,11 @@ export default async function CompanyHome() {
             <p className="max-w-[60ch] text-[0.9375rem] text-muted-foreground">
               {org?.status === "pending"
                 ? "We check every company before students see its projects, usually within 1–2 business days. You can publish as soon as it's verified."
-                : "Students only see projects from verified companies. It takes about 5 minutes: your company details, logo and three documents."}
+                : "Students only see projects from verified companies. It takes about 2 minutes: your company details and your LinkedIn. No documents needed yet."}
             </p>
             <div className="mt-1 flex max-w-[22rem] items-center gap-3">
-              <div className="flex flex-1 gap-1">{[0, 1, 2].map((n) => <span key={n} className={cn("h-1.5 flex-1 rounded-full", n < verifyDone ? "bg-brand" : "bg-zinc-200")} />)}</div>
-              <span className="text-xs tabular-nums text-muted-foreground">{verifyDone} of 3 done</span>
+              <div className="flex flex-1 gap-1">{[0, 1].map((n) => <span key={n} className={cn("h-1.5 flex-1 rounded-full", n < verifyDone ? "bg-brand" : "bg-zinc-200")} />)}</div>
+              <span className="text-xs tabular-nums text-muted-foreground">{verifyDone} of 2 done</span>
             </div>
           </div>
           <Link href="/company/verify" className={cn(buttonVariants(), "h-11 shrink-0 gap-2 px-5 text-[0.9375rem]")}>

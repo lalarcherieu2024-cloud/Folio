@@ -1,154 +1,120 @@
-import { ArrowRight, BadgeCheck, CalendarCheck, Check, ClipboardCheck, FileCheck2, FileText, Code2, Handshake, Link2, Lock, Mail, ShieldCheck, Star, UserCheck, Users, Wallet, type LucideIcon } from "lucide-react";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { Plus, ShieldCheck } from "lucide-react";
+import { ApplicantsSnippet, CredentialSnippet, EscrowSnippet } from "@/components/marketing/Snippets";
+import { FEE_RATE } from "@/lib/data/shared";
 import { cn } from "@/lib/utils";
 
-// The three sections behind the header links (#getting-paid, #hiring, #trust).
-// Keep every claim in step with what the app does today: money doesn't move yet (no Stripe),
-// students can't rate companies, and there's no dispute process. Update the copy when those ship.
+// The sections between the hero and the projects (#hiring, #getting-paid, #students, #trust): each is a hook
+// headline, a line or three, and one small product snippet beside it, alternating sides. Keep every claim in step
+// with what the app does today: real money only moves once PAYMENTS_MODE=paypal (the money section says so),
+// students can't rate companies, and there's no dispute process beyond what the Terms describe.
 
-const card = "rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
-const eyebrow = "font-mono text-xs font-medium uppercase tracking-wide text-brand";
-const iconBox = "grid size-10 shrink-0 place-items-center rounded-lg bg-panel text-brand";
+// ---------------------------------------------------------------- the shared layout
 
-function Heading({ label, title, sub }: { label: string; title: string; sub: string }) {
+/** Text on one side, a product snippet on the other; `flip` puts the snippet first. Stacks on phones, text first. */
+function Split({ id, flip, rule = true, className, text, visual }: { id: string; flip?: boolean; rule?: boolean; className?: string; text: React.ReactNode; visual: React.ReactNode }) {
   return (
-    <div className="mb-8 max-w-[44rem]">
-      <span className={eyebrow}>{label}</span>
-      <h2 className="mt-2 text-[clamp(1.75rem,3vw,2.25rem)] font-semibold leading-tight tracking-tight">{title}</h2>
-      <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">{sub}</p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- getting paid (students)
-
-const PAY_STEPS = [
-  { icon: Handshake, title: "Agree the price", body: "Every project has a fixed price, set before anyone applies. You know exactly what you’ll earn." },
-  { icon: ClipboardCheck, title: "Do the work", body: "Deliver what the project describes. The deliverable is written down up front, so there’s no moving target." },
-  { icon: Wallet, title: "Paid on sign-off", body: "The price is paid once the client verifies your delivery. That’s the deal every client agrees to when they post." },
-];
-
-export function GettingPaid({ priceRange }: { priceRange: string | null }) {
-  return (
-    <section id="getting-paid" className="scroll-mt-24 border-t py-14">
-      <Heading label="For students" title="How you get paid" sub="Fixed prices, agreed before you start, paid when the client signs off your work." />
-      <ol className="grid gap-4 md:grid-cols-3">
-        {PAY_STEPS.map((s, i) => (
-          <li key={s.title} className={cn(card, "relative flex flex-col gap-3")}>
-            <div className="flex items-center justify-between">
-              <span className={iconBox}><s.icon className="size-5" /></span>
-              <span className="font-mono text-sm text-muted-foreground">0{i + 1}</span>
-            </div>
-            <h3 className="text-base font-semibold">{s.title}</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{s.body}</p>
-            {i < PAY_STEPS.length - 1 && <ArrowRight className="absolute -right-3.5 top-1/2 hidden size-5 -translate-y-1/2 rounded-full bg-background text-zinc-400 md:block" />}
-          </li>
-        ))}
-      </ol>
-      <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1.4fr]">
-        <div className={cn(card, "flex flex-col gap-3 text-sm text-zinc-600")}>
-          {priceRange && <p><span className="font-mono text-lg font-semibold text-foreground">{priceRange}</span><span className="block text-xs text-muted-foreground">what open projects pay right now</span></p>}
-          <p className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={2.5} />Add your PayPal payout link to your profile.</p>
-          <p className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={2.5} />Your Payments page shows where every project stands: in escrow, awaiting sign-off, or paid.</p>
-        </div>
-        <div className="flex items-start gap-3 rounded-xl border border-dashed border-brand-low bg-soft/40 p-5">
-          <Lock className="mt-0.5 size-5 shrink-0 text-brand" />
-          <div className="text-sm leading-relaxed">
-            <p className="font-semibold">Payments are launching soon</p>
-            <p className="mt-1 text-zinc-600">Secure payments through Folio are being built: the client pays into escrow when work starts, and it’s released to you when they verify the delivery. Until then, Folio tracks each project’s price and where its payment stands.</p>
-          </div>
-        </div>
+    <section id={id} className={cn("scroll-mt-24 py-14 md:py-20", rule && "section-rule", className)}>
+      <div className="grid items-center gap-10 md:grid-cols-2 md:gap-14">
+        <div className={cn("min-w-0", flip && "md:order-2")}>{text}</div>
+        <div className={cn("min-w-0", flip && "md:order-1")}>{visual}</div>
       </div>
     </section>
   );
 }
 
-// ---------------------------------------------------------------- hiring (companies)
+const kicker = "text-sm font-medium text-brand";
+const hook = "mt-2 text-balance text-[clamp(1.75rem,3.2vw,2.5rem)] font-semibold leading-[1.1] tracking-tight";
+const lead = "mt-4 max-w-[34rem] text-pretty text-lg leading-relaxed text-zinc-600";
 
-const HIRE_STEPS = [
-  { icon: ShieldCheck, title: "Get verified", body: "Tell us who you are: legal name, CIF and website, plus three documents. Folio reviews them, usually within 1–2 business days.",
-    chips: ["Registry extract", "Representative ID", "Bank certificate"] },
-  { icon: FileText, title: "Post a project", body: "Describe the work, pick the field and skills, set a fixed price and a duration. Write down the deliverable: it’s what you’ll check at the end.",
-    chips: ["Fixed price", "Deliverable", "Duration"] },
-  { icon: Users, title: "Pick a student", body: "Students apply with a short pitch and their CV. You see how many projects each one has finished and their average rating.",
-    chips: ["Pitch + CV", "Past ratings"] },
-  { icon: CalendarCheck, title: "Interview if you like", body: "Optionally invite an applicant to an interview, online or in person. Once you hire, you get a message channel with them.",
-    chips: ["Meeting link or address", "Messages"] },
-  { icon: FileCheck2, title: "Verify the work", body: "Check the delivery against your deliverable, then rate it and write a short review. That becomes the student’s credential.",
-    chips: ["Rating", "Review"] },
-];
+// ---------------------------------------------------------------- for companies
 
-export function Hiring() {
+const COMPANY_POINTS = ["Post a brief with a fixed price.", "Students apply. Interview if you like.", "Approve the work, rate it, done."];
+
+export function ForCompanies() {
   return (
-    <section id="hiring" className="scroll-mt-24 border-t py-14">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <Heading label="For companies" title="How hiring works" sub="From a verified account to verified work, in five steps." />
-        <Link href="/company/signup" className={cn(buttonVariants({ size: "lg" }), "mb-8 h-10 px-4 text-sm")}>Create a company account <ArrowRight className="size-4" /></Link>
-      </div>
-      <ol className="relative grid gap-4 lg:grid-cols-5">
-        {HIRE_STEPS.map((s, i) => (
-          <li key={s.title} className={cn(card, "flex flex-col gap-3")}>
-            <div className="flex items-center gap-3">
-              <span className={iconBox}><s.icon className="size-5" /></span>
-              <span className="font-mono text-sm text-muted-foreground">Step {i + 1}</span>
-            </div>
-            <h3 className="text-base font-semibold">{s.title}</h3>
-            <p className="flex-1 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
-            <ul className="flex flex-wrap gap-1.5">
-              {s.chips.map((c) => <li key={c} className="rounded-md bg-panel px-2 py-1 text-xs text-zinc-600">{c}</li>)}
-            </ul>
-          </li>
-        ))}
-      </ol>
-    </section>
+    // Straight after the hero, so no divider: it carries on from the demo.
+    <Split id="hiring" rule={false} className="pt-8 md:pt-10"
+      text={<>
+        <p className={kicker}>For companies</p>
+        <h2 className={hook}>Hire an IE student this week. Pay only when the work is right.</h2>
+        <ol className="mt-7 flex flex-col gap-4">
+          {COMPANY_POINTS.map((p, i) => (
+            <li key={p} className="flex items-baseline gap-4 text-lg text-zinc-700">
+              <span className="w-6 shrink-0 text-2xl font-semibold tabular-nums text-brand">{i + 1}</span>{p}
+            </li>
+          ))}
+        </ol>
+      </>}
+      visual={<ApplicantsSnippet />} />
   );
 }
 
-// ---------------------------------------------------------------- trust & accountability (both)
+// ---------------------------------------------------------------- the money (both sides)
 
-const STUDENT_CHECKS = [
-  { icon: Mail, text: "A verified badge for students who sign up with their IE University email" },
-  { icon: Link2, text: "LinkedIn, linked by signing in to it, not typed in" },
-  { icon: Code2, text: "GitHub too, for tech work" },
-];
-const COMPANY_CHECKS = [
-  { icon: BadgeCheck, text: "Legal name, CIF and website checked" },
-  { icon: FileCheck2, text: "Registry extract, representative ID and bank certificate reviewed" },
-  { icon: ShieldCheck, text: "Projects only go live once Folio has verified the company" },
-];
-const SHARED = [
-  { icon: ClipboardCheck, title: "“Done” is agreed up front", body: "The deliverable is written into the project before work starts, so both sides know what finished means." },
-  { icon: Star, title: "Every project leaves a record", body: "Each finished project ends with a signed rating and review that future clients can see." },
-  { icon: UserCheck, title: "Accounts stay on their side", body: "Student and company accounts are separate, and each can only sign in as what it is." },
-];
-
-function CheckList({ icon: Icon, title, items }: { icon: LucideIcon; title: string; items: { icon: LucideIcon; text: string }[] }) {
+export function MoneySection({ paymentsLive }: { paymentsLive: boolean }) {
+  const price = 600, feePercent = Math.round(FEE_RATE * 100), total = Math.round(price * (1 + FEE_RATE)), fee = total - price;
   return (
-    <div className={cn(card, "flex flex-col gap-4")}>
-      <div className="flex items-center gap-3"><span className={iconBox}><Icon className="size-5" /></span><h3 className="text-base font-semibold">{title}</h3></div>
-      <ul className="grid gap-3">
-        {items.map((it) => <li key={it.text} className="flex items-start gap-2.5 text-sm text-zinc-600"><it.icon className="mt-0.5 size-4 shrink-0 text-brand" />{it.text}</li>)}
-      </ul>
-    </div>
+    // On a soft tinted band, so the middle of the story stands apart from the sections around it.
+    <Split id="getting-paid" flip rule={false} className="rounded-3xl bg-soft/50 px-6 md:px-12"
+      text={<>
+        <p className={kicker}>For both sides</p>
+        <h2 className={hook}>The money is there before the work starts.</h2>
+        <p className={lead}>The company pays Folio up front, plus a {feePercent}% fee. We hold it, and release it to the student the moment the work is approved.</p>
+        {/* Honest about the pilot: until real payments are switched on (PAYMENTS_MODE=paypal), no money moves. */}
+        {!paymentsLive && <p className="mt-5 flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground"><ShieldCheck className="size-4 text-brand" />Pilot: payments run in test mode, so no real money moves yet.</p>}
+      </>}
+      visual={<EscrowSnippet total={total} price={price} fee={fee} />} />
   );
 }
 
-export function Trust() {
+// ---------------------------------------------------------------- for students
+
+export function ForStudents({ priceRange }: { priceRange: string | null }) {
   return (
-    <section id="trust" className="scroll-mt-24 border-t py-14">
-      <Heading label="For everyone" title="Trust & accountability" sub="Companies are checked before they can post, students show who they are, and every project ends with a record of how it went." />
-      <div className="grid gap-4 md:grid-cols-2">
-        <CheckList icon={UserCheck} title="Students show who they are" items={STUDENT_CHECKS} />
-        <CheckList icon={ShieldCheck} title="Every company is verified" items={COMPANY_CHECKS} />
-      </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        {SHARED.map((s) => (
-          <div key={s.title} className="flex gap-3 rounded-xl bg-panel p-5">
-            <s.icon className="mt-0.5 size-5 shrink-0 text-brand" />
-            <div><h3 className="text-sm font-semibold">{s.title}</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.body}</p></div>
-          </div>
-        ))}
+    <Split id="students"
+      text={<>
+        <p className={kicker}>For students</p>
+        <h2 className={hook}>Get paid, and leave with proof.</h2>
+        <p className={lead}>
+          Every finished project becomes a credential the client signs, on your profile for the next one to see.
+          {priceRange && <> Open projects pay <span className="font-semibold tabular-nums text-foreground">{priceRange}</span>.</>}
+        </p>
+      </>}
+      visual={<CredentialSnippet />} />
+  );
+}
+
+// ---------------------------------------------------------------- what if… (both)
+// Keep every answer in step with what the app and the Terms say today.
+
+const QUESTIONS = [
+  { q: "…the company isn't real?", a: "Folio checks every company before it can post: its CIF, website and the founder's LinkedIn. Before its first payment, it also confirms it can act for the company." },
+  { q: "…the student isn't who they say?", a: "Students confirm an IE University email to use Folio, and can connect LinkedIn for a verified badge." },
+  { q: "…the work isn't good enough?", a: "What “done” means is written in the brief before work starts. The company can ask for changes, and the money stays held while they're made." },
+  { q: "…the company never responds?", a: "If a delivery isn't checked within 14 days, Folio may review it and release the payment if it meets the brief." },
+  { q: "…I change my mind before hiring?", a: "Cancel the project before anyone is hired and the payment is refunded." },
+];
+
+export function WhatIf() {
+  return (
+    <section id="trust" className="section-rule scroll-mt-24 py-14 md:py-20">
+      <div className="grid gap-8 md:grid-cols-[1fr_1.6fr] md:gap-14">
+        <div>
+          <p className={kicker}>Trust</p>
+          <h2 className={hook}>What if…</h2>
+          <p className="mt-3 text-zinc-600">The questions people ask before their first project.</p>
+        </div>
+        <div className="border-t">
+          {QUESTIONS.map((item) => (
+            <details key={item.q} className="group border-b">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-medium [&::-webkit-details-marker]:hidden">
+                {item.q}
+                <Plus className="size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-45" />
+              </summary>
+              <p className="-mt-1 pb-5 pr-8 leading-relaxed text-zinc-600">{item.a}</p>
+            </details>
+          ))}
+        </div>
       </div>
     </section>
   );

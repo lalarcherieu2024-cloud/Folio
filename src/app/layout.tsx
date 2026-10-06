@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "Folio: real projects, verified proof",
-  description: "Do paid projects for startups and small businesses. Every finished project becomes verified proof of your skills.",
+  description: "Startups and small businesses get work done by IE University students, at a fixed price. Students get paid, and every finished project becomes verified proof.",
 };
 
 // Only the document itself: the app or public frame is picked by each route group's layout (Frame), so it can't go

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 export type TourStage = "verify" | "post" | "applicants";
 
 const TIPS: Record<TourStage, { title: string; body: string; action: { label: string; href: string } }> = {
-  verify: { title: "Start here: get verified", body: "Every company is checked once before students see its projects. It takes about 5 minutes, and you can save and come back any time.", action: { label: "Start verification", href: "/company/verify" } },
+  verify: { title: "Start here: get verified", body: "Every company is checked once before students see its projects. It takes about 2 minutes, and no documents are needed yet.", action: { label: "Start verification", href: "/company/verify" } },
   post: { title: "You're verified. Post your first project", body: "Describe the work, set a fixed price and a clear finish line. IE students apply within days.", action: { label: "Post a project", href: "/company/projects/new" } },
   applicants: { title: "Students have applied", body: "Each applicant comes with their CV, skills and a short pitch. Accept one and the project starts.", action: { label: "See applicants", href: "/company/applicants" } },
 };

@@ -9,21 +9,25 @@ import { removeCompanyDocAction, submitVerificationAction, uploadCompanyDocActio
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { DocKind, Organization } from "@/lib/data/startup";
+import type { StudentProfile } from "@/lib/types";
+import { ConnectAccounts } from "@/components/student/ConnectAccounts";
 import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
-import { outlineBtn, primaryBtn, StepCard, StepHeading } from "./CompanyAuth";
+import { Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "./CompanyAuth";
 import { VerifyFrame } from "./VerifyFrame";
 import { detailsComplete } from "@/lib/org";
 import { CompanyDetailsForm } from "./CompanyDetailsForm";
 
-const DOCS: { kind: DocKind; title: string; sub: string }[] = [
+// Stage 2 of verification (migration 0030): asked for on the payment page, before the company's first payment.
+// The bank certificate is no longer asked for: the escrow payment itself comes from the company's account.
+export const PAYMENT_DOCS: { kind: DocKind; title: string; sub: string }[] = [
   { kind: "registry_extract", title: "Company registry extract", sub: "Nota simple from the Registro Mercantil, issued in the last 3 months" },
   { kind: "representative_id", title: "ID of the representative", sub: "DNI, NIE or passport of the person signing up" },
-  { kind: "bank_certificate", title: "Bank account certificate", sub: "Certificado de titularidad in the company’s name, used to pay students" },
 ];
+export const paymentDocsDone = (org: Pick<Organization, "docs"> | null) => PAYMENT_DOCS.every((d) => org?.docs.some((x) => x.kind === d.kind));
 
 
-function DocRow({ kind, title, sub, file }: (typeof DOCS)[number] & { file?: { fileName: string; sizeKb: number } }) {
+function DocRow({ kind, title, sub, file }: (typeof PAYMENT_DOCS)[number] & { file?: { fileName: string; sizeKb: number } }) {
   const [state, action, uploading] = useActionState<FormState, FormData>(uploadCompanyDocAction, {});
   const [removing, startRemove] = useTransition();
   const form = useRef<HTMLFormElement>(null);
@@ -54,7 +58,7 @@ function DocRow({ kind, title, sub, file }: (typeof DOCS)[number] & { file?: { f
   );
 }
 
-/** Required company logo: shown on every project card so students recognise the brand. */
+/** Company logo (optional, recommended): shown on every project card so students recognise the brand. */
 function LogoRow({ org }: { org: Organization | null }) {
   const router = useRouter();
   const [uploading, startUpload] = useTransition();
@@ -72,7 +76,7 @@ function LogoRow({ org }: { org: Organization | null }) {
         : <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-primary"><ImageUp className="size-4" /></span>}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-sm font-semibold">Company logo</span>
-        <span className="truncate text-xs leading-snug text-muted-foreground">{has ? "✓ Shown on your profile and every project you post" : "Square image, JPG, PNG or WebP, up to 2 MB"}</span>
+        <span className="truncate text-xs leading-snug text-muted-foreground">{has ? "✓ Shown on your profile and every project you post" : "Optional. Square image, JPG, PNG or WebP, up to 2 MB"}</span>
       </div>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
       <Button variant={has ? "outline" : "default"} size="sm" onClick={() => input.current?.click()} disabled={uploading} className={cn("h-8 px-3 text-[0.8125rem]", has && "bg-white")}>{uploading ? "Uploading…" : has ? "Replace" : "Upload"}</Button>
@@ -80,18 +84,18 @@ function LogoRow({ org }: { org: Organization | null }) {
   );
 }
 
-function Review({ org, email, name }: { org: Organization; email: string; name: string }) {
+// Step 2: check the details, add the founder's LinkedIn, and send it to Folio. LinkedIn is asked for here rather
+// than on the details form because connecting it leaves the page (LinkedIn sign-in) and would lose typed details.
+function Review({ org, user }: { org: Organization; user: StudentProfile }) {
   const [state, action, pending] = useActionState<FormState, FormData>(submitVerificationAction, {});
-  const docName = (k: DocKind) => org.docs.find((d) => d.kind === k)?.fileName ?? "Missing";
   const groups = [
-    { title: "Account", edit: null, rows: [["Name", name], ["Email", `${email} ✓`]] },
+    { title: "Account", edit: null, rows: [["Name", user.fullName], ["Email", `${user.email} ✓`]] },
     { title: "Company", edit: "/company/verify?step=3", rows: [["Legal name", org.name], ["CIF / NIF", org.cif], ["Website", org.website], ["Location", org.hood || "–"]] },
-    { title: "Documents", edit: "/company/verify?step=4", rows: [["Company logo", org.logoUrl ? "Uploaded" : "Missing"], ...DOCS.map((d) => [d.title, docName(d.kind)])] },
   ];
   return (
     <form action={action}>
       <StepCard footer={<>
-        <Link href="/company/verify?step=4" className={outlineBtn}>Back</Link>
+        <Link href="/company/verify?step=3" className={outlineBtn}>Back</Link>
         <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Submitting…" : "Submit for review"}</button>
       </>}>
         {groups.map((g) => (
@@ -100,6 +104,17 @@ function Review({ org, email, name }: { org: Organization; email: string; name: 
             {g.rows.map(([k, v]) => <div key={k} className="flex justify-between gap-3 text-[0.8125rem]"><span className="text-muted-foreground">{k}</span><span className="truncate text-right font-medium">{v}</span></div>)}
           </div>
         ))}
+        <div className="flex flex-col gap-3 border-b border-zinc-100 pb-3.5">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold">Your LinkedIn</span>
+            <span className="text-[0.8125rem] text-muted-foreground">So we can see who&apos;s behind the company. Connecting it also gives you a &ldquo;LinkedIn verified&rdquo; badge.</span>
+          </div>
+          <ConnectAccounts user={user} providers={["linkedin_oidc"]} next="/company/verify?step=5" title="" notes={{ linkedin_oidc: "Quickest: proves the profile is yours." }} />
+          {!user.linkedinVerified && (
+            <Field id="founderLinkedin" label="Or paste a link to your LinkedIn profile" defaultValue={user.linkedinUrl ?? ""} placeholder="linkedin.com/in/your-name" />
+          )}
+        </div>
+        <LogoRow org={org} />
         <label className="flex cursor-pointer items-start gap-2.5 text-[0.8125rem] leading-normal text-zinc-700">
           <input type="checkbox" name="agree" required className="mt-0.5 size-[1.125rem] shrink-0 accent-primary" />
           <span>I can act on behalf of this company, and we will pay students the agreed amount once we verify their delivery.</span>
@@ -110,14 +125,23 @@ function Review({ org, email, name }: { org: Organization; email: string; name: 
   );
 }
 
+/** Stage 2, on the payment page: the two documents Folio needs before a company's first payment. */
+export function PaymentDocuments({ org }: { org: Organization }) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {PAYMENT_DOCS.map((d) => <DocRow key={d.kind} {...d} file={org.docs.find((x) => x.kind === d.kind)} />)}
+    </div>
+  );
+}
+
 function Status({ org }: { org: Organization }) {
   const verified = org.status === "verified", rejected = org.status === "rejected";
   const rows = [
-    { label: "Submitted", sub: "Your details and documents were received", mark: "✓", tone: "done" },
-    verified ? { label: "Folio checks your documents", sub: "Registry, ID and bank details confirmed", mark: "✓", tone: "done" }
-      : rejected ? { label: "Folio checks your documents", sub: "Something needs fixing (see below)", mark: "!", tone: "bad" }
-      : { label: "Folio checks your documents", sub: "In progress · usually 1–2 business days", mark: "…", tone: "wait" },
-    { label: "Verified badge on your profile", sub: "Unlocks posting projects", mark: verified ? "✓" : "3", tone: verified ? "done" : "todo" },
+    { label: "Submitted", sub: "Your company details and LinkedIn were received", mark: "✓", tone: "done" },
+    verified ? { label: "Folio checks your company", sub: "CIF, website and LinkedIn confirmed", mark: "✓", tone: "done" }
+      : rejected ? { label: "Folio checks your company", sub: "Something needs fixing (see below)", mark: "!", tone: "bad" }
+      : { label: "Folio checks your company", sub: "Against public records · usually 1–2 business days", mark: "…", tone: "wait" },
+    { label: "Verified badge on your profile", sub: "Unlocks publishing projects. Meanwhile you can already write your first one.", mark: verified ? "✓" : "3", tone: verified ? "done" : "todo" },
   ];
   const tone = { done: "bg-[#22c55e] text-white", wait: "bg-[#fef3c7] text-[#92400e]", bad: "bg-[#fee2e2] text-[#991b1b]", todo: "bg-secondary text-muted-foreground" } as const;
   return (
@@ -133,46 +157,31 @@ function Status({ org }: { org: Organization }) {
         <Link href="/company/verify?step=3" className={cn(primaryBtn, "h-10")}>Fix and resubmit</Link>
       </>}
       {verified ? <Link href="/company" className={cn(primaryBtn, "h-10")}>Go to dashboard</Link>
-        : <Link href="/company" className={cn(outlineBtn, "h-10")}>Look around while you wait</Link>}
+        : <Link href="/company/projects/new" className={cn(outlineBtn, "h-10")}>Write your first project while you wait</Link>}
     </StepCard>
   );
 }
 
-export function CompanyVerify({ step, org, email, name }: { step: 3 | 4 | 5 | 6; org: Organization | null; email: string; name: string }) {
-  const docsDone = DOCS.every((d) => org?.docs.some((x) => x.kind === d.kind)) && !!org?.logoUrl;
+export function CompanyVerify({ step, org, user }: { step: 3 | 5 | 6; org: Organization | null; user: StudentProfile }) {
   const verified = org?.status === "verified";
   const status6 = verified
-    ? { eyebrow: "Verified", title: "Your company is verified", sub: "You can now post projects and review applicants." }
+    ? { eyebrow: "Verified", title: "Your company is verified", sub: "You can now publish projects and review applicants." }
     : org?.status === "rejected"
       ? { eyebrow: "Changes needed", title: "We couldn’t verify your company yet", sub: "Fix what’s below and submit again." }
       : { eyebrow: "Under review", title: "Your company is under review", sub: "We usually finish within 1–2 business days. Check back here to see the result." };
   return (
-    // The frame counts the verification steps 1–4 (page steps 3–6; account and email are already done by now).
-    <VerifyFrame step={step - 2} allDone={step === 6 && verified}
-      // Before submitting, the details, documents and review steps can be reopened (review once the documents are in).
-      stepHref={(n) => step < 6 && (n === 1 || (n === 2 && detailsComplete(org)) || (n === 3 && docsDone)) ? `/company/verify?step=${n + 2}` : null}>
+    // The frame counts the steps 1–3: details (page step 3), review and submit (5), Folio's review (6).
+    <VerifyFrame step={step === 3 ? 1 : step === 5 ? 2 : 3} allDone={step === 6 && verified}
+      // Before submitting, details and review can be reopened (review once the details are complete).
+      stepHref={(n) => step < 6 && (n === 1 || (n === 2 && detailsComplete(org))) ? `/company/verify?step=${n === 1 ? 3 : 5}` : null}>
       {step === 3 && <>
-        <StepHeading eyebrow="Step 1 of 3" title="Company details" sub="This appears on your public profile and on every project you post." />
+        <StepHeading eyebrow="Step 1 of 2" title="Company details" sub="This appears on your public profile and on every project you post." />
         {/* No "Later" here: the way out is "Finish later" in the frame's top bar. */}
         <CompanyDetailsForm org={org} then="verify" />
       </>}
-      {step === 4 && <>
-        <StepHeading eyebrow="Step 2 of 3" title="Logo and documents" sub="Your logo appears on every project you post. The documents confirm the company exists and that you can act for it (PDF, JPG or PNG, up to 10 MB)." />
-        <StepCard footer={<>
-          <Link href="/company/verify?step=3" className={outlineBtn}>Back</Link>
-          <div className="flex items-center gap-3">
-            {!docsDone && <span className="text-xs text-muted-foreground">Add your logo and all three documents</span>}
-            {docsDone ? <Link href="/company/verify?step=5" className={primaryBtn}>Continue</Link>
-              : <span aria-disabled className={cn(primaryBtn, "pointer-events-none opacity-50")}>Continue</span>}
-          </div>
-        </>}>
-          <LogoRow org={org} />
-          {DOCS.map((d) => <DocRow key={d.kind} {...d} file={org?.docs.find((x) => x.kind === d.kind)} />)}
-        </StepCard>
-      </>}
       {step === 5 && org && <>
-        <StepHeading eyebrow="Step 3 of 3" title="Review & submit" sub="Check everything before sending it to Folio." />
-        <Review org={org} email={email} name={name} />
+        <StepHeading eyebrow="Step 2 of 2" title="Review and submit" sub="Check your details, add your LinkedIn, and send it to Folio." />
+        <Review org={org} user={user} />
       </>}
       {step === 6 && org && <>
         <StepHeading {...status6} />

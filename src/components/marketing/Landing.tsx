@@ -2,7 +2,7 @@ import { ArrowRight, Briefcase, Camera, ClipboardList, Code, Megaphone, Palette,
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { campusQuirk } from "@/components/marketing/fonts";
-import { GettingPaid, Hiring, Trust } from "@/components/marketing/HowFolioWorks";
+import { ForCompanies, ForStudents, MoneySection, WhatIf } from "@/components/marketing/HowFolioWorks";
 import { WorkflowDemo } from "@/components/marketing/WorkflowDemo";
 import { CATEGORIES, type Category, type Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,28 +20,26 @@ const FIELDS: Record<Category, { icon: LucideIcon; blurb: string; tasks: string[
   "Operations & Admin": { icon: ClipboardList, blurb: "Make the day-to-day run smoother.", tasks: ["Process docs", "Supplier research", "Spreadsheets", "Scheduling"] },
 };
 
-export function Landing({ projects, counts }: { projects: Project[]; counts: Record<string, number> }) {
+export function Landing({ projects, counts, paymentsLive = false }: { projects: Project[]; counts: Record<string, number>; paymentsLive?: boolean }) {
   const prices = projects.map((p) => p.priceEur);
   const priceRange = prices.length ? `${eur(Math.min(...prices))}–${eur(Math.max(...prices))}` : null;
   return (
     <div className={cn(campusQuirk, "mx-auto w-full max-w-[75rem] px-6")}>
-      <section id="how" className="grid scroll-mt-20 items-center gap-10 pb-16 pt-1 md:gap-12 md:pt-4 md:grid-cols-[1.1fr_.9fr]">
-        <div className="md:-translate-y-9">
-          <h1 className="text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real projects.<br />Real pay.<br /><span className="text-brand-mid">Real proof.</span></h1>
-          <p className="mt-6 max-w-[48ch] text-lg leading-relaxed text-zinc-600">Take paid projects from startups and small businesses, in any field. Every finished project becomes a credential the client signs.</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/projects" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4 text-sm")}>See open projects <ArrowRight className="size-4" /></Link>
-            <Link href="/signup" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-10 px-4 text-sm")}>Create your account</Link>
-          </div>
+      <section id="how" className="grid scroll-mt-20 items-center gap-10 pb-6 pt-1 md:gap-12 md:pb-8 md:pt-4 md:grid-cols-[1.1fr_.9fr]">
+        {/* For both sides in one line; the demo next to it shows the rest. */}
+        <div className="min-w-0">
+          <h1 className="text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real projects.<br />Real talent.<br /><span className="text-brand-mid">Real proof.</span></h1>
+          <p className="mt-6 max-w-[40ch] text-lg leading-relaxed text-zinc-600">Where startups and small businesses hire IE University students for paid, verified projects.</p>
         </div>
         <div className="min-w-0 md:translate-y-6"><WorkflowDemo /></div>
       </section>
 
-      <GettingPaid priceRange={priceRange} />
-      <Hiring />
-      <Trust />
+      <ForCompanies />
+      <MoneySection paymentsLive={paymentsLive} />
+      <ForStudents priceRange={priceRange} />
+      <WhatIf />
 
-      <section id="projects" className="scroll-mt-20 border-t py-10">
+      <section id="projects" className="section-rule scroll-mt-20 py-12 md:py-14">
         <h2 className="text-2xl font-semibold tracking-tight">Projects in every field</h2>
         <p className="mb-6 mt-1.5 text-muted-foreground">Everything that can be posted on Folio, and the kind of work it covers.</p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

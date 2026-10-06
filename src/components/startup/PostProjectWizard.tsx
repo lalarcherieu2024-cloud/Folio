@@ -34,8 +34,10 @@ function Chip({ on, onClick, children, className }: { on: boolean; onClick: () =
   );
 }
 
-export function PostProjectWizard({ clientName, hood, draftId: savedId, initial, initialStep = 1 }: {
+export function PostProjectWizard({ clientName, hood, draftId: savedId, initial, initialStep = 1, canPublish = true }: {
   clientName: string; hood: string; draftId?: string; initial?: DraftData; initialStep?: number;
+  /** False while Folio is still reviewing the company: everything works except publishing, so drafts are saved. */
+  canPublish?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(initialStep);
@@ -171,7 +173,9 @@ export function PostProjectWizard({ clientName, hood, draftId: savedId, initial,
             <Button type="button" variant="outline" disabled={saving || pending} onClick={saveDraft} className="h-9 bg-white px-3.5">{saving ? "Saving…" : draftId ? "Save draft" : "Save as draft"}</Button>
             {step < 4
               ? <Button type="button" disabled={!valid} onClick={() => { setStep(step + 1); window.scrollTo(0, 0); }} className="h-9 px-3.5">Continue</Button>
-              : <Button type="submit" disabled={pending} className="h-9 px-3.5">{pending ? "Publishing…" : "Publish project"}</Button>}
+              : canPublish
+                ? <Button type="submit" disabled={pending} className="h-9 px-3.5">{pending ? "Publishing…" : "Publish project"}</Button>
+                : <Button type="button" disabled title="You can publish as soon as Folio has verified your company." className="h-9 px-3.5">Publish after verification</Button>}
           </div>
         </div>
       </form>

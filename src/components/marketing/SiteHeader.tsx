@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
 
 // Jump links into the "How Folio works" section on the front page.
-const NAV = [["/#getting-paid", "Getting paid"], ["/#hiring", "Hiring"], ["/#trust", "Trust & accountability"]] as const;
+const NAV = [["/#hiring", "Hiring"], ["/#getting-paid", "Getting paid"], ["/#trust", "Questions"]] as const;
 
 // Header for signed-out visitors. Hidden on the company pages and student sign-up, which have their own full-screen layout.
 // `onboarding`: a student who is signed in but hasn't finished signing up.

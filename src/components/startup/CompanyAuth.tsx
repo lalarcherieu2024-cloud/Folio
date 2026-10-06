@@ -23,16 +23,15 @@ const STEPS: readonly (readonly [string, string])[] = [
   ["Create your account", "LinkedIn, or your work email and a password"],
   SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Confirm your email", "Click the link we email you"],
   ["Company details", "Legal name, CIF, website and location"],
-  ["Logo and documents", "Logo, registry extract, ID, bank certificate"],
-  ["Review & submit", "Check everything and confirm"],
+  ["Your LinkedIn and submit", "So we know who's behind the company"],
   ["Folio verification", "We review within 1–2 business days"],
 ];
 
 export const primaryBtn = cn(buttonVariants(), "h-9 px-4");
 export const outlineBtn = cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5");
 
-/** Deep-ocean panel with the 6-step tracker on the left, content on the right. `current` null = just listing the steps.
- *  Students reuse it with their own `steps` and `audience` (see student/StudentSignup.tsx). */
+/** The step tracker on the left (on the homepage's soft blue band), content on the right. `current` null = just
+ *  listing the steps. Students reuse it with their own `steps` and `audience` (see student/StudentSignup.tsx). */
 export function AuthFrame({ title, sub, current, allDone, children, steps = STEPS, audience = "For companies", account, stepHref }: {
   title: string; sub: string; current: number | null; allDone?: boolean; children: React.ReactNode; steps?: readonly (readonly [string, string])[]; audience?: string;
   /** Where clicking step n goes, for the steps someone can open right now (null: not clickable). */
@@ -43,43 +42,48 @@ export function AuthFrame({ title, sub, current, allDone, children, steps = STEP
   return (
     <div className="flex min-h-screen flex-wrap bg-background">
       {/* Side by side (from 50rem), the panel stays in view while the form on the right scrolls. */}
-      <aside className="flex max-w-[32.5rem] flex-[1_1_23.75rem] flex-col gap-10 bg-brand-navy px-11 py-10 text-white min-[50rem]:sticky min-[50rem]:top-0 min-[50rem]:h-screen min-[50rem]:overflow-y-auto">
-        <Link href="/" className="self-start text-[0.8125rem] text-brand-low hover:text-white">← Back to Folio</Link>
-        <div className="flex items-center gap-3">
-          <Logo size={48} onDark />
-          <div className="flex flex-col leading-tight"><span className="text-xl font-semibold tracking-tight">Folio</span><span className="text-xs text-brand-low">{audience}</span></div>
+      <aside className="flex max-w-[32.5rem] flex-[1_1_23.75rem] p-3 min-[50rem]:sticky min-[50rem]:top-0 min-[50rem]:h-screen">
+        <div className="flex w-full flex-col gap-9 overflow-y-auto rounded-3xl bg-soft/50 px-8 py-8 sm:px-10">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-2.5" aria-label="Folio home">
+              <Logo size={36} />
+              <span className="text-lg font-semibold tracking-tight">Folio</span>
+            </Link>
+            <Link href="/" className="text-[0.8125rem] text-muted-foreground hover:text-foreground">← Back to Folio</Link>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-brand">{audience}</p>
+            <h2 className="mt-2 text-balance text-[2rem] font-semibold leading-[1.1] tracking-tight">{title}</h2>
+            <p className="mt-3 text-pretty text-[0.9375rem] leading-relaxed text-zinc-600">{sub}</p>
+          </div>
+          <ol className="flex flex-col">
+            {steps.map(([label, s], i) => {
+              const n = i + 1, done = current !== null && (n < current || !!allDone), cur = n === current && !done, last = n === steps.length;
+              const href = !cur ? stepHref?.(n) : null;
+              const text = (
+                <>
+                  <span className={cn("text-sm font-semibold", current === null || cur || done ? "text-foreground" : "text-zinc-500", href && "underline-offset-4 group-hover/step:underline")}>{label}</span>
+                  <span className="text-[0.8125rem] leading-snug text-muted-foreground">{s}</span>
+                </>
+              );
+              return (
+                <li key={label} className="flex gap-3.5" aria-current={cur ? "step" : undefined}>
+                  <div className="flex flex-col items-center">
+                    <span className={cn("grid size-7 shrink-0 place-items-center rounded-full border text-xs font-semibold tabular-nums",
+                      done ? "border-[#16a34a] bg-[#16a34a] text-white" : cur ? "border-brand bg-brand text-white ring-4 ring-brand/15" : "border-border bg-white text-muted-foreground")}>
+                      {done ? <Check className="size-3.5" strokeWidth={3} /> : n}
+                    </span>
+                    {!last && <span className={cn("min-h-[1.125rem] w-px flex-1", done ? "bg-[#16a34a]" : "bg-brand/15")} />}
+                  </div>
+                  {href
+                    ? <Link href={href} className="group/step flex flex-col gap-0.5 rounded-sm pb-5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-brand/40">{text}</Link>
+                    : <div className="flex flex-col gap-0.5 pb-5 pt-1">{text}</div>}
+                </li>
+              );
+            })}
+          </ol>
+          {account && <AccountStrip account={account} />}
         </div>
-        <div className="flex flex-col gap-2.5">
-          <h2 className="text-balance text-[1.75rem] font-semibold leading-tight tracking-[-0.02em]">{title}</h2>
-          <p className="text-pretty text-[0.9375rem] leading-relaxed text-brand-low">{sub}</p>
-        </div>
-        <ol className="flex flex-col">
-          {steps.map(([label, s], i) => {
-            const n = i + 1, done = current !== null && (n < current || !!allDone), cur = n === current && !done, last = n === steps.length;
-            const href = !cur ? stepHref?.(n) : null;
-            const text = (
-              <>
-                <span className={cn("text-sm font-semibold", current === null || cur || done ? "text-white" : "text-brand-low", href && "underline-offset-4 group-hover/step:underline")}>{label}</span>
-                <span className="text-[0.8125rem] leading-snug text-brand-low">{s}</span>
-              </>
-            );
-            return (
-              <li key={label} className="flex gap-3.5" aria-current={cur ? "step" : undefined}>
-                <div className="flex flex-col items-center">
-                  <span className={cn("grid size-7 shrink-0 place-items-center rounded-full border-[1.5px] font-mono text-xs font-semibold",
-                    done ? "border-[#22c55e] bg-[#22c55e] text-white" : cur ? "border-white bg-white text-brand-navy" : "border-brand-low/50 text-brand-low")}>
-                    {done ? <Check className="size-3.5" strokeWidth={3} /> : n}
-                  </span>
-                  {!last && <span className={cn("min-h-[1.125rem] w-[1.5px] flex-1", done ? "bg-[#22c55e]" : "bg-brand-low/30")} />}
-                </div>
-                {href
-                  ? <Link href={href} className="group/step flex flex-col gap-0.5 rounded-sm pb-5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-white/60">{text}</Link>
-                  : <div className="flex flex-col gap-0.5 pb-5 pt-1">{text}</div>}
-              </li>
-            );
-          })}
-        </ol>
-        {account && <AccountStrip account={account} />}
       </aside>
       <main className="flex flex-[1_1_26.25rem] justify-center px-8 py-14">
         <div className="flex w-full max-w-[28.75rem] flex-col gap-6">{children}</div>
@@ -91,8 +95,8 @@ export function AuthFrame({ title, sub, current, allDone, children, steps = STEP
 export function StepHeading({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="font-mono text-xs font-medium text-primary">{eyebrow}</span>
-      <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">{title}</h1>
+      <span className="text-sm font-medium text-brand">{eyebrow}</span>
+      <h1 className="text-[1.875rem] font-semibold leading-tight tracking-tight">{title}</h1>
       {sub && <p className="text-pretty text-[0.9375rem] leading-normal text-muted-foreground">{sub}</p>}
     </div>
   );
@@ -101,9 +105,9 @@ export function StepHeading({ eyebrow, title, sub }: { eyebrow: string; title: s
 /** White card with a grey footer bar (Back left; hint + primary button right). */
 export function StepCard({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
+    <div className="rounded-2xl border bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]">
       <div className="grid gap-4 p-5">{children}</div>
-      {footer && <div className="flex items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">{footer}</div>}
+      {footer && <div className="flex items-center justify-between gap-3 rounded-b-2xl border-t bg-panel px-5 py-4">{footer}</div>}
     </div>
   );
 }
@@ -136,7 +140,7 @@ function CheckEmail({ email }: { email: string }) {
   });
   return (
     <>
-      <StepHeading eyebrow="Step 2 of 6" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to verify your company.</>} />
+      <StepHeading eyebrow="Step 2 of 5" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to verify your company.</>} />
       <StepCard footer={<>
         <Link href="/company/signup" className={outlineBtn}>Back</Link>
         <Link href="/signin?as=company" className={primaryBtn}>I&apos;ve confirmed, sign in</Link>
@@ -185,7 +189,7 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
       </>}
 
       {up && !sentTo && <>
-        <StepHeading eyebrow="Step 1 of 6" title="Create your company account" />
+        <StepHeading eyebrow="Step 1 of 5" title="Create your company account" />
         <form action={action}>
           <input type="hidden" name="role" value="company" />
           <StepCard footer={<>

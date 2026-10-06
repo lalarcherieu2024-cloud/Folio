@@ -50,10 +50,10 @@ export type SignupAccount = { email: string; role: Role; canStartOver: boolean }
 /** Bottom of the sign-up frame's side panel while setting up: who's signed in, and every way out. */
 export function AccountStrip({ account }: { account: SignupAccount }) {
   const other: Role = account.role === "company" ? "student" : "company";
-  const link = "underline-offset-4 hover:text-white hover:underline";
+  const link = "underline-offset-4 hover:text-foreground hover:underline";
   return (
-    <div className="mt-auto flex flex-col gap-2 border-t border-brand-low/20 pt-5 text-[0.8125rem] text-brand-low">
-      <span>Signed in as <span className="font-medium text-white">{account.email}</span></span>
+    <div className="mt-auto flex flex-col gap-2 border-t border-brand/10 pt-5 text-[0.8125rem] text-muted-foreground">
+      <span>Signed in as <span className="font-medium text-foreground">{account.email}</span></span>
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         <SignOutButton className={link} />
         {account.canStartOver && <StartOverButton email={account.email} to={account.role} className={link}>Start from scratch</StartOverButton>}
