@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { updateProfileAction, uploadAvatarAction, uploadCvAction } from "@/app/actions/student";
 import { AuthFrame, Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "@/components/startup/CompanyAuth";
 import { ConnectAccounts } from "@/components/student/ConnectAccounts";
+import { ProgramPicker } from "@/components/student/ProgramPicker";
 import { STUDENT_FRAME, STUDENT_STEPS } from "@/components/student/StudentSignup";
 import type { FormState } from "@/lib/form";
 import type { StudentProfile } from "@/lib/types";
@@ -59,7 +60,7 @@ function Photo({ user }: { user: StudentProfile }) {
 function Details({ user }: { user: StudentProfile }) {
   const router = useRouter();
   const [state, action, pending] = useActionState<FormState, FormData>(updateProfileAction, {});
-  const [v, setV] = useState({ program: user.program, payout: user.payoutLink ?? "" });
+  const [v, setV] = useState({ payout: user.payoutLink ?? "" });
   useResult(state, () => router.push(go(4)));
   return (
     <>
@@ -71,7 +72,7 @@ function Details({ user }: { user: StudentProfile }) {
           <button type="submit" disabled={pending || !user.avatarUrl} className={primaryBtn}>{pending ? "Saving…" : "Continue"}</button>
         </>}>
           <Photo user={user} />
-          <Field id="program" label="Programme and year" placeholder="e.g. BBA, 2027" value={v.program} onChange={(e) => setV({ ...v, program: e.target.value })} hint="Helps clients match you to the right projects." />
+          <ProgramPicker defaultValue={user.program} hint="Helps clients match you to the right projects." />
           <Field id="payout" label="PayPal payout link (optional)" placeholder="https://paypal.me/yourname" value={v.payout} onChange={(e) => setV({ ...v, payout: e.target.value })} hint="You can add this later, before your first project is paid." />
         </StepCard>
       </form>

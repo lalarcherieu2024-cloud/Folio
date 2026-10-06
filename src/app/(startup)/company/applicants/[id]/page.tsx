@@ -12,6 +12,8 @@ import { ago, card, chip, TONES } from "@/components/startup/ui";
 import { requireUser } from "@/lib/auth";
 import { getMessages } from "@/lib/data/messages";
 import { getApplicant } from "@/lib/data/startup";
+import { getCertificates } from "@/lib/data/student";
+import { CertificateRow } from "@/components/student/CertificatesCard";
 import { getCredentialForProject } from "@/lib/data/signatures";
 import { getSubmissions } from "@/lib/data/submissions";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,7 @@ export default async function ApplicantProfile(props: PageProps<"/company/applic
   const messages = hired ? await getMessages(user, a.id) : [];
   const submissions = hired ? await getSubmissions(a.id) : [];
   const certificate = a.projectStatus === "verified" ? await getCredentialForProject(a.projectId) : null;
+  const courses = await getCertificates(a.studentId); // certificates from courses outside Folio
 
   return (
     <div className="page-enter flex max-w-[60rem] flex-col gap-6">
@@ -99,6 +102,12 @@ export default async function ApplicantProfile(props: PageProps<"/company/applic
               {a.links.map((l) => <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className={fileLink}><span className="truncate">{l.label}</span><ExternalLink className="size-3 text-muted-foreground" /></a>)}
               {a.links.length === 0 && <span className="text-[0.8125rem] text-muted-foreground">No links added.</span>}
             </div>
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold">Certificates</h2>
+            {courses.length > 0
+              ? <ul className="mt-2 flex flex-col gap-2">{courses.map((c) => <CertificateRow key={c.id} c={c} />)}</ul>
+              : <p className="mt-2 text-[0.8125rem] text-muted-foreground">No certificates added.</p>}
           </div>
         </div>
 

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ProfileFile, StudentProfile } from "@/lib/types";
+import { ProgramPicker } from "@/components/student/ProgramPicker";
 import { ConnectAccounts } from "@/components/student/ConnectAccounts";
 
 function DeleteCvButton({ fileName }: { fileName: string }) {
@@ -84,7 +85,7 @@ export function DetailsCard({ user }: { user: StudentProfile }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateProfileAction, {});
   // Controlled fields: after a save the server sends new values, and uncontrolled inputs
   // (defaultValue) warn when their default changes.
-  const [v, setV] = useState({ fullName: user.fullName, program: user.program, payout: user.payoutLink ?? "" });
+  const [v, setV] = useState({ fullName: user.fullName, payout: user.payoutLink ?? "" });
   const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement>) => setV((p) => ({ ...p, [k]: e.target.value }));
   const seen = useRef(state);
   useEffect(() => {
@@ -99,7 +100,7 @@ export function DetailsCard({ user }: { user: StudentProfile }) {
       <ConnectAccounts user={user} />
       <div className="grid gap-3">
         <div className="grid gap-1.5"><Label htmlFor="fullName">Name</Label><Input id="fullName" name="fullName" value={v.fullName} onChange={set("fullName")} className="h-9" /></div>
-        <div className="grid gap-1.5"><Label htmlFor="program">Programme and year</Label><Input id="program" name="program" value={v.program} onChange={set("program")} className="h-9" /></div>
+        <ProgramPicker defaultValue={user.program} />
         <div className="grid gap-1.5">
           <Label htmlFor="payout">PayPal payout link</Label>
           <Input id="payout" name="payout" value={v.payout} onChange={set("payout")} placeholder="https://paypal.me/yourname" className="h-9" />
