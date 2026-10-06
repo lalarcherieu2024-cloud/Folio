@@ -1,10 +1,9 @@
 // The Folio certificate: A4 landscape, drawn to match the approved design (folio-certificate.html) —
 // cream paper, triple navy/gold border, corner ornaments, watermark, centre seal, two signature blocks.
 // All measurements below are the design's own millimetres; `top(…)` converts "mm from the top edge".
-import fs from "node:fs";
-import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { degrees, LineCapStyle, PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { EMBEDDED_FONTS } from "@/assets/fonts/embedded";
 
 export type CertificateData = {
   studentName: string;
@@ -33,7 +32,8 @@ const hex = (h: string) => rgb(parseInt(h.slice(1, 3), 16) / 255, parseInt(h.sli
 const NAVY = hex("#13324f"), GOLD = hex("#b08d57"), GOLD2 = hex("#d6bd8e"), INK = hex("#1b2430"), MUTED = hex("#6a7380"), PAPER = hex("#fdfbf6");
 
 // ---------------------------------------------------------------- fonts (OFL: Cormorant Garamond, Inter)
-const FONT_DIR = path.join(process.cwd(), "src/assets/fonts");
+// The .ttf files live in src/assets/fonts and are built into the code (scripts/embed-fonts.mjs), so no
+// file-system access is needed at runtime: Cloudflare Workers have none.
 const FILES = {
   serif: "CormorantGaramond-SemiBold.ttf", serifItalic: "CormorantGaramond-MediumItalic.ttf",
   sans: "Inter-Regular.ttf", sansMedium: "Inter-Medium.ttf", sansBold: "Inter-SemiBold.ttf",
@@ -43,7 +43,7 @@ type Fonts = Record<keyof typeof FILES, PDFFont>;
 async function embedFonts(pdf: PDFDocument): Promise<Fonts> {
   pdf.registerFontkit(fontkit);
   const out = {} as Fonts;
-  for (const [k, file] of Object.entries(FILES)) out[k as keyof typeof FILES] = await pdf.embedFont(fs.readFileSync(path.join(FONT_DIR, file)), { subset: false }); // embedded whole: the subsetter in pdf-lib's font library mangles composed letters (í, á, ñ)
+  for (const [k, file] of Object.entries(FILES)) out[k as keyof typeof FILES] = await pdf.embedFont(Buffer.from(EMBEDDED_FONTS[file], "base64"), { subset: false }); // embedded whole: the subsetter in pdf-lib's font library mangles composed letters (í, á, ñ)
   return out;
 }
 
