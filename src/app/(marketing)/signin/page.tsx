@@ -5,5 +5,6 @@ export const metadata = { title: "Sign in · Folio" };
 // One sign-in for students and companies; ?as=company preselects the Company switch.
 export default async function SignIn({ searchParams }: PageProps<"/signin">) {
   const sp = await searchParams;
-  return <div className="mx-auto w-full max-w-md px-6 py-16"><AuthForm mode="signin" role={sp.as === "company" ? "company" : "student"} next={typeof sp.next === "string" ? sp.next : undefined} /></div>;
+  const error = sp.error === "linkedin" ? "LinkedIn sign-in didn't finish. Try again, or sign in with your email." : undefined;
+  return <div className="mx-auto w-full max-w-md px-6 py-16"><AuthForm mode="signin" role={sp.as === "company" ? "company" : "student"} next={typeof sp.next === "string" ? sp.next : undefined} error={error} /></div>;
 }
