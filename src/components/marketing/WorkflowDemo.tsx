@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Banknote, Building2, Check, Eye, FileText, GraduationCap, Mouse, MousePointer2, Search, Send, Star, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Banknote, Building2, Check, Eye, FileText, GraduationCap, MousePointer2, Search, Send, Star, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -465,7 +465,6 @@ export function WorkflowDemo() {
         </ol>
       </div>
 
-      <div className="mt-3 flex h-5 items-center justify-center gap-1.5 text-xs text-muted-foreground"><Mouse className="size-3.5" />Scroll to jump between chapters</div>
     </div>
   );
 }
