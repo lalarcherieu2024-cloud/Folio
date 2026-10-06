@@ -38,16 +38,22 @@ export function NavItems({ role, counts, onNavigate, collapsed = false }: { role
 
 // The account menu: your photo at the top right of every app page (Topbar). The one place for your profile and
 // signing out, so the sidebar only holds the page links.
-export function UserMenu({ user }: { user: StudentProfile }) {
+/** What the account menu shows: the company (name and logo) for company accounts, the person for students. */
+export type AccountFace = { name: string; url: string | null; color: string | null };
+
+export function UserMenu({ user, account }: { user: StudentProfile; account?: AccountFace }) {
+  const company = user.role === "company" && account;
+  const face = company ? account : { name: user.fullName, url: user.avatarUrl, color: user.avatarColor };
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label="Account" title={user.fullName} className="shrink-0 rounded-full outline-none ring-offset-2 transition-shadow hover:ring-2 hover:ring-slate-200 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:ring-2 data-[popup-open]:ring-slate-200">
-        <UserAvatar name={user.fullName} color={user.avatarColor} url={user.avatarUrl} className="size-9 rounded-full text-xs" />
+      <DropdownMenuTrigger aria-label="Account" title={face.name} className="shrink-0 rounded-full outline-none ring-offset-2 transition-shadow hover:ring-2 hover:ring-slate-200 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:ring-2 data-[popup-open]:ring-slate-200">
+        <UserAvatar name={face.name} color={face.color} url={face.url} className={cn("size-9 text-xs", company ? "rounded-md" : "rounded-full")} />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" className="w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col leading-snug">
-            <span className="text-sm font-medium text-foreground">{user.fullName}</span>
+            <span className="text-sm font-medium text-foreground">{face.name}</span>
+            {company && <span className="text-xs font-normal text-zinc-600">{user.fullName}</span>}
             <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>

@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils";
 import type { Notification, StudentProfile } from "@/lib/types";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { Logo } from "@/components/shared/Logo";
-import { NavItems, UserMenu } from "@/components/shell/Sidebar";
+import { NavItems, UserMenu, type AccountFace } from "@/components/shell/Sidebar";
 import type { NavCounts } from "./nav";
 
 
-export function Topbar({ user, counts, notifications, sidebarCollapsed, onToggleSidebar }: { user: StudentProfile; counts: NavCounts; notifications: { items: Notification[]; unread: number }; sidebarCollapsed: boolean; onToggleSidebar: () => void }) {
+export function Topbar({ user, account, counts, notifications, sidebarCollapsed, onToggleSidebar }: { user: StudentProfile; account?: AccountFace; counts: NavCounts; notifications: { items: Notification[]; unread: number }; sidebarCollapsed: boolean; onToggleSidebar: () => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -54,7 +54,7 @@ export function Topbar({ user, counts, notifications, sidebarCollapsed, onToggle
       )}
       <NotificationsMenu items={notifications.items} unread={notifications.unread} />
       {company && <Link href="/company/projects/new" className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />Post a project</Link>}
-      <UserMenu user={user} />
+      <UserMenu user={user} account={account} />
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-64 gap-0 p-0 sm:max-w-64" showCloseButton={false}>
