@@ -47,14 +47,25 @@ function VerifyDialog({ a, open, onOpenChange }: { a: Pick<Applicant, "id" | "na
               </button>
             ))}
           </div>
-          <Textarea name="review" value={review} onChange={(e) => setReview(e.target.value.slice(0, 600))} rows={4} aria-label="Review" placeholder="What did they deliver, and how was it to work with them?" className="resize-none" />
+          <div className="grid gap-1.5">
+            <Textarea name="review" value={review} onChange={(e) => setReview(e.target.value.slice(0, 600))} rows={4} aria-label="Review" placeholder="What did they deliver, and how was it to work with them?" className="resize-none" />
+            <span className={cn("text-xs", review.trim().length >= 10 ? "text-muted-foreground" : "text-[#92400e]")}>
+              {review.trim().length >= 10 ? "Looks good." : `Write at least 10 characters (${review.trim().length}/10).`}
+            </span>
+          </div>
           <div className="grid gap-1.5">
             <span className="text-sm font-medium">Sign the certificate</span>
             <SignaturePad onChange={setSignature} disabled={pending} />
             <span className="text-xs text-muted-foreground">Your signature appears on {firstName(a.name)}&apos;s certificate. They sign it next.</span>
           </div>
           {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
-          <DialogFooter className="mt-1 sm:justify-end">
+          <DialogFooter className="mt-1 items-center sm:justify-end">
+            {/* Say what's still missing, so a greyed-out button never looks broken. */}
+            {(!rating || review.trim().length < 10 || !signature) && (
+              <span className="mr-auto text-xs text-muted-foreground">
+                Still needed: {[!rating && "a star rating", review.trim().length < 10 && "a longer review", !signature && "your signature"].filter(Boolean).join(", ")}
+              </span>
+            )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={!rating || review.trim().length < 10 || !signature || pending}>{pending ? "Verifying…" : "Sign and issue credential"}</Button>
           </DialogFooter>

@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { DEMO_SHARED_SOCIAL_ACCOUNTS } from "@/lib/config";
 import { safeNext } from "@/lib/form";
 import { TERMS_VERSION } from "@/lib/legal";
 import { homeFor } from "@/lib/routes";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+const VERIFIED_COLUMN = { linkedin_oidc: "linkedin_verified", github: "github_verified" } as const;
 
 // Landing point for (a) the confirmation link in Supabase's sign-up email,
 // (b) the return trip after linking a GitHub / LinkedIn account, and
@@ -24,10 +29,25 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${next || home}`);
     }
   }
+  // Pass on why it failed (Supabase / the provider send it as error_description), so the page can say so.
+  const reason = (searchParams.get("error_description") ?? "").slice(0, 200);
   // LinkedIn sign-in (including the visitor pressing Cancel on LinkedIn) goes back to sign-in with a message.
   if (viaLinkedIn) return NextResponse.redirect(`${origin}/signin?error=linkedin${next ? `&next=${encodeURIComponent(next)}` : ""}`);
   const failed = next || "/signin";
-  return NextResponse.redirect(`${origin}${failed}${failed.includes("?") ? "&" : "?"}error=link`);
+
+  // DEMO ONLY (see lib/config.ts): the account is already linked to another Folio login, so Supabase refused
+  // to link it again. Mark this login verified anyway, so one LinkedIn can be shown on several demo accounts.
+  const provider = searchParams.get("provider") as keyof typeof VERIFIED_COLUMN | null;
+  if (DEMO_SHARED_SOCIAL_ACCOUNTS && provider && provider in VERIFIED_COLUMN && /already linked|already exists|identity.*(in use|exists)/i.test(reason)) {
+    const user = await getSession();
+    if (user) {
+      const { error } = await createAdminClient().from("profiles").update({ [VERIFIED_COLUMN[provider]]: true }).eq("id", user.id);
+      if (!error) return NextResponse.redirect(`${origin}${failed}`);
+      console.error("demo shared social account", error);
+    }
+  }
+
+  return NextResponse.redirect(`${origin}${failed}${failed.includes("?") ? "&" : "?"}error=link${reason ? `&reason=${encodeURIComponent(reason)}` : ""}`);
 }
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;

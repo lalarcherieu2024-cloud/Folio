@@ -46,7 +46,6 @@ export default async function CompanyProfile() {
           <div className="flex flex-wrap gap-2">
             <Status on={verified} yes={statusLabel} no={statusLabel} />
             <Status on={user.linkedinVerified} yes="LinkedIn verified" no="LinkedIn not connected" />
-            <Status on={!!org.linkedinUrl} yes="Company page added" no="No company page" />
             <Status on={!!org.website} yes={org.website} no="No website" />
             <Status on={org.files.length > 0} yes={`${org.files.length} file${org.files.length === 1 ? "" : "s"} shared`} no="No files shared" />
           </div>
@@ -60,8 +59,8 @@ export default async function CompanyProfile() {
       )}
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21.25rem),1fr))] items-start gap-4">
-        <CompanyFilesCard files={org.files} />
         <CompanyDetailsCard user={user} org={org} />
+        <CompanyFilesCard files={org.files} />
       </div>
 
       <div className="flex flex-col gap-4">
