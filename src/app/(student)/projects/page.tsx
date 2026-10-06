@@ -65,7 +65,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
               {hasFilters && <Link href="/projects" className="inline-flex h-8 items-center rounded-md px-2.5 text-[0.8125rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">Clear filters</Link>}
               {user && (
                 <Link href={href({ saved: savedOnly ? undefined : "1" })} scroll={false} aria-pressed={savedOnly} className={cn("inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[0.8125rem] font-medium", savedOnly ? "border-[#e11d48]/40 bg-[#fff1f2] text-[#be123c]" : "bg-white text-zinc-600 hover:bg-muted")}>
-                  <Heart className={cn("size-3.5", savedOnly && "fill-[#e11d48] text-[#e11d48]")} />Saved <span className="font-mono text-xs">{savedIds.length}</span>
+                  <Heart className={cn("size-3.5", savedOnly && "fill-[#e11d48] text-[#e11d48]")} />Saved <span className="tabular-nums text-xs">{savedIds.length}</span>
                 </Link>
               )}
               <div className="flex rounded-md border bg-white p-0.5" role="group" aria-label="Layout">
@@ -101,9 +101,9 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
                       <span className="text-[0.8125rem] text-muted-foreground">{p.orgName ?? p.clientName} · {kindLabel(p)}</span>
                     </div>
                     <span className="text-[0.8125rem] text-zinc-600">{p.category}</span>
-                    <span className="font-mono font-semibold">{eur(p.priceEur)}</span>
+                    <span className="tabular-nums font-semibold">{eur(p.priceEur)}</span>
                     <span className="text-zinc-600">{weeksLabel(p.weeks)}</span>
-                    <span className="font-mono text-zinc-600">{p.applicantCount}</span>
+                    <span className="tabular-nums text-zinc-600">{p.applicantCount}</span>
                   </Link>
                 ))}
               </div>
