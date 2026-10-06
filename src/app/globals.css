@@ -157,3 +157,13 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Legal pages (LegalPage): readable long-form text. */
+.legal-prose { font-size: .9375rem; line-height: 1.7; color: #3f4a54; }
+.legal-prose > * + * { margin-top: .85rem; }
+.legal-prose h3 { margin-top: 1.25rem; font-size: 1rem; font-weight: 600; color: var(--foreground); }
+.legal-prose ul { list-style: disc; padding-left: 1.25rem; }
+.legal-prose ol { list-style: decimal; padding-left: 1.25rem; }
+.legal-prose li + li { margin-top: .35rem; }
+.legal-prose a { color: var(--foreground); text-decoration: underline; text-underline-offset: 3px; }
+.legal-prose strong { color: var(--foreground); font-weight: 600; }

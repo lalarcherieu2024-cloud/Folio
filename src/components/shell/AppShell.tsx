@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 import type { Notification, StudentProfile } from "@/lib/types";
 import type { NavCounts } from "./nav";
+import { LegalLinks } from "@/components/marketing/SiteFooter";
 
 // Pages that draw their own full-screen layout (company verification, student onboarding) skip the sidebar and top bar.
 const FULL_SCREEN = ["/company/verify", "/welcome"];
@@ -47,7 +48,10 @@ export function AppShell({ user, counts, notifications, defaultCollapsed, childr
       <Sidebar user={user} counts={counts} collapsed={collapsed} />
       <div className="flex min-w-0 flex-1 flex-col bg-background">
         <Topbar user={user} counts={counts} notifications={notifications} sidebarCollapsed={collapsed} onToggleSidebar={toggle} />
-        <main className="mx-auto w-full max-w-[77.5rem] flex-1 px-4 pb-16 pt-8 md:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-[77.5rem] flex-1 px-4 pb-16 pt-8 md:px-8">
+          {children}
+          <LegalLinks className="mt-16 border-t pt-6 text-xs text-muted-foreground" />
+        </main>
       </div>
     </div>
   );
