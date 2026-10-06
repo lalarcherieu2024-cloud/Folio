@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { TONE_CLASS, dueInfo, eur, firstName, interviewWhen, nextLabel, profileChecklist, stageColors, stagePct, statusInfo, viewerFrom } from "@/lib/work";
 import { BriefcaseBusiness, Check, FileUser, GraduationCap } from "lucide-react";
 
+
+export const metadata = { title: "Home · Folio" };
 function greeting() {
   const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Madrid" }).format(new Date()));
   return h < 12 ? "Good morning" : h < 19 ? "Good afternoon" : "Good evening";
