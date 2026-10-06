@@ -117,7 +117,7 @@ const Applicant = ({ name, field, pill, row = "plain" }: { name: string; field: 
 
 const Progress = ({ done, color }: { done: number; color: string }) => (
   <>
-    <div className="flex items-center justify-between text-sm"><span className="font-medium">Milestones</span><span className="font-mono text-xs text-muted-foreground">{done} of 3</span></div>
+    <div className="flex items-center justify-between text-sm"><span className="font-medium">Milestones</span><span className="tabular-nums text-xs text-muted-foreground">{done} of 3</span></div>
     <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200"><div className="demo-fill h-full origin-left rounded-full" style={{ width: `${(done / 3) * 100}%`, backgroundColor: color }} /></div>
   </>
 );
@@ -154,7 +154,7 @@ const STEPS: Step[] = [
     company: (
       <>
         <Field label="New listing" value={PROJECT} />
-        <div className="flex items-center gap-2 text-sm text-zinc-600"><span className="font-mono">€600 · 3 weeks</span><Pill>Business & Finance</Pill></div>
+        <div className="flex items-center gap-2 text-sm text-zinc-600"><span className="tabular-nums">€600 · 3 weeks</span><Pill>Business & Finance</Pill></div>
         <Btn>Post listing</Btn>
       </>
     ),
@@ -237,7 +237,7 @@ const STEPS: Step[] = [
     ),
     student: (
       <>
-        <div className="flex items-center justify-between text-sm"><span className="font-medium">{PROJECT}</span><span className="font-mono text-xs text-muted-foreground">€600 · 3 wk</span></div>
+        <div className="flex items-center justify-between text-sm"><span className="font-medium">{PROJECT}</span><span className="tabular-nums text-xs text-muted-foreground">€600 · 3 wk</span></div>
         <div className="flex items-center gap-2 text-sm"><span className="demo-ok grid size-4 place-items-center rounded bg-[#22c55e] text-white"><Check className="size-3" strokeWidth={3.5} /></span>I agree to the brief and the &ldquo;done when&rdquo; test</div>
         <Btn><Check className="size-4" strokeWidth={3} />Accept & start</Btn>
       </>
@@ -309,7 +309,7 @@ const STEPS: Step[] = [
     student: (
       <div className="demo-finale flex flex-1 flex-col items-center justify-center gap-1 rounded-lg bg-gradient-to-b from-[#dcfce7] to-[#f0fdf4] text-center">
         <span className="demo-ok grid size-9 place-items-center rounded-full bg-[#22c55e] text-white"><Check className="size-5" strokeWidth={3} /></span>
-        <span className="demo-pop font-mono text-2xl font-semibold text-[#166534]"><span className="demo-count" aria-hidden /><span className="sr-only">+€600</span></span>
+        <span className="demo-pop tabular-nums text-2xl font-semibold text-[#166534]"><span className="demo-count" aria-hidden /><span className="sr-only">+€600</span></span>
         <span className="text-xs text-[#166534]">Paid to you · credential on your profile</span>
       </div>
     ) },
@@ -421,8 +421,8 @@ export function WorkflowDemo() {
   return (
     // -m-4 p-4 widens the area that catches the wheel without moving anything.
     <div ref={rootRef} className="-m-4 flex min-w-0 flex-col p-4" style={{ "--c": current.color[0], "--c-fg": current.color[1], "--c-tint": current.color[2] } as React.CSSProperties}>
-      <div key={chapter} className="page-enter mb-3 flex items-baseline gap-2">
-        <span className="font-mono text-xs text-muted-foreground">0{chapter + 1}/0{CHAPTERS.length}</span>
+      <div key={chapter} className="page-enter mb-3 flex items-center gap-2">
+        <span className="grid size-5 place-items-center rounded-full bg-[var(--c)] text-[0.6875rem] font-semibold text-white transition-colors duration-300" aria-label={`Chapter ${chapter + 1} of ${CHAPTERS.length}`}>{chapter + 1}</span>
         <span className="text-sm font-semibold">{CHAPTERS[chapter].title}</span>
       </div>
 
