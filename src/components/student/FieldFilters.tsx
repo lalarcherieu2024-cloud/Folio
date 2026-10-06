@@ -29,7 +29,7 @@ export function FieldFilters({ fields, kinds }: { fields: FilterItem[]; kinds: F
                 f.tone ? cn("hover:brightness-[.97]", f.active && "font-semibold") : f.active ? "font-medium text-foreground" : "text-zinc-600 hover:text-foreground")}
             >
               <span>{f.label}</span>
-              <span key={`${f.key}-${f.count}`} className={cn("pop-count font-mono text-xs tabular-nums transition-colors", f.tone ? "opacity-70" : f.active ? "text-zinc-600" : "text-zinc-400 group-hover:text-zinc-600")}>{f.count}</span>
+              <span key={`${f.key}-${f.count}`} className={cn("pop-count text-xs tabular-nums transition-colors", f.tone ? "opacity-70" : f.active ? "text-zinc-600" : "text-zinc-400 group-hover:text-zinc-600")}>{f.count}</span>
             </Link>
           ))}
         </div>

@@ -6,6 +6,8 @@ import { useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { signUpAction } from "@/app/actions/auth";
 import { resendCompanyCodeAction } from "@/app/actions/startup";
+import { LinkedInButton, OrDivider } from "@/components/shared/LinkedInButton";
+import { TermsConsent, TermsNotice } from "@/components/shared/TermsConsent";
 import { RoleSwitch } from "@/components/shared/RoleSwitch";
 import { AuthFrame, Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "@/components/startup/CompanyAuth";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
@@ -76,6 +78,10 @@ export function StudentSignup() {
             <Link href="/" className={outlineBtn}>Back</Link>
             <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Creating…" : "Create account"}</button>
           </>}>
+            {/* Skips the password and the email check; LinkedIn also counts as verified straight away. */}
+            <LinkedInButton label="Sign up with LinkedIn" />
+            <TermsNotice action="signing up with LinkedIn" />
+            <OrDivider>or with your university email</OrDivider>
             <Field id="fullName" label="Full name" autoComplete="name" placeholder="Lucía Fernández" required />
             <div className="grid gap-1.5">
               <Field id="email" label="University email" type="email" autoComplete="email" placeholder="you@student.ie.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -84,6 +90,7 @@ export function StudentSignup() {
                 : <span className="text-xs text-muted-foreground">Use your @student.ie.edu address to get the verified student badge.</span>)}
             </div>
             <Field id="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} required />
+            <TermsConsent />
             {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
             {state.notice && SKIP_EMAIL_CONFIRMATION && <p role="status" className="text-sm font-medium text-brand">{state.notice} <Link href="/signin" className="underline underline-offset-4">Sign in</Link></p>}
           </StepCard>

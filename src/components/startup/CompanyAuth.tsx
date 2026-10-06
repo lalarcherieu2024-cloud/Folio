@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
+import { TermsConsent } from "@/components/shared/TermsConsent";
 
 // Company sign in / create account + verification frame (design: "Folio Startup", signed-out state).
 const STEPS: readonly (readonly [string, string])[] = [
@@ -177,6 +178,7 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
             <Field id="fullName" label="Full name" autoComplete="name" placeholder="Marta Ruiz" required />
             <Field id="email" label="Work email" type="email" autoComplete="email" placeholder="marta@nubolabs.es" value={email} onChange={(e) => setEmail(e.target.value)} hint="Use your company domain. It helps us confirm you work there." required />
             <Field id="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} required />
+            <TermsConsent />
             {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
             {state.notice && SKIP_EMAIL_CONFIRMATION && <p role="status" className="text-sm font-medium text-primary">{state.notice} <Link href="/signin?as=company" className="underline underline-offset-4">Sign in</Link></p>}
           </StepCard>

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { FormState } from "@/lib/form";
 import { signInAction, signUpAction } from "@/app/actions/auth";
+import { LinkedInButton, OrDivider } from "@/components/shared/LinkedInButton";
 import { RoleSwitch, type AccountRole } from "@/components/shared/RoleSwitch";
+import { TermsConsent, TermsNotice } from "@/components/shared/TermsConsent";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +18,7 @@ const SIGNIN_COPY: Record<AccountRole, { sub: string; email: string; placeholder
   company: { sub: "Sign in to manage your projects and applicants.", email: "Work email", placeholder: "you@company.com", signup: "/company/signup" },
 };
 
-export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "signup"; next?: string; role?: AccountRole }) {
+export function AuthForm({ mode, next, role = "student", error }: { mode: "signin" | "signup"; next?: string; role?: AccountRole; error?: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(mode === "signup" ? signUpAction : signInAction, {});
   const [who, setWho] = useState<AccountRole>(role);
   const up = mode === "signup";
@@ -31,6 +33,8 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
         <h1 className="text-2xl font-semibold tracking-tight">{up ? "Create your account" : "Welcome back"}</h1>
         <p className="text-sm text-muted-foreground">{up ? (role === "company" ? "For startups and small businesses. Post a project in minutes." : "Free for IE students. Add your CV next.") : copy.sub}</p>
       </div>
+      {/* LinkedIn sign-in is for students only: a new LinkedIn account always becomes a student. */}
+      {!up && who === "student" && <><LinkedInButton next={next} /><TermsNotice /><OrDivider>or with email</OrDivider></>}
       {next && <input type="hidden" name="next" value={next} />}
       {/* Sign-in checks the account matches the side picked in the switch (signInAction). */}
       <input type="hidden" name="role" value={up ? role : who} />
@@ -38,7 +42,8 @@ export function AuthForm({ mode, next, role = "student" }: { mode: "signin" | "s
       {up && field("program", "Programme and year (optional)", { placeholder: "e.g. BBA, 2027" })}
       {field("email", up ? "Email" : copy.email, { type: "email", autoComplete: "email", required: true, placeholder: up ? undefined : copy.placeholder }, up && !SKIP_EMAIL_CONFIRMATION ? "Use your @student.ie.edu address to earn the verified badge." : undefined)}
       {field("password", "Password", { type: "password", autoComplete: up ? "new-password" : "current-password", required: true, minLength: up ? 8 : undefined }, up ? "At least 8 characters." : undefined)}
-      {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
+      {up && <TermsConsent />}
+      {(state.error ?? error) && <p role="alert" className="text-sm font-medium text-destructive">{state.error ?? error}</p>}
       {state.notice && <p role="status" className="rounded-lg bg-[#e0f2fe] px-3 py-2.5 text-sm font-medium text-[#0c4a6e]">{state.notice}</p>}
       <Button type="submit" disabled={pending} className="h-10 w-full">{pending ? "One moment…" : up ? "Create account" : "Sign in"}</Button>
       <p className="text-center text-sm text-muted-foreground">

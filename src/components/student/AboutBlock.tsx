@@ -1,6 +1,7 @@
 import { ExternalLink, Globe } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/shared/UserAvatar";
 
 // Who is behind a project: a company (with its details) or a fellow student.
 export function AboutBlock({ p }: { p: Project }) {
@@ -11,9 +12,10 @@ export function AboutBlock({ p }: { p: Project }) {
   const linkedin = `https://www.linkedin.com/search/results/${company ? "companies" : "people"}/?keywords=${encodeURIComponent(name)}`;
   const btn = "inline-flex h-8 items-center gap-1.5 rounded-md border bg-white px-3 text-[0.8125rem] font-medium hover:bg-muted";
   return (
-    <section className="flex flex-col gap-3 rounded-xl border bg-panel p-5">
+    // id="client": project cards link here from the client's photo and name.
+    <section id="client" className="flex scroll-mt-24 flex-col gap-3 rounded-xl border bg-panel p-5">
       <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary text-base font-semibold text-primary-foreground">{name[0]}</span>
+        <UserAvatar name={name} url={company ? p.orgLogoUrl : p.clientAvatarUrl} className="size-11 rounded-lg text-base" />
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-semibold">About {name}</span>
           <span className="text-xs text-muted-foreground">{meta}</span>

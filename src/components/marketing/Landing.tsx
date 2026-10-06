@@ -71,10 +71,6 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
           <Link href="/signup" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "h-10 bg-white px-4 text-sm text-primary hover:bg-soft")}>Create your account <ArrowRight className="size-4" /></Link>
         </div>
       </section>
-
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t py-8 text-[0.8125rem] text-muted-foreground">
-        <span>Folio · IE University, Madrid</span><span>Company &amp; SME accounts coming soon</span>
-      </footer>
     </div>
   );
 }

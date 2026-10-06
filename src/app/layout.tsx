@@ -5,6 +5,7 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { AppShell } from "@/components/shell/AppShell";
 import { SiteHeader } from "@/components/marketing/SiteHeader";
+import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getSession } from "@/lib/auth";
@@ -33,6 +34,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <div className="flex min-h-screen flex-col overflow-x-clip">
               <SiteHeader />
               <main className="flex-1">{children}</main>
+              <SiteFooter />
             </div>
           )}
         </TooltipProvider>
