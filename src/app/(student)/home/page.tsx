@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PayPalMark } from "@/components/shared/PayPalMark";
 import { ProjectCard } from "@/components/shared/ProjectCard";
+import { FounderCard } from "@/components/student/FounderCard";
 import { StrengthsCard } from "@/components/student/StrengthsCard";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
@@ -139,6 +140,8 @@ export default async function StudentHome() {
         </div>
         <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-4">{recommended.map((p) => <ProjectCard key={p.id} p={p} viewer={viewer} />)}</div>
       </div>
+
+      <FounderCard />
     </div>
   );
 }

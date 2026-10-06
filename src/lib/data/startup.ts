@@ -50,9 +50,13 @@ export type CompanyDoc = { kind: DocKind; fileName: string; sizeKb: number };
 
 export type CompanyFile = { id: string; fileName: string; sizeKb: number; url: string | null };
 
+export type OrgKind = "company" | "student_startup";
+
 export type Organization = {
   id: string;
-  name: string; // legal name
+  kind: OrgKind; // "student_startup": an IE student's startup, not registered yet (migration 0031)
+  founderIeEmail: string; // student startups: the founder's IE email (private, for Folio's review)
+  name: string; // legal name (a student startup: its name)
   cif: string;
   website: string;
   hood: string; // "Malasaña, Madrid"
@@ -68,7 +72,11 @@ export type Organization = {
   files: CompanyFile[]; // shared with students; url is a short-lived signed link
 };
 
-export type OrgDetails = Pick<Organization, "name" | "cif" | "website" | "hood" | "about" | "founded" | "teamSize"> & { linkedinUrl?: string };
+export type OrgDetails = Pick<Organization, "name" | "cif" | "website" | "hood" | "about" | "founded" | "teamSize"> & {
+  linkedinUrl?: string;
+  /** Only the details step sends these (the profile editor leaves the kind as it is). */
+  kind?: OrgKind; founderIeEmail?: string;
+};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const toCompanyProject = (r: any): CompanyProject => ({ ...toProject(r), createdAt: r.created_at });
@@ -91,11 +99,13 @@ export async function getOrganization(user: StudentProfile): Promise<Organizatio
   const { data: o } = await supabase.from("organizations").select("*").eq("owner_id", user.id).maybeSingle();
   if (!o) return null;
   const { data: docs } = await supabase.from("company_documents").select("kind, file_name, size_kb").eq("org_id", o.id);
+  const kind: OrgKind = o.kind === "student_startup" ? "student_startup" : "company"; // "company" before migration 0031
+  const { data: founder } = kind === "student_startup" ? await supabase.from("startup_founders").select("ie_email").eq("org_id", o.id).maybeSingle() : { data: null };
   // company_files only exists after migration 0016; until then the company simply has no files.
   const { data: fileRows } = await supabase.from("company_files").select("id, path, file_name, size_kb").eq("org_id", o.id).order("uploaded_at", { ascending: false });
   const signed = fileRows?.length ? (await supabase.storage.from("company-files").createSignedUrls(fileRows.map((f: any) => f.path), 3600)).data : null;
   return {
-    id: o.id, name: o.name ?? "", cif: o.cif ?? "", website: o.website ?? "", hood: o.hood ?? "", about: o.blurb ?? "",
+    id: o.id, kind, founderIeEmail: founder?.ie_email ?? "", name: o.name ?? "", cif: o.cif ?? "", website: o.website ?? "", hood: o.hood ?? "", about: o.blurb ?? "",
     founded: o.founded ?? "", teamSize: o.size ?? "", status: (o.status as OrgStatus) ?? (o.verified ? "verified" : "draft"),
     reviewNote: o.review_note ?? null,
     docs: (docs ?? []).map((d: any) => ({ kind: d.kind, fileName: d.file_name, sizeKb: d.size_kb })),
@@ -110,15 +120,39 @@ export async function saveOrganization(user: StudentProfile, d: OrgDetails): Pro
     name: d.name, cif: d.cif, website: d.website, hood: d.hood, blurb: d.about, founded: d.founded || null, size: d.teamSize || null,
     ...(d.linkedinUrl !== undefined && { linkedin_url: d.linkedinUrl || null }), // only the profile editor sends it
   };
-  const { data: existing } = await supabase.from("organizations").select("id").eq("owner_id", user.id).maybeSingle();
-  const { error } = existing
-    ? await supabase.from("organizations").update(row).eq("id", existing.id)
-    : await supabase.from("organizations").insert({ ...row, owner_id: user.id });
+  const { data: existing } = await supabase.from("organizations").select("*").eq("owner_id", user.id).maybeSingle();
+  // The kind is only written when it's a student startup or changes, so companies still save before migration 0031.
+  const withKind = d.kind && (d.kind === "student_startup" || (existing?.kind && existing.kind !== d.kind)) ? { ...row, kind: d.kind } : row;
+  const { data: saved, error } = existing
+    ? await supabase.from("organizations").update(withKind).eq("id", existing.id).select("id").single()
+    : await supabase.from("organizations").insert({ ...withKind, owner_id: user.id }).select("id").single();
+  if (error) {
+    if (error.code === "P0001") return { error: error.message };
+    if (error.code === "42703" || error.code === "PGRST204") return { error: d.kind === "student_startup" ? STARTUP_MIGRATION : NEEDS_MIGRATION };
+    console.error("saveOrganization", error);
+    return { error: "Couldn't save your company details. Try again." };
+  }
+  if (d.kind === "student_startup" && d.founderIeEmail) {
+    const { error: fe } = await supabase.from("startup_founders").upsert({ org_id: saved.id, ie_email: d.founderIeEmail });
+    if (fe) {
+      if (fe.code === "P0001") return { error: fe.message };
+      if (fe.code === "42P01" || fe.code === "PGRST205") return { error: STARTUP_MIGRATION };
+      console.error("saveOrganization founder", fe);
+      return { error: "Couldn't save your IE email. Try again." };
+    }
+  }
+  return {};
+}
+
+const STARTUP_MIGRATION = "Student startups need migration 0031. Run supabase/migrations/0031_student_startups.sql in the Supabase SQL Editor.";
+
+/** A student startup that got registered: its legal name and CIF make it a company (register_startup, 0031). */
+export async function registerStartup(name: string, cif: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("register_startup", { p_name: name, p_cif: cif });
   if (!error) return {};
-  if (error.code === "P0001") return { error: error.message };
-  if (error.code === "42703" || error.code === "PGRST204") return { error: NEEDS_MIGRATION };
-  console.error("saveOrganization", error);
-  return { error: "Couldn't save your company details. Try again." };
+  if (error.code === "PGRST202" || error.code === "42883") return { error: STARTUP_MIGRATION };
+  return { error: rpcError(error, "Couldn't save the registration. Try again.") };
 }
 
 /** The founder's LinkedIn profile link (verification stage 1, when LinkedIn isn't connected). */
@@ -270,6 +304,7 @@ export async function createCompanyProject(user: StudentProfile, org: Organizati
     ({ data, error } = await supabase.from("projects").insert(row).select("id").single());
     unpaid = false;
   }
+  if (error?.code === "P0001") return { error: error.message }; // e.g. a student startup's budget cap (0031)
   if (error || !data) { console.error("createCompanyProject", error); return { error: error?.code === "42501" ? "Your company needs to be verified before you can post." : "Couldn't post your project. Check the fields and try again." }; }
   return { id: data.id, unpaid };
 }

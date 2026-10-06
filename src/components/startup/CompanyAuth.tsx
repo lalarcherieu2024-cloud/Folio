@@ -125,6 +125,16 @@ export function Field({ id, label, hint, ...props }: { id: string; label: string
 /** The frame of the company sign-up page, also used by the "already signing up" prompt on it. */
 export const COMPANY_FRAME = { title: "Get verified to post projects", sub: "Every company on Folio is checked before students see its projects. Here’s where you are." };
 
+// IE students hiring for their own startup (migration 0031): a separate company account, with lighter checks.
+const FOUNDER_FRAME = { audience: "For student founders", title: "Hire IE students for your startup", sub: "Your startup gets its own account, separate from your student one. Not registered yet? That’s fine. Here’s where you are." };
+const FOUNDER_STEPS: readonly (readonly [string, string])[] = [
+  ["Create the startup's account", "LinkedIn, or your startup email and a password"],
+  STEPS[1],
+  ["Your startup", "Its name, your IE email, a website or LinkedIn page"],
+  STEPS[3],
+  STEPS[4],
+];
+
 const COPY = {
   signin: ["Post projects for IE students", "To post a project, your company needs a verified account. This is what we’ll ask for."],
   signup: [COMPANY_FRAME.title, COMPANY_FRAME.sub],
@@ -160,15 +170,15 @@ function CheckEmail({ email }: { email: string }) {
   );
 }
 
-export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: string }) {
+export function CompanyAuth({ mode, next, founder = false }: { mode: "signin" | "signup"; next?: string; founder?: boolean }) {
   const up = mode === "signup";
   const [state, action, pending] = useActionState<FormState, FormData>(up ? signUpAction : signInAction, {});
   const [email, setEmail] = useState("");
   const sentTo = up && state.notice && !SKIP_EMAIL_CONFIRMATION ? email.trim().toLowerCase() : null; // account created, waiting for the confirmation link
-  const [title, sub] = COPY[mode];
+  const [title, sub] = up && founder ? [FOUNDER_FRAME.title, FOUNDER_FRAME.sub] : COPY[mode];
 
   return (
-    <AuthFrame title={title} sub={sub} current={up ? (sentTo ? 2 : 1) : null}>
+    <AuthFrame title={title} sub={sub} current={up ? (sentTo ? 2 : 1) : null} {...(up && founder && { audience: FOUNDER_FRAME.audience, steps: FOUNDER_STEPS })}>
       {up && !sentTo && <RoleSwitch role="company" />}
 
       {!up && <>
@@ -189,19 +199,21 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
       </>}
 
       {up && !sentTo && <>
-        <StepHeading eyebrow="Step 1 of 5" title="Create your company account" />
+        <StepHeading eyebrow="Step 1 of 5" title={founder ? "Create your startup's account" : "Create your company account"} />
         <form action={action}>
           <input type="hidden" name="role" value="company" />
+          {founder && <input type="hidden" name="founder" value="1" />}
           <StepCard footer={<>
             <Link href="/company/signin" className={outlineBtn}>Back</Link>
             <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Creating…" : "Create account"}</button>
           </>}>
             {/* Skips the password and the email check; the account is made a company on the way back (/auth/callback). */}
-            <LinkedInButton label="Sign up with LinkedIn" as="company" />
+            <LinkedInButton label="Sign up with LinkedIn" as="company" next={founder ? "/company/verify?founder=1" : undefined} />
             <TermsNotice action="signing up with LinkedIn" />
-            <OrDivider>or with your work email</OrDivider>
+            <OrDivider>{founder ? "or with your startup email" : "or with your work email"}</OrDivider>
             <Field id="fullName" label="Full name" autoComplete="name" placeholder="Marta Ruiz" required />
-            <Field id="email" label="Work email" type="email" autoComplete="email" placeholder="marta@nubolabs.es" value={email} onChange={(e) => setEmail(e.target.value)} hint="Use your company domain. It helps us confirm you work there." required />
+            <Field id="email" label={founder ? "Startup email" : "Work email"} type="email" autoComplete="email" placeholder="marta@nubolabs.es" value={email} onChange={(e) => setEmail(e.target.value)}
+              hint={founder ? "Not your IE email: that one stays with your student account. Use the startup's, or a personal one." : "Use your company domain. It helps us confirm you work there."} required />
             <Field id="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} required />
             <TermsConsent />
             {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}

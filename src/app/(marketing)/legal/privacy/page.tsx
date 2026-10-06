@@ -50,6 +50,7 @@ const sections: LegalSection[] = [
       ["Before the company can publish", "Legal name, CIF, website and description; the founder's LinkedIn (connected, or a profile link)", "Against public records (for example the company registry and the website) that the company exists and the person is real"],
       ["Before the company's first payment", "Company registry extract (nota simple); ID of the representative (DNI, NIE or passport)", "The company's legal details and who can represent it, and that the person signing up is that representative"],
     ]} />
+    <p>A <strong>student startup</strong> (an IE student&apos;s own startup that isn&apos;t registered yet) has no CIF or registry extract. Instead we ask for the founder&apos;s IE email, which we write to once to confirm the founder is an IE student, and before the first payment only the founder&apos;s ID. The IE email isn&apos;t shown to students or anyone else, and is kept and deleted like the documents below.</p>
     <ul>
       <li><strong>Legal basis:</strong> our legitimate interest in keeping the marketplace safe from fraud (GDPR art. 6.1.f), and taking the steps you ask for before entering into our contract (art. 6.1.b).</li>
       <li><strong>Who sees them:</strong> only you and Folio&apos;s review team. Documents are stored in a private storage area that other users, including students, can&apos;t open. Students only see your company name, logo, description and the verified badge.</li>

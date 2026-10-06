@@ -8,26 +8,19 @@ import { useRouter } from "next/navigation";
 import { removeCompanyDocAction, submitVerificationAction, uploadCompanyDocAction, uploadLogoAction } from "@/app/actions/startup";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { Button, buttonVariants } from "@/components/ui/button";
-import type { DocKind, Organization } from "@/lib/data/startup";
+import type { Organization } from "@/lib/data/startup";
 import type { StudentProfile } from "@/lib/types";
 import { ConnectAccounts } from "@/components/student/ConnectAccounts";
 import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
 import { Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "./CompanyAuth";
 import { VerifyFrame } from "./VerifyFrame";
-import { detailsComplete } from "@/lib/org";
+import { detailsComplete, isStartup, paymentDocsFor, type PaymentDoc } from "@/lib/org";
 import { CompanyDetailsForm } from "./CompanyDetailsForm";
 
-// Stage 2 of verification (migration 0030): asked for on the payment page, before the company's first payment.
-// The bank certificate is no longer asked for: the escrow payment itself comes from the company's account.
-export const PAYMENT_DOCS: { kind: DocKind; title: string; sub: string }[] = [
-  { kind: "registry_extract", title: "Company registry extract", sub: "Nota simple from the Registro Mercantil, issued in the last 3 months" },
-  { kind: "representative_id", title: "ID of the representative", sub: "DNI, NIE or passport of the person signing up" },
-];
-export const paymentDocsDone = (org: Pick<Organization, "docs"> | null) => PAYMENT_DOCS.every((d) => org?.docs.some((x) => x.kind === d.kind));
 
 
-function DocRow({ kind, title, sub, file }: (typeof PAYMENT_DOCS)[number] & { file?: { fileName: string; sizeKb: number } }) {
+function DocRow({ kind, title, sub, file }: PaymentDoc & { file?: { fileName: string; sizeKb: number } }) {
   const [state, action, uploading] = useActionState<FormState, FormData>(uploadCompanyDocAction, {});
   const [removing, startRemove] = useTransition();
   const form = useRef<HTMLFormElement>(null);
@@ -88,9 +81,12 @@ function LogoRow({ org }: { org: Organization | null }) {
 // than on the details form because connecting it leaves the page (LinkedIn sign-in) and would lose typed details.
 function Review({ org, user }: { org: Organization; user: StudentProfile }) {
   const [state, action, pending] = useActionState<FormState, FormData>(submitVerificationAction, {});
+  const startup = isStartup(org);
   const groups = [
     { title: "Account", edit: null, rows: [["Name", user.fullName], ["Email", `${user.email} ✓`]] },
-    { title: "Company", edit: "/company/verify?step=3", rows: [["Legal name", org.name], ["CIF / NIF", org.cif], ["Website", org.website], ["Location", org.hood || "–"]] },
+    startup
+      ? { title: "Student startup", edit: "/company/verify?step=3", rows: [["Name", org.name], ["Your IE email", org.founderIeEmail], ["Website or LinkedIn", org.website], ["Location", org.hood || "–"]] }
+      : { title: "Company", edit: "/company/verify?step=3", rows: [["Legal name", org.name], ["CIF / NIF", org.cif], ["Website", org.website], ["Location", org.hood || "–"]] },
   ];
   return (
     <form action={action}>
@@ -117,7 +113,9 @@ function Review({ org, user }: { org: Organization; user: StudentProfile }) {
         <LogoRow org={org} />
         <label className="flex cursor-pointer items-start gap-2.5 text-[0.8125rem] leading-normal text-zinc-700">
           <input type="checkbox" name="agree" required className="mt-0.5 size-[1.125rem] shrink-0 accent-primary" />
-          <span>I can act on behalf of this company, and we will pay students the agreed amount once we verify their delivery.</span>
+          <span>{startup
+            ? "I'm a founder of this startup, and I will pay students the agreed amount once I verify their delivery."
+            : "I can act on behalf of this company, and we will pay students the agreed amount once we verify their delivery."}</span>
         </label>
         {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
       </StepCard>
@@ -125,11 +123,11 @@ function Review({ org, user }: { org: Organization; user: StudentProfile }) {
   );
 }
 
-/** Stage 2, on the payment page: the two documents Folio needs before a company's first payment. */
+/** Stage 2, on the payment page: the documents Folio needs before a company's first payment. */
 export function PaymentDocuments({ org }: { org: Organization }) {
   return (
     <div className="flex flex-col gap-2.5">
-      {PAYMENT_DOCS.map((d) => <DocRow key={d.kind} {...d} file={org.docs.find((x) => x.kind === d.kind)} />)}
+      {paymentDocsFor(org).map((d) => <DocRow key={d.kind} {...d} file={org.docs.find((x) => x.kind === d.kind)} />)}
     </div>
   );
 }
@@ -138,9 +136,9 @@ function Status({ org }: { org: Organization }) {
   const verified = org.status === "verified", rejected = org.status === "rejected";
   const rows = [
     { label: "Submitted", sub: "Your company details and LinkedIn were received", mark: "✓", tone: "done" },
-    verified ? { label: "Folio checks your company", sub: "CIF, website and LinkedIn confirmed", mark: "✓", tone: "done" }
+    verified ? { label: "Folio checks your company", sub: isStartup(org) ? "IE email, website and LinkedIn confirmed" : "CIF, website and LinkedIn confirmed", mark: "✓", tone: "done" }
       : rejected ? { label: "Folio checks your company", sub: "Something needs fixing (see below)", mark: "!", tone: "bad" }
-      : { label: "Folio checks your company", sub: "Against public records · usually 1–2 business days", mark: "…", tone: "wait" },
+      : { label: "Folio checks your company", sub: isStartup(org) ? "We email your IE address to confirm it's you · usually 1–2 business days" : "Against public records · usually 1–2 business days", mark: "…", tone: "wait" },
     { label: "Verified badge on your profile", sub: "Unlocks publishing projects. Meanwhile you can already write your first one.", mark: verified ? "✓" : "3", tone: verified ? "done" : "todo" },
   ];
   const tone = { done: "bg-[#22c55e] text-white", wait: "bg-[#fef3c7] text-[#92400e]", bad: "bg-[#fee2e2] text-[#991b1b]", todo: "bg-secondary text-muted-foreground" } as const;
@@ -162,7 +160,7 @@ function Status({ org }: { org: Organization }) {
   );
 }
 
-export function CompanyVerify({ step, org, user }: { step: 3 | 5 | 6; org: Organization | null; user: StudentProfile }) {
+export function CompanyVerify({ step, org, user, founder = false }: { step: 3 | 5 | 6; org: Organization | null; user: StudentProfile; founder?: boolean }) {
   const verified = org?.status === "verified";
   const status6 = verified
     ? { eyebrow: "Verified", title: "Your company is verified", sub: "You can now publish projects and review applicants." }
@@ -175,9 +173,9 @@ export function CompanyVerify({ step, org, user }: { step: 3 | 5 | 6; org: Organ
       // Before submitting, details and review can be reopened (review once the details are complete).
       stepHref={(n) => step < 6 && (n === 1 || (n === 2 && detailsComplete(org))) ? `/company/verify?step=${n === 1 ? 3 : 5}` : null}>
       {step === 3 && <>
-        <StepHeading eyebrow="Step 1 of 2" title="Company details" sub="This appears on your public profile and on every project you post." />
+        <StepHeading eyebrow="Step 1 of 2" title={isStartup(org) || (!org && founder) ? "Your startup" : "Company details"} sub="This appears on your public profile and on every project you post." />
         {/* No "Later" here: the way out is "Finish later" in the frame's top bar. */}
-        <CompanyDetailsForm org={org} then="verify" />
+        <CompanyDetailsForm org={org} then="verify" founder={founder} />
       </>}
       {step === 5 && org && <>
         <StepHeading eyebrow="Step 2 of 2" title="Review and submit" sub="Check your details, add your LinkedIn, and send it to Folio." />

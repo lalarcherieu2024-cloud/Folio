@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, BadgeCheck, Check, Cloud, Lock, Star } from "lucide-react";
+import { Award, BadgeCheck, CalendarClock, Check, Cloud, Lock, MousePointer2, Star } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/shared/Logo";
 import { cn } from "@/lib/utils";
@@ -91,15 +91,17 @@ const APPLICANTS = [
   { look: MARCO, name: "Marco R.", note: "First project" },
   { look: SARA, name: "Sara P.", note: "1 project · ★ 5.0" },
 ];
-// 0 the brief is up · 1–3 applicants arrive · 4 Lucía is interviewed · 5 Hire is pressed · 6 hired
-// · 7 the list clears (with Lucía still hired, so nothing flips back while it's visible)
-const HIRE_MS = [1700, 1100, 1000, 1000, 2000, 1400, 3200, 800];
+// 0 the brief is up · 1–3 applicants arrive · 4 Lucía gets an interview · 5 interviewed, the pointer goes to Hire
+// · 6 Hire is clicked · 7 hired · 8 the list clears (with Lucía still hired, so nothing flips back while it's visible)
+const HIRE_MS = [1600, 1100, 1000, 1000, 1800, 1500, 1000, 3200, 800];
+const HIRE_STAGES = ["Posted", "Applicants", "Interview", "Hired"];
 
 export function ApplicantsSnippet() {
-  const { ref, beat } = useBeats(HIRE_MS, 6);
-  const clearing = beat === 7;
+  const { ref, beat } = useBeats(HIRE_MS, 7);
+  const clearing = beat === 8;
   const count = clearing ? 0 : Math.min(3, beat);
-  const interviewed = beat >= 4, pressing = beat === 5, hired = beat >= 6;
+  const interviewing = beat === 4, interviewed = beat >= 5, pointing = beat === 5 || beat === 6, clicking = beat === 6, hired = beat >= 7;
+  const stage = beat === 0 ? 0 : beat <= 3 ? 1 : beat <= 6 ? 2 : 3;
   return (
     <div ref={ref} className={frame}>
       <div className={cn(panel, "p-4")}>
@@ -123,7 +125,7 @@ export function ApplicantsSnippet() {
               const lucia = i === 0;
               return (
                 <li key={a.name} className={cn(move, "flex items-center gap-2.5 rounded-lg border px-3 py-2",
-                  lucia && interviewed ? "border-brand/40 bg-soft/60" : "bg-white",
+                  lucia && beat >= 4 ? "border-brand/40 bg-soft/60" : "bg-white",
                   i >= count ? "pointer-events-none translate-y-1.5 opacity-0" : !lucia && hired ? "opacity-40" : "opacity-100")}>
                   <Face look={a.look} className="size-8" />
                   <span className="flex min-w-0 flex-1 flex-col leading-tight">
@@ -135,12 +137,26 @@ export function ApplicantsSnippet() {
                     </span>
                   </span>
                   {lucia && (
-                    // One fixed-size button whose two labels crossfade, so it never jumps in width.
-                    <span className={cn(move, "grid h-7 w-[4.75rem] shrink-0 place-items-center rounded-md text-xs font-medium",
-                      hired ? "bg-[#dcfce7] text-[#15803d]" : "bg-primary text-primary-foreground", interviewed ? "opacity-100" : "opacity-0", pressing && "snip-press")}>
-                      <span className={cn("col-start-1 row-start-1 transition-opacity duration-300", hired ? "opacity-0" : "opacity-100")}>Hire</span>
-                      <span className={cn("col-start-1 row-start-1 inline-flex items-center gap-1 transition-opacity duration-300", hired ? "opacity-100" : "opacity-0")}>
-                        <Check className="size-3.5" strokeWidth={3} />Hired
+                    // One slot on the right: the interview, then the Hire button (its labels crossfade, so it never
+                    // jumps in width), with a pointer that glides in and clicks it.
+                    <span className="relative grid shrink-0 justify-items-end">
+                      <span className={cn(move, "col-start-1 row-start-1 inline-flex h-7 items-center gap-1 self-center rounded-md bg-[#cffafe] px-2 text-xs font-medium text-[#155e75]",
+                        interviewing ? "opacity-100" : "pointer-events-none opacity-0")}>
+                        <CalendarClock className="size-3.5" />Tue 10:00
+                      </span>
+                      <span className={cn(move, "col-start-1 row-start-1 grid h-7 w-[4.75rem] place-items-center rounded-md text-xs font-medium",
+                        hired ? "bg-[#dcfce7] text-[#15803d]" : "bg-primary text-primary-foreground", interviewed ? "opacity-100" : "opacity-0", clicking && "snip-press")}>
+                        <span className={cn("col-start-1 row-start-1 transition-opacity duration-300", hired ? "opacity-0" : "opacity-100")}>Hire</span>
+                        <span className={cn("col-start-1 row-start-1 inline-flex items-center gap-1 transition-opacity duration-300", hired ? "opacity-100" : "opacity-0")}>
+                          <Check className="size-3.5" strokeWidth={3} />Hired
+                        </span>
+                      </span>
+                      <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 z-10"
+                        style={{
+                          opacity: pointing ? 1 : 0, transform: pointing ? "translate(0, 0)" : "translate(36px, 28px)",
+                          transition: pointing ? "opacity .3s ease, transform 1s cubic-bezier(.22,1,.36,1)" : "opacity .35s ease, transform 0s .35s",
+                        }}>
+                        <MousePointer2 className={cn("size-5 fill-white text-zinc-800 drop-shadow-sm", clicking && "snip-press")} strokeWidth={1.75} />
                       </span>
                     </span>
                   )}
@@ -149,6 +165,15 @@ export function ApplicantsSnippet() {
             })}
           </ul>
         </div>
+        {/* Where the hire stands, filling in as the story moves on (green once someone's hired). */}
+        <ol className="mt-4 grid grid-cols-4 gap-1.5 border-t border-zinc-100 pt-3">
+          {HIRE_STAGES.map((label, i) => (
+            <li key={label} className="flex min-w-0 flex-col gap-1.5">
+              <span className={cn("h-1 rounded-full transition-colors duration-700", i <= stage ? (hired ? "bg-[#16a34a]" : "bg-brand") : "bg-zinc-200")} />
+              <span className={cn("truncate text-[0.6875rem] transition-colors duration-700", i === stage ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
+            </li>
+          ))}
+        </ol>
       </div>
     </div>
   );

@@ -30,7 +30,8 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
   const role: Role = str(f, "role") === "company" ? "company" : "student";
   const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const supabase = await createClient();
-  const landing = role === "company" ? "/company/verify" : "/welcome";
+  // A student founder (company sign-up with ?founder=1) starts verification on "Student startup".
+  const landing = role === "company" ? (f.get("founder") === "1" ? "/company/verify?founder=1" : "/company/verify") : "/welcome";
   const password = str(f, "password");
 
   if (SKIP_EMAIL_CONFIRMATION) {
@@ -54,7 +55,7 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
 
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { full_name: fullName, program, role, ...consent }, emailRedirectTo: `${origin}/auth/callback` },
+    options: { data: { full_name: fullName, program, role, ...consent }, emailRedirectTo: `${origin}/auth/callback${landing.includes("?") ? `?next=${encodeURIComponent(landing)}` : ""}` },
   });
   if (error) {
     if (error.code === "user_already_exists" || /already registered/i.test(error.message)) return { error: "An account with this email already exists. Sign in instead." };
@@ -132,6 +133,14 @@ export async function signOutAction() {
   await (await createClient()).auth.signOut();
   refreshFrame();
   redirect("/");
+}
+
+/** "Hire for your startup" from a student account: a startup hires through its own, separate company account (with
+ *  the startup's email), so this signs the student out and opens the founder sign-up. */
+export async function startFounderSignupAction() {
+  await (await createClient()).auth.signOut();
+  refreshFrame();
+  redirect("/company/signup?founder=1");
 }
 
 // Every place an account's own files can be (paths start with "<user id>/"). Chat, project and submission files

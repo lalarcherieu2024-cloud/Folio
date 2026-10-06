@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { CredentialCard } from "@/components/shared/CredentialCard";
 import { SignCertificateDialog } from "@/components/shared/SignCertificateDialog";
 import { CompanyDetailsCard } from "@/components/startup/CompanyDetailsCard";
+import { RegisterStartupCard } from "@/components/startup/RegisterStartupCard";
+import { isStartup } from "@/lib/org";
 import { CompanyFilesCard } from "@/components/startup/CompanyFiles";
 import { CompanyLogoEditor } from "@/components/startup/CompanyLogoEditor";
 import { CompanyProjectCard } from "@/components/startup/CompanyProjectCard";
@@ -72,6 +74,7 @@ export default async function CompanyProfile() {
         <CompanyDetailsCard user={user} org={org} />
         <CompanyFilesCard files={org.files} />
       </div>
+      {isStartup(org) && org.status === "verified" && <RegisterStartupCard name={org.name} />}
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
