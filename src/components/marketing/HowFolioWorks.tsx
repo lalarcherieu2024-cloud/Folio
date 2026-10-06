@@ -34,7 +34,7 @@ const COMPANY_POINTS = ["Post a brief with a fixed price.", "Students apply. Int
 export function ForCompanies() {
   return (
     // Straight after the hero, so no divider: it carries on from the demo.
-    <Split id="hiring" rule={false} className="pt-12 md:pt-16"
+    <Split id="hiring" rule={false} className="pt-16 md:pt-24"
       text={<>
         <p className={kicker}>For companies</p>
         <h2 className={hook}>Hire an IE student this week. Pay only when the work is right.</h2>
