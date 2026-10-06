@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { deleteProjectDraftAction } from "@/app/actions/startup";
+import { CategoryChip } from "@/components/startup/ui";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,7 +40,7 @@ function ProjectRowCard({ r }: { r: BoardRow }) {
             <span className="text-base font-semibold">{p.title}</span>
             <span className={cn("inline-flex h-[1.375rem] items-center rounded-md px-2 text-xs font-medium", toneClass(r.stage.tone))}>{r.stage.label}</span>
           </div>
-          <span className="text-[0.8125rem] text-muted-foreground">{p.category} · {eur(p.priceEur)} · {weeksLabel(p.weeks)} · posted {posted}</span>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-muted-foreground"><CategoryChip category={p.category} />{eur(p.priceEur)} · {weeksLabel(p.weeks)} · posted {posted}</span>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/company/projects/${p.id}`} className={outline}>View project</Link>

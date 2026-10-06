@@ -47,7 +47,7 @@ export function UserMenu({ user, account }: { user: StudentProfile; account?: Ac
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label="Account" title={face.name} className="shrink-0 rounded-full outline-none ring-offset-2 transition-shadow hover:ring-2 hover:ring-slate-200 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:ring-2 data-[popup-open]:ring-slate-200">
-        <UserAvatar name={face.name} color={face.color} url={face.url} className={cn("size-9 text-xs", company ? "rounded-md" : "rounded-full")} />
+        <UserAvatar name={face.name} color={face.color} url={face.url} className="size-9 rounded-full text-xs" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" className="w-56">
         <DropdownMenuGroup>

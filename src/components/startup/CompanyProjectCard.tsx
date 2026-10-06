@@ -2,14 +2,14 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { CompanyProject } from "@/lib/data/startup";
 import { eur, weeksLabel } from "@/lib/work";
-import { StatusPill } from "./ui";
+import { CategoryChip, StatusPill } from "./ui";
 
 // The company's own project, laid out like the student ProjectCard.
 export function CompanyProjectCard({ p }: { p: CompanyProject }) {
   return (
     <Link href={`/company/projects/${p.id}`} className="card-hover flex flex-col gap-3 rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
       <div className="flex items-center justify-between gap-2 text-[0.8125rem] text-muted-foreground">
-        <span className="truncate">{p.category}</span>
+        <CategoryChip category={p.category} className="truncate" />
         <StatusPill status={p.status} className="shrink-0" />
       </div>
       <h3 className="text-balance text-base font-semibold leading-snug tracking-tight">{p.title}</h3>

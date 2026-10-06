@@ -1,7 +1,7 @@
 import { ArrowRight, Check, Circle } from "lucide-react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { ago, card, pastLabel } from "@/components/startup/ui";
+import { ago, card, CategoryChip, pastLabel } from "@/components/startup/ui";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { boardRows, COMPANY_STEPS, nextStep, toneClass, type BoardRow } from "@/lib/company-work";
@@ -151,7 +151,7 @@ export default async function CompanyHome() {
                     <tr key={r.project.id} className="relative border-t border-zinc-100 hover:bg-panel">
                       <td className="max-w-[16rem] px-5 py-3">
                         <Link href={rowHref(r)} className="block truncate font-medium after:absolute after:inset-0">{r.project.title}</Link>
-                        <span className="text-xs text-muted-foreground">{r.project.category}</span>
+                        <CategoryChip category={r.project.category} className="mt-1" />
                       </td>
                       <td className="px-5 py-3">
                         <span className={cn("inline-flex h-[1.375rem] items-center rounded px-2 text-xs font-medium", toneClass(r.stage.tone))}>{r.stage.label}</span>
