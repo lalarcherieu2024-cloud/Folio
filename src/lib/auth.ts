@@ -14,7 +14,10 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
   if (!user) return null;
   const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   if (!p) return null;
-  const { count: fileCount } = await supabase.from("profile_files").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+  const [{ count: fileCount }, { count: certificateCount }] = await Promise.all([
+    supabase.from("profile_files").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("course_certificates").select("id", { count: "exact", head: true }).eq("user_id", user.id), // null before migration 0025
+  ]);
   return {
     id: user.id,
     role: (p.role as Role) ?? "student",
@@ -32,6 +35,7 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
     avatarUrl: avatarPublicUrl(p.avatar_path),
     payoutLink: p.payout_link ?? null,
     fileCount: fileCount ?? 0,
+    certificateCount: certificateCount ?? 0,
   };
 });
 
