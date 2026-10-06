@@ -147,13 +147,15 @@ export function CompanyVerify({ step, org, email, name, account }: { step: 3 | 4
       ? { eyebrow: "Changes needed", title: "We couldn’t verify your company yet", sub: "Fix what’s below and submit again." }
       : { eyebrow: "Under review", title: "Your company is under review", sub: "We usually finish within 1–2 business days. Check back here to see the result." };
   return (
-    <AuthFrame {...FRAME} current={step} allDone={step === 6 && verified} account={account}>
+    <AuthFrame {...FRAME} current={step} allDone={step === 6 && verified} account={account}
+      // Before submitting, the details, documents and review steps can be reopened (review once the documents are in).
+      stepHref={(n) => step < 6 && (n === 3 || (n === 4 && org) || (n === 5 && docsDone)) ? `/company/verify?step=${n}` : null}>
       {step === 3 && <>
-        <StepHeading eyebrow="Step 3 of 5" title="Company details" sub="This appears on your public profile and on every project you post." />
+        <StepHeading eyebrow="Step 3 of 6" title="Company details" sub="This appears on your public profile and on every project you post." />
         <CompanyDetailsForm org={org} then="verify" backHref="/company" backLabel="Later" />
       </>}
       {step === 4 && <>
-        <StepHeading eyebrow="Step 4 of 5" title="Logo and documents" sub="Your logo appears on every project you post. The documents confirm the company exists and that you can act for it (PDF, JPG or PNG, up to 10 MB)." />
+        <StepHeading eyebrow="Step 4 of 6" title="Logo and documents" sub="Your logo appears on every project you post. The documents confirm the company exists and that you can act for it (PDF, JPG or PNG, up to 10 MB)." />
         <StepCard footer={<>
           <Link href="/company/verify?step=3" className={outlineBtn}>Back</Link>
           <div className="flex items-center gap-3">
@@ -167,7 +169,7 @@ export function CompanyVerify({ step, org, email, name, account }: { step: 3 | 4
         </StepCard>
       </>}
       {step === 5 && org && <>
-        <StepHeading eyebrow="Step 5 of 5" title="Review & submit" sub="Check everything before sending it to Folio." />
+        <StepHeading eyebrow="Step 5 of 6" title="Review & submit" sub="Check everything before sending it to Folio." />
         <Review org={org} email={email} name={name} />
       </>}
       {step === 6 && org && <>

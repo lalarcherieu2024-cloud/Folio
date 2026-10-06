@@ -33,14 +33,17 @@ export const outlineBtn = cn(buttonVariants({ variant: "outline" }), "h-9 bg-whi
 
 /** Deep-ocean panel with the 6-step tracker on the left, content on the right. `current` null = just listing the steps.
  *  Students reuse it with their own `steps` and `audience` (see student/StudentSignup.tsx). */
-export function AuthFrame({ title, sub, current, allDone, children, steps = STEPS, audience = "For companies", account }: {
+export function AuthFrame({ title, sub, current, allDone, children, steps = STEPS, audience = "For companies", account, stepHref }: {
   title: string; sub: string; current: number | null; allDone?: boolean; children: React.ReactNode; steps?: readonly (readonly [string, string])[]; audience?: string;
+  /** Where clicking step n goes, for the steps someone can open right now (null: not clickable). */
+  stepHref?: (n: number) => string | null;
   /** Signed in and still setting up: shows who, and every way out (sign out, start from scratch, switch role). */
   account?: SignupAccount;
 }) {
   return (
     <div className="flex min-h-screen flex-wrap bg-background">
-      <aside className="flex max-w-[32.5rem] flex-[1_1_23.75rem] flex-col gap-10 bg-brand-navy px-11 py-10 text-white">
+      {/* Side by side (from 50rem), the panel stays in view while the form on the right scrolls. */}
+      <aside className="flex max-w-[32.5rem] flex-[1_1_23.75rem] flex-col gap-10 bg-brand-navy px-11 py-10 text-white min-[50rem]:sticky min-[50rem]:top-0 min-[50rem]:h-screen min-[50rem]:overflow-y-auto">
         <Link href="/" className="self-start text-[0.8125rem] text-brand-low hover:text-white">← Back to Folio</Link>
         <div className="flex items-center gap-3">
           <Logo size={48} onDark />
@@ -53,6 +56,13 @@ export function AuthFrame({ title, sub, current, allDone, children, steps = STEP
         <ol className="flex flex-col">
           {steps.map(([label, s], i) => {
             const n = i + 1, done = current !== null && (n < current || !!allDone), cur = n === current && !done, last = n === steps.length;
+            const href = !cur ? stepHref?.(n) : null;
+            const text = (
+              <>
+                <span className={cn("text-sm font-semibold", current === null || cur || done ? "text-white" : "text-brand-low", href && "underline-offset-4 group-hover/step:underline")}>{label}</span>
+                <span className="text-[0.8125rem] leading-snug text-brand-low">{s}</span>
+              </>
+            );
             return (
               <li key={label} className="flex gap-3.5" aria-current={cur ? "step" : undefined}>
                 <div className="flex flex-col items-center">
@@ -62,10 +72,9 @@ export function AuthFrame({ title, sub, current, allDone, children, steps = STEP
                   </span>
                   {!last && <span className={cn("min-h-[1.125rem] w-[1.5px] flex-1", done ? "bg-[#22c55e]" : "bg-brand-low/30")} />}
                 </div>
-                <div className="flex flex-col gap-0.5 pb-5 pt-1">
-                  <span className={cn("text-sm font-semibold", current === null || cur || done ? "text-white" : "text-brand-low")}>{label}</span>
-                  <span className="text-[0.8125rem] leading-snug text-brand-low">{s}</span>
-                </div>
+                {href
+                  ? <Link href={href} className="group/step flex flex-col gap-0.5 rounded-sm pb-5 pt-1 outline-none focus-visible:ring-2 focus-visible:ring-white/60">{text}</Link>
+                  : <div className="flex flex-col gap-0.5 pb-5 pt-1">{text}</div>}
               </li>
             );
           })}
@@ -127,7 +136,7 @@ function CheckEmail({ email }: { email: string }) {
   });
   return (
     <>
-      <StepHeading eyebrow="Step 2 of 5" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to verify your company.</>} />
+      <StepHeading eyebrow="Step 2 of 6" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to verify your company.</>} />
       <StepCard footer={<>
         <Link href="/company/signup" className={outlineBtn}>Back</Link>
         <Link href="/signin?as=company" className={primaryBtn}>I&apos;ve confirmed, sign in</Link>
@@ -176,7 +185,7 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
       </>}
 
       {up && !sentTo && <>
-        <StepHeading eyebrow="Step 1 of 5" title="Create your company account" />
+        <StepHeading eyebrow="Step 1 of 6" title="Create your company account" />
         <form action={action}>
           <input type="hidden" name="role" value="company" />
           <StepCard footer={<>
