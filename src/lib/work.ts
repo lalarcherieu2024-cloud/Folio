@@ -54,20 +54,25 @@ export const isLink = (where: string) => /^(https?:\/\/|[\w-]+\.[\w.-]+\/)/i.tes
 export const linkHref = (where: string) => (/^https?:\/\//i.test(where) ? where : `https://${where}`);
 
 type ChecklistUser = {
-  cv: unknown; linkedinVerified: boolean; payoutLink: string | null; fileCount: number; strengths: { fields: { label: string }[] } | null;
+  cv: unknown; linkedinVerified: boolean; payoutLink: string | null; fileCount: number; certificateCount: number; strengths: { fields: { label: string }[] } | null;
 };
 
 // "Complete your profile": things that make a client say yes. GitHub is optional (it only matters for
 // tech work), so it is not on the list. A portfolio is asked for unless your CV shows you work in tech.
+// LinkedIn comes first and is marked as the priority: a verified LinkedIn is what makes a client trust a new student.
 export function profileChecklist(user: ChecklistUser) {
   const isTech = user.strengths?.fields[0]?.label === "Tech & Data";
   const items = [
-    { label: "Add your PayPal payout link", done: !!user.payoutLink },
-    { label: "Connect your LinkedIn", done: user.linkedinVerified },
-    ...(isTech ? [] : [{ label: "Upload your portfolio (PDF)", done: user.fileCount > 0 }]),
-    { label: "Upload your CV", done: !!user.cv },
+    { key: "linkedin", label: "Connect your LinkedIn", done: user.linkedinVerified, priority: true, href: "/profile#accounts" },
+    // Courses finished elsewhere (Coursera, Udemy, …): proof of skills before a first Folio project. Optional, so it
+    // doesn't count towards the percentage or the steps left.
+    { key: "courses", label: "Add your online course certificates", done: user.certificateCount > 0, href: "/profile#courses", optional: true },
+    { key: "payout", label: "Add your PayPal payout link", done: !!user.payoutLink },
+    ...(isTech ? [] : [{ key: "portfolio", label: "Upload your portfolio (PDF)", done: user.fileCount > 0 }]),
+    { key: "cv", label: "Upload your CV", done: !!user.cv },
   ];
-  return { items, pct: Math.round((items.filter((i) => i.done).length / items.length) * 100) };
+  const required = items.filter((i) => !("optional" in i && i.optional));
+  return { items, required, pct: Math.round((required.filter((i) => i.done).length / required.length) * 100) };
 }
 
 // What we know about the signed-in student, used to personalise project cards.

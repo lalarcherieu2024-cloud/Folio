@@ -1,4 +1,4 @@
-import { ChecklistIcon, DashboardIcon, FolderIcon, HomeIcon, MessagesIcon, PlusIcon, ProfileIcon, SearchIcon, TrendIcon, UsersIcon, WalletIcon, type NavIcon } from "./NavIcons";
+import { ChecklistIcon, DashboardIcon, FolderIcon, HomeIcon, MessagesIcon, PlusIcon, SearchIcon, TrendIcon, UsersIcon, WalletIcon, type NavIcon } from "./NavIcons";
 import type { Role } from "@/lib/types";
 
 export type NavEntry = { href: string; label: string; icon: NavIcon; count?: number; alert?: boolean; active: boolean };
@@ -12,7 +12,7 @@ export function navFor(role: Role, path: string, counts: NavCounts): NavEntry[] 
       { href: "/company/projects", label: "My projects", icon: FolderIcon, count: counts.projects, active: path.startsWith("/company/projects") && !path.startsWith("/company/projects/new") },
       { href: "/company/applicants", label: "Applicants", icon: UsersIcon, count: counts.applicants, active: path.startsWith("/company/applicants") },
       { href: "/company/projects/new", label: "Post a project", icon: PlusIcon, active: path.startsWith("/company/projects/new") },
-      // Company profile lives in the menu under your name (Sidebar UserMenu).
+      // Company profile lives in the account menu under your photo, top right (UserMenu).
     ];
   }
   return [
@@ -22,6 +22,6 @@ export function navFor(role: Role, path: string, counts: NavCounts): NavEntry[] 
     { href: "/messages", label: "Messages", icon: MessagesIcon, count: counts.messages || undefined, alert: true, active: path.startsWith("/messages") },
     { href: "/payments", label: "Payments", icon: WalletIcon, active: path.startsWith("/payments") },
     { href: "/progress", label: "Progress", icon: TrendIcon, active: path.startsWith("/progress") },
-    { href: "/profile", label: "Profile & record", icon: ProfileIcon, active: path.startsWith("/profile") },
+    // Profile & record lives in the account menu under your photo, top right (UserMenu).
   ];
 }

@@ -43,8 +43,10 @@ export default async function ProfilePage() {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21.25rem),1fr))] items-start gap-4">
         <div className="flex flex-col gap-4"><CvCard cv={me.cv} /><FilesCard files={files} /></div>
-        <div className="flex flex-col gap-4"><DetailsCard user={me} /><CertificatesCard certificates={certificates} /></div>
+        <div className="flex flex-col gap-4"><DetailsCard user={me} /></div>
       </div>
+
+      <CertificatesCard certificates={certificates} />
 
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold tracking-tight">Verified record</h2>

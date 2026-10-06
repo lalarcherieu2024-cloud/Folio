@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, ChevronsUpDown, LogOut, User } from "lucide-react";
+import { Building2, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
@@ -36,22 +36,15 @@ export function NavItems({ role, counts, onNavigate, collapsed = false }: { role
   );
 }
 
-export function UserMenu({ user, side = "top", collapsed = false }: { user: StudentProfile; side?: "top" | "bottom" | "right"; collapsed?: boolean }) {
+// The account menu: your photo at the top right of every app page (Topbar). The one place for your profile and
+// signing out, so the sidebar only holds the page links.
+export function UserMenu({ user }: { user: StudentProfile }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger title={collapsed ? user.fullName : undefined} className={cn("flex w-full items-center gap-2.5 rounded-md p-2 text-left outline-none hover:bg-[#eef4f8] focus-visible:ring-2 focus-visible:ring-ring", collapsed && "justify-center p-1.5")}>
-        <UserAvatar name={user.fullName} color={user.avatarColor} url={user.avatarUrl} className={cn("rounded-lg text-xs", collapsed ? "size-11 rounded-xl text-sm" : "size-8")} />
-        {!collapsed && (
-          <>
-            <span className="flex min-w-0 flex-1 flex-col leading-tight">
-              <span className="truncate text-sm font-medium">{user.fullName}</span>
-              <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-            </span>
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
-          </>
-        )}
+      <DropdownMenuTrigger aria-label="Account" title={user.fullName} className="shrink-0 rounded-full outline-none ring-offset-2 transition-shadow hover:ring-2 hover:ring-slate-200 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:ring-2 data-[popup-open]:ring-slate-200">
+        <UserAvatar name={user.fullName} color={user.avatarColor} url={user.avatarUrl} className="size-9 rounded-full text-xs" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side={collapsed ? "right" : side} align={collapsed ? "end" : "start"} className="w-56">
+      <DropdownMenuContent side="bottom" align="end" className="w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col leading-snug">
             <span className="text-sm font-medium text-foreground">{user.fullName}</span>
@@ -82,7 +75,6 @@ export function Sidebar({ user, counts, collapsed = false }: { user: StudentProf
         )}
       </div>
       <NavItems role={user.role} counts={counts} collapsed={collapsed} />
-      <div className="border-t p-2"><UserMenu user={user} collapsed={collapsed} /></div>
     </aside>
   );
 }

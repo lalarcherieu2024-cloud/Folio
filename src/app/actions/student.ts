@@ -162,7 +162,7 @@ export async function addCertificateAction(_: FormState, f: FormData): Promise<F
   if (!file && !credentialUrl) return { error: "Add a link to the certificate or upload a copy, so clients can check it." };
   const res = await addCertificate(user, { title, issuer, issuedOn: issuedOn || null, credentialUrl: credentialUrl || null, file, ext });
   if (res.error) return res;
-  revalidatePath("/profile");
+  revalidatePath("/", "layout"); // the profile and the home checklist
   return { ok: true };
 }
 
@@ -170,6 +170,6 @@ export async function deleteCertificateAction(id: string): Promise<FormState> {
   const user = await requireUser("/profile", "student");
   const res = await removeCertificate(user, id);
   if (res.error) return res;
-  revalidatePath("/profile");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
