@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getSession, needsIeEmail } from "@/lib/auth";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import { canDeleteAccounts, getUnfinishedSignup } from "@/lib/data/signup";
-import { EMAIL, safeNext, str, type FormState } from "@/lib/form";
+import { EMAIL, str, type FormState } from "@/lib/form";
 import { isIeEmail } from "@/lib/ie-email";
 import { TERMS_VERSION } from "@/lib/legal";
 import { homeFor } from "@/lib/routes";
@@ -101,7 +101,8 @@ export async function signInAction(_: FormState, f: FormData): Promise<FormState
       : "This is a student account. Choose Student above and sign in again." };
   }
   refreshFrame();
-  redirect(safeNext(str(f, "next")) || homeFor(actual));
+  // Every sign-in starts on your own home page (students: /home, companies: /company), wherever you came from.
+  redirect(homeFor(actual));
 }
 
 /** Onboarding's first step for a student without a confirmed IE email (needsIeEmail): changes the account's email

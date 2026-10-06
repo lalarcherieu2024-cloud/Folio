@@ -122,4 +122,5 @@ export type StudentProfile = {
   avatarUrl: string | null; // uploaded photo, if any
   payoutLink: string | null; // PayPal link where the student gets paid
   fileCount: number; // additional files (portfolio etc.)
+  certificateCount: number; // course certificates from outside Folio (profile, #courses)
 };

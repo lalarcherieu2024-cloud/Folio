@@ -95,7 +95,7 @@ export function DetailsCard({ user }: { user: StudentProfile }) {
     if (state.error) toast.error(state.error);
   }, [state]);
   return (
-    <form action={action} className="flex flex-col gap-4 rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
+    <form id="accounts" action={action} className="flex scroll-mt-24 flex-col gap-4 rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
       <div className="flex flex-col gap-1"><span className="text-base font-semibold">Details and links</span><span className="text-[0.8125rem] text-muted-foreground">Connect LinkedIn to get a verified badge. GitHub is optional, for tech work.</span></div>
       <ConnectAccounts user={user} />
       <div className="grid gap-3">

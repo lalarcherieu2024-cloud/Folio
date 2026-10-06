@@ -12,7 +12,7 @@ import type { StudentProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { eur, firstName } from "@/lib/work";
 
-export const metadata = { title: "Overview · Folio" };
+export const metadata = { title: "Home · Folio" };
 
 function greeting() {
   const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Madrid" }).format(new Date()));
@@ -42,8 +42,8 @@ function rowHref(r: BoardRow) {
 const URGENCY = { submitted: 0, open: 1, building: 2, draft: 3, verified: 4, cancelled: 5 } as const;
 const th = "px-5 py-2.5 text-left text-xs font-medium text-muted-foreground";
 
-// STARTUP INTERFACE. The company overview: the student home's content, presented as a calm dashboard.
-export default async function CompanyOverview() {
+// STARTUP INTERFACE. The company home: the student home's content, presented as a calm dashboard.
+export default async function CompanyHome() {
   const user = await requireUser("/company", "company");
   const projects = await getCompanyProjects(user);
   const [applicants, org, ledger] = await Promise.all([getCompanyApplicants(projects), getOrganization(user), getCompanyLedger(user)]);
@@ -67,9 +67,9 @@ export default async function CompanyOverview() {
     <div className="page-enter flex flex-col gap-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-[1.75rem] font-semibold tracking-[-0.02em]">Overview</h1>
+          <h1 className="text-[1.75rem] font-semibold tracking-[-0.02em]">{greeting()}, {firstName(user.fullName)}</h1>
           <p className="text-[0.9375rem] text-muted-foreground">
-            {greeting()}, {firstName(user.fullName)}. {queue.length ? `${queue.length} thing${queue.length === 1 ? " is" : "s are"} ready for you.` : "You’re all caught up. A good moment to plan your next project."}
+            {queue.length ? `${queue.length} thing${queue.length === 1 ? " is" : "s are"} ready for you.` : "You’re all caught up. A good moment to plan your next project."}
           </p>
         </div>
         <Link href="/company/projects/new" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5")}>New project</Link>

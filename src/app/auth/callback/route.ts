@@ -24,7 +24,8 @@ export async function GET(request: Request) {
     if (!error) {
       // Copy the freshly linked identities onto the profile (safe to run after any sign-in).
       await supabase.rpc("sync_verified_identities");
-      if (viaLinkedIn) return NextResponse.redirect(`${origin}${next || (await afterLinkedIn(supabase, data.user, asCompany))}`);
+      // Signing in with LinkedIn starts on your home page, like any other sign-in (or onboarding, for a new account).
+      if (viaLinkedIn) return NextResponse.redirect(`${origin}${await afterLinkedIn(supabase, data.user, asCompany)}`);
       // Companies continue their verification; students continue their onboarding.
       const home = data.user?.user_metadata?.role === "company" ? "/company/verify" : "/welcome";
       return NextResponse.redirect(`${origin}${next || home}`);

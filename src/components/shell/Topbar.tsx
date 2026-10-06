@@ -54,13 +54,13 @@ export function Topbar({ user, counts, notifications, sidebarCollapsed, onToggle
       )}
       <NotificationsMenu items={notifications.items} unread={notifications.unread} />
       {company && <Link href="/company/projects/new" className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />Post a project</Link>}
+      <UserMenu user={user} />
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-64 gap-0 p-0 sm:max-w-64" showCloseButton={false}>
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <div className="flex h-20 items-center gap-3 border-b px-3.5"><Logo size={56} /><span className="text-xl font-semibold">Folio</span></div>
           <NavItems role={user.role} counts={counts} onNavigate={() => setOpen(false)} />
-          <div className="border-t p-2"><UserMenu user={user} /></div>
         </SheetContent>
       </Sheet>
     </header>
