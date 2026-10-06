@@ -5,9 +5,10 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { AppShell } from "@/components/shell/AppShell";
 import { SiteHeader } from "@/components/marketing/SiteHeader";
+import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { getSession } from "@/lib/auth";
+import { getSession, isOnboarding } from "@/lib/auth";
 import { getNotifications } from "@/lib/data/notifications";
 import { getCompanyNavCounts } from "@/lib/data/startup";
 import { getStudentNavCounts } from "@/lib/data/student";
@@ -20,18 +21,21 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getSession();
   const counts = !user ? null : user.role === "company" ? await getCompanyNavCounts(user) : await getStudentNavCounts(user).then((c) => ({ ...c }));
-  const sidebarCollapsed = (await cookies()).get("folio_sidebar")?.value === "1";
+  // Collapsed by default; only someone who expanded it ("0") gets the full sidebar.
+  const sidebarCollapsed = (await cookies()).get("folio_sidebar_v2")?.value !== "0";
   const notifications = user ? await getNotifications(user) : { items: [], unread: 0 };
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} h-full`}>
       <body className="min-h-full">
         <TooltipProvider>
-          {user && counts ? (
+          {/* Students still in onboarding see the public site, with a way back to their set-up. */}
+          {user && counts && !isOnboarding(user) ? (
             <AppShell user={user} counts={counts} notifications={notifications} defaultCollapsed={sidebarCollapsed}>{children}</AppShell>
           ) : (
             <div className="flex min-h-screen flex-col overflow-x-clip">
-              <SiteHeader />
+              <SiteHeader onboarding={!!user && isOnboarding(user)} />
               <main className="flex-1">{children}</main>
+              <SiteFooter />
             </div>
           )}
         </TooltipProvider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, MessageSquare } from "lucide-react";
+import { ArrowRight, Briefcase, Check, Clock, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useTransition } from "react";
 import { toast } from "sonner";
@@ -96,10 +96,11 @@ export function WorkTabs({ apps, tab, userId, submissions }: { apps: Row[]; tab:
       </TabsList>
       <TabsContent value="applications" className="flex flex-col gap-3">
         {active.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-zinc-300 px-6 py-12">
-            <span className="text-base font-semibold">{apps.length === 0 ? "No applications yet" : "Nothing active right now"}</span>
-            <span className="text-muted-foreground">{apps.length === 0 ? "Your first one is usually the hardest. Pick a project that matches your skills and send a short note." : "Your finished projects are under Past. Find a new one to keep going."}</span>
-            <Link href="/projects" className={cn(buttonVariants(), "h-9 px-3.5")}>Find projects</Link>
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-zinc-300 bg-white/60 px-6 py-14 text-center">
+            <span className="empty-icon grid size-12 place-items-center rounded-full bg-soft text-brand"><Briefcase className="size-5" /></span>
+            <span className="text-xl font-semibold tracking-tight">{apps.length === 0 ? "You have no work yet!" : "Nothing active right now"}</span>
+            {apps.length > 0 && <span className="-mt-2 text-muted-foreground">Your finished projects are under Past.</span>}
+            <Link href="/projects" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>Find projects <ArrowRight className="size-4" /></Link>
           </div>
         ) : active.map((a) => <AppCard key={a.id} a={a} userId={userId} latest={submissions[a.id]} />)}
       </TabsContent>

@@ -7,6 +7,7 @@ export const metadata = { title: "Set up your profile · Folio" };
 export default async function Welcome({ searchParams }: PageProps<"/welcome">) {
   const user = await requireUser("/welcome", "student");
   const asked = Number((await searchParams).step);
-  const step = ([3, 4, 5, 6].includes(asked) ? asked : 3) as OnboardingStep;
+  // The profile photo is required: later steps aren't reachable without one.
+  const step = (user.avatarUrl && [3, 4, 5, 6].includes(asked) ? asked : 3) as OnboardingStep;
   return <StudentOnboarding step={step} user={user} />;
 }

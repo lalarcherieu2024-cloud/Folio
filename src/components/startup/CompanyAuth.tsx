@@ -1,11 +1,11 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Mail } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { signInAction, signUpAction } from "@/app/actions/auth";
-import { resendCompanyCodeAction, verifyCompanyEmailAction } from "@/app/actions/startup";
+import { resendCompanyCodeAction } from "@/app/actions/startup";
 import { Logo } from "@/components/shared/Logo";
 import { RoleSwitch } from "@/components/shared/RoleSwitch";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -14,13 +14,14 @@ import { Label } from "@/components/ui/label";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
+import { TermsConsent } from "@/components/shared/TermsConsent";
 
 // Company sign in / create account + verification frame (design: "Folio Startup", signed-out state).
 const STEPS: readonly (readonly [string, string])[] = [
   ["Create your account", "Name, work email and password"],
-  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Verify your email", "Enter the 6-digit code we send you"],
+  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Confirm your email", "Click the link we email you"],
   ["Company details", "Legal name, CIF, website and location"],
-  ["Upload documents", "Registry extract, representative ID, bank certificate"],
+  ["Logo and documents", "Logo, registry extract, ID, bank certificate"],
   ["Review & submit", "Check everything and confirm"],
   ["Folio verification", "We review within 1–2 business days"],
 ];
@@ -108,34 +109,32 @@ const COPY = {
   signup: ["Get verified to post projects", "Every company on Folio is checked before students see its projects. Here’s where you are."],
 } as const;
 
-function EmailCode({ email }: { email: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(verifyCompanyEmailAction, {});
-  const [code, setCode] = useState("");
+// Step 2: Supabase's confirmation email carries a link (no 6-digit code). Clicking it lands on
+// /auth/callback, which signs the company in and continues to /company/verify.
+function CheckEmail({ email }: { email: string }) {
   const [resending, startResend] = useTransition();
   const resend = () => startResend(async () => {
     const r = await resendCompanyCodeAction(email);
-    if (r.error) toast.error(r.error); else toast("Code sent", { description: `Check ${email}.` });
+    if (r.error) toast.error(r.error); else toast("Email sent again", { description: `Check ${email}.` });
   });
   return (
     <>
-      <StepHeading eyebrow="Step 2 of 5" title="Verify your email" sub={`Enter the 6-digit code we sent to ${email}. You can also click the link in that email.`} />
-      <form action={action}>
-        <input type="hidden" name="email" value={email} />
-        <StepCard footer={<>
-          <Link href="/company/signin" className={outlineBtn}>Back</Link>
-          <div className="flex items-center gap-3">
-            {code.length < 6 && <span className="text-xs text-muted-foreground">Enter all 6 digits</span>}
-            <button type="submit" disabled={code.length < 6 || pending} className={primaryBtn}>{pending ? "Checking…" : "Continue"}</button>
-          </div>
-        </>}>
-          <div className="grid gap-1.5">
-            <Label htmlFor="code">Verification code</Label>
-            <Input id="code" name="code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="h-[3.25rem] bg-white px-4 font-mono text-2xl tracking-[0.4em]" />
-          </div>
-          {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
-          <button type="button" onClick={resend} disabled={resending} className="self-start text-[0.8125rem] font-medium underline underline-offset-4 disabled:opacity-50">{resending ? "Sending…" : "Resend code"}</button>
-        </StepCard>
-      </form>
+      <StepHeading eyebrow="Step 2 of 5" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to verify your company.</>} />
+      <StepCard footer={<>
+        <Link href="/company/signup" className={outlineBtn}>Back</Link>
+        <Link href="/signin?as=company" className={primaryBtn}>I&apos;ve confirmed, sign in</Link>
+      </>}>
+        <div className="flex items-start gap-3.5 rounded-lg bg-panel p-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-primary ring-1 ring-border"><Mail className="size-5" /></span>
+          <ol className="grid gap-1.5 text-sm text-zinc-600">
+            <li><span className="font-mono text-xs text-primary">1</span> Open the email from Folio</li>
+            <li><span className="font-mono text-xs text-primary">2</span> Click the confirmation link</li>
+            <li><span className="font-mono text-xs text-primary">3</span> Carry on with your company details and documents</li>
+          </ol>
+        </div>
+        <p className="text-xs text-muted-foreground">Open the link in this browser so you stay signed in. No email after a few minutes? Check your spam folder.</p>
+        <button type="button" onClick={resend} disabled={resending} className="self-start text-[0.8125rem] font-medium underline underline-offset-4 disabled:opacity-50">{resending ? "Sending…" : "Send the email again"}</button>
+      </StepCard>
     </>
   );
 }
@@ -144,7 +143,7 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
   const up = mode === "signup";
   const [state, action, pending] = useActionState<FormState, FormData>(up ? signUpAction : signInAction, {});
   const [email, setEmail] = useState("");
-  const sentTo = up && state.notice ? email.trim().toLowerCase() : null; // account created, waiting for the email code
+  const sentTo = up && state.notice && !SKIP_EMAIL_CONFIRMATION ? email.trim().toLowerCase() : null; // account created, waiting for the confirmation link
   const [title, sub] = COPY[mode];
 
   return (
@@ -179,13 +178,15 @@ export function CompanyAuth({ mode, next }: { mode: "signin" | "signup"; next?: 
             <Field id="fullName" label="Full name" autoComplete="name" placeholder="Marta Ruiz" required />
             <Field id="email" label="Work email" type="email" autoComplete="email" placeholder="marta@nubolabs.es" value={email} onChange={(e) => setEmail(e.target.value)} hint="Use your company domain. It helps us confirm you work there." required />
             <Field id="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} required />
+            <TermsConsent />
             {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
+            {state.notice && SKIP_EMAIL_CONFIRMATION && <p role="status" className="text-sm font-medium text-primary">{state.notice} <Link href="/signin?as=company" className="underline underline-offset-4">Sign in</Link></p>}
           </StepCard>
         </form>
         <p className="text-sm text-muted-foreground">Already have an account? <Link href="/signin?as=company" className="font-medium text-foreground underline underline-offset-4">Sign in</Link></p>
       </>}
 
-      {sentTo && <EmailCode email={sentTo} />}
+      {sentTo && <CheckEmail email={sentTo} />}
     </AuthFrame>
   );
 }

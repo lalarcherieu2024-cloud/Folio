@@ -3,8 +3,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "../supabase/server";
 import { analyzeCv } from "../strengths";
-import type { Application, Credential, Project, ProfileFile, StudentProfile } from "../types";
+import type { Application, CourseCertificate, Credential, Project, ProfileFile, StudentProfile } from "../types";
 import { UUID, monthYear, toApplication, toProject } from "./shared";
+import { countUnreadMessages } from "./messages";
 import { appliedProjectIds, getOpenProjects, notOwnedBy } from "./projects";
 
 export async function getApplicationFor(user: StudentProfile, projectId: string): Promise<Application | undefined> {
@@ -92,9 +93,9 @@ export async function updateProfile(user: StudentProfile, patch: { fullName: str
   return error ? { error: "Couldn't save your profile." } : {};
 }
 
-export async function getStudentNavCounts(user: StudentProfile): Promise<{ open: number; mine: number }> {
+export async function getStudentNavCounts(user: StudentProfile): Promise<{ open: number; mine: number; messages: number }> {
   const supabase = await createClient();
-  const [open, mine] = await Promise.all([
+  const [open, mine, messages] = await Promise.all([
     (async () => {
       const applied = await appliedProjectIds(user.id);
       let q = supabase.from("project_cards").select("id", { count: "exact", head: true }).eq("status", "open").or(notOwnedBy(user.id));
@@ -102,8 +103,9 @@ export async function getStudentNavCounts(user: StudentProfile): Promise<{ open:
       return q;
     })(),
     supabase.from("applications").select("id", { count: "exact", head: true }).eq("student_id", user.id),
+    countUnreadMessages(user),
   ]);
-  return { open: open.count ?? 0, mine: mine.count ?? 0 };
+  return { open: open.count ?? 0, mine: mine.count ?? 0, messages };
 }
 
 export async function getRecommended(user: StudentProfile, applied: Application[] & { project?: Project }[]): Promise<{ projects: Project[]; basedOn: string[] }> {
@@ -293,5 +295,57 @@ export async function removeAvatar(user: StudentProfile): Promise<{ error?: stri
   const { error } = await supabase.from("profiles").update({ avatar_path: null }).eq("id", user.id);
   if (error) return { error: "Couldn't remove your photo." };
   if (old?.avatar_path) await supabase.storage.from("avatars").remove([old.avatar_path]);
+  return {};
+}
+
+
+// ---------------------------------------------------------------- certificates from other courses (migration 0025)
+
+export const MAX_CERTIFICATES = 20;
+
+/** A student's course certificates, newest first. Works for the student and for clients they applied to (RLS). */
+export async function getCertificates(studentId: string): Promise<CourseCertificate[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("course_certificates").select("*").eq("user_id", studentId)
+    .order("issued_on", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
+  if (error || !data?.length) return [];
+  const paths = data.map((c) => c.path).filter(Boolean) as string[];
+  const signed = paths.length ? (await supabase.storage.from("cvs").createSignedUrls(paths, 60 * 60)).data ?? [] : [];
+  return data.map((c) => ({
+    id: c.id, title: c.title, issuer: c.issuer, issuedOn: c.issued_on ? String(c.issued_on).slice(0, 7) : null, credentialUrl: c.credential_url,
+    file: c.path ? { name: c.file_name ?? "Certificate", sizeKb: c.size_kb ?? 0, url: signed.find((x) => x.path === c.path)?.signedUrl ?? null } : null,
+  }));
+}
+
+export async function addCertificate(user: StudentProfile, input: { title: string; issuer: string; issuedOn: string | null; credentialUrl: string | null; file: File | null; ext: string }): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { count, error: countErr } = await supabase.from("course_certificates").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+  if (countErr) return { error: "Certificates aren't set up yet (run migration 0025)." };
+  if ((count ?? 0) >= MAX_CERTIFICATES) return { error: `You can add up to ${MAX_CERTIFICATES} certificates. Remove one first.` };
+  let path: string | null = null;
+  if (input.file) {
+    path = `${user.id}/cert-${Date.now()}${input.ext}`;
+    const { error: upErr } = await supabase.storage.from("cvs").upload(path, await input.file.arrayBuffer(), { contentType: input.file.type || undefined });
+    if (upErr) { console.error("addCertificate upload", upErr); return { error: "Upload failed. Try again." }; }
+  }
+  const { error } = await supabase.from("course_certificates").insert({
+    user_id: user.id, title: input.title, issuer: input.issuer, issued_on: input.issuedOn ? `${input.issuedOn}-01` : null, credential_url: input.credentialUrl,
+    path, file_name: input.file ? input.file.name.slice(0, 120) : null, size_kb: input.file ? Math.max(1, Math.round(input.file.size / 1024)) : null,
+  });
+  if (error) {
+    if (path) await supabase.storage.from("cvs").remove([path]);
+    console.error("addCertificate", error);
+    return { error: "Couldn't save the certificate. Try again." };
+  }
+  return {};
+}
+
+export async function removeCertificate(user: StudentProfile, id: string): Promise<{ error?: string }> {
+  if (!UUID.test(id)) return { error: "Certificate not found." };
+  const supabase = await createClient();
+  const { data } = await supabase.from("course_certificates").select("path").eq("id", id).eq("user_id", user.id).maybeSingle();
+  const { error } = await supabase.from("course_certificates").delete().eq("id", id).eq("user_id", user.id);
+  if (error) return { error: "Couldn't remove it. Try again." };
+  if (data?.path) await supabase.storage.from("cvs").remove([data.path]);
   return {};
 }

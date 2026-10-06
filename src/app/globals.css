@@ -77,9 +77,62 @@
 .stagger > :nth-child(8) { animation-delay: 385ms; }
 .stagger > :nth-child(9) { animation-delay: 440ms; }
 
-@keyframes demo-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.demo-progress { animation: demo-progress 3s linear both; } /* duration set inline from STEP_MS */
-@media (prefers-reduced-motion: reduce) { .demo-progress { animation: none; } }
+@keyframes demo-travel-down { from { opacity: 0; transform: translateY(-1rem); } to { opacity: 1; transform: none; } }
+@keyframes demo-travel-up { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: none; } }
+.demo-travel-down { animation: demo-travel-down .62s cubic-bezier(.2, .8, .2, 1) .25s both; }
+.demo-travel-up { animation: demo-travel-up .62s cubic-bezier(.2, .8, .2, 1) .25s both; }
+/* Landing demo: these play when a step's screen appears (.demo-pane[data-active]), so every step has motion
+   from start to finish: content staggers in, text types, a cursor clicks the button, and a timer runs. */
+@keyframes demo-in { from { opacity: 0; transform: translateY(.6rem); } }
+@keyframes demo-pop { from { opacity: 0; transform: scale(.6); } 60% { transform: scale(1.12); } to { opacity: 1; transform: none; } }
+@keyframes demo-ring { from { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); } to { box-shadow: 0 0 0 .5rem rgba(34, 197, 94, 0); } }
+@keyframes demo-ok-row { from { background-color: #fff; border-color: #dde7ee; } }
+@keyframes demo-fill { from { transform: scaleX(0); } }
+@keyframes demo-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@keyframes demo-press { 0%, 100% { transform: none; } 50% { transform: scale(.93); filter: brightness(1.25); } }
+@keyframes demo-cursor-x { from { transform: translateX(-6rem); } }
+@keyframes demo-cursor-y { from { transform: translateY(-4.5rem); } }
+@keyframes demo-cursor { 0% { opacity: 0; } 15%, 100% { opacity: 1; } }
+@keyframes demo-click { 0%, 100% { transform: none; } 50% { transform: scale(.82) rotate(-6deg); } }
+@keyframes demo-ripple { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(2.2); } }
+@keyframes demo-leave { to { opacity: 0; transform: translateY(-.4rem) scale(.985); } }
+@keyframes demo-type { from { clip-path: inset(0 100% 0 0); } }
+@keyframes demo-breathe { 50% { opacity: .55; } }
+@keyframes demo-flow-down { from { top: 0; opacity: 0; } 25%, 75% { opacity: 1; } to { top: 100%; opacity: 0; } }
+@keyframes demo-flow-up { from { top: 100%; opacity: 0; } 25%, 75% { opacity: 1; } to { top: 0; opacity: 0; } }
+@keyframes demo-timer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes demo-finale { from { opacity: 0; transform: scale(.92); box-shadow: 0 0 0 0 rgba(34, 197, 94, .45); } 60% { opacity: 1; transform: none; } to { box-shadow: 0 0 0 1.25rem rgba(34, 197, 94, 0); } }
+@property --demo-n { syntax: "<integer>"; inherits: false; initial-value: 600; }
+@keyframes demo-count { from { --demo-n: 0; } }
+.demo-count::after { counter-reset: n var(--demo-n); content: "+€" counter(n); }
+
+.demo-pane[data-active] > * { animation: demo-in .69s cubic-bezier(.2, .8, .2, 1) .12s both; }
+.demo-pane[data-active] > :nth-child(2) { animation-delay: .22s; }
+.demo-pane[data-active] > :nth-child(3) { animation-delay: .33s; }
+.demo-pane[data-active] > :nth-child(4) { animation-delay: .43s; }
+.demo-pane[data-active] .demo-pop { animation: demo-pop .56s cubic-bezier(.2, .8, .2, 1) .5s both; }
+.demo-pane[data-active] .demo-ok { animation: demo-pop .56s cubic-bezier(.2, .8, .2, 1) .62s both, demo-ring 1.25s ease-out 1.06s 2; }
+.demo-pane[data-active] .demo-ok-row { animation: demo-in .56s cubic-bezier(.2, .8, .2, 1) both, demo-ok-row 1s ease-out .44s both; }
+.demo-pane[data-active] .demo-fill { background-image: linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, .55) 50%, transparent 70%); background-size: 200% 100%;
+  animation: demo-fill 1.12s cubic-bezier(.65, 0, .35, 1) .38s both, demo-shimmer 1.75s linear 1.5s infinite; }
+.demo-pane[data-active] .demo-press { animation: demo-in .56s cubic-bezier(.2, .8, .2, 1) .25s both, demo-press .38s ease-in-out 1.69s; }
+/* The cursor arcs in over 1.1s (x eases out early, y eases in late), clicks at 1.3s, and the button and a ripple react. */
+.demo-cursor, .demo-ripple { opacity: 0; }
+.demo-pane[data-active] .demo-cursor-x { animation: demo-cursor-x 1.38s cubic-bezier(.25, 1, .5, 1) .25s both; }
+.demo-pane[data-active] .demo-cursor-y { animation: demo-cursor-y 1.38s cubic-bezier(.5, 0, .2, 1) .25s both; }
+.demo-pane[data-active] .demo-cursor { animation: demo-cursor 1.38s linear .25s both, demo-click .38s ease-in-out 1.62s; }
+.demo-pane[data-active] .demo-ripple { animation: demo-ripple .75s ease-out 1.77s both; }
+.demo-leave { animation: demo-leave .44s cubic-bezier(.4, 0, .2, 1) both; }
+.demo-pane[data-active] .demo-type { animation: demo-type 1.12s steps(28) .31s both; }
+.demo-pane[data-active] .demo-star { animation: demo-pop .44s cubic-bezier(.2, .8, .2, 1) both; }
+.demo-pane[data-active] .demo-upload { animation: demo-fill .56s ease-out .06s both; }
+.demo-pane[data-active] .demo-breathe { animation: demo-pop .56s cubic-bezier(.2, .8, .2, 1) .5s both, demo-breathe 2s ease-in-out 1.12s infinite; }
+.demo-pane[data-active] .demo-finale { animation: demo-finale 1.38s cubic-bezier(.2, .8, .2, 1) .31s both; }
+.demo-pane[data-active] .demo-count { animation: demo-count 1.62s cubic-bezier(.2, .8, .2, 1) .62s both; }
+.demo-flow-down { animation: demo-flow-down 1.5s ease-in-out infinite both; }
+.demo-flow-up { animation: demo-flow-up 1.5s ease-in-out infinite both; }
+.demo-timer { animation: demo-timer linear both; }
+@media (prefers-reduced-motion: reduce) { .demo-travel-down, .demo-travel-up, .demo-flow-down, .demo-flow-up, .demo-timer, .demo-leave, .demo-pane[data-active] * { animation: none !important; } .demo-leave, .demo-cursor, .demo-ripple { display: none; } }
 
 @keyframes pop-card { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
 .pop-card { animation: pop-card .4s cubic-bezier(.2, .8, .2, 1) both; }
@@ -87,6 +140,14 @@
 @keyframes pop-count { 0% { transform: scale(.7); opacity: .3; } 60% { transform: scale(1.18); } 100% { transform: scale(1); opacity: 1; } }
 .slide-in { animation: slide-in-left .45s cubic-bezier(.2, .8, .2, 1) both; }
 .pop-count { display: inline-block; animation: pop-count .35s cubic-bezier(.2, .8, .2, 1) both; }
+
+/* Empty-state symbol: the bubble pops in, a soft ring ripples out, and the icon bobs and swings gently. */
+@keyframes empty-pop { 0% { opacity: 0; transform: scale(.6); } 70% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes empty-ripple { 0% { opacity: .4; transform: scale(1); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes empty-bob { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-3px) rotate(-6deg); } 50% { transform: translateY(0) rotate(0); } 75% { transform: translateY(-2px) rotate(5deg); } }
+.empty-icon { position: relative; animation: empty-pop .65s cubic-bezier(.2, .8, .2, 1) both; }
+.empty-icon::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 2px solid currentColor; opacity: 0; pointer-events: none; animation: empty-ripple 3s cubic-bezier(.2, .8, .2, 1) .65s infinite; }
+.empty-icon > svg { transform-origin: 50% 25%; animation: empty-bob 4s ease-in-out .65s infinite; }
 
 /* Cards: a gentle lift and a soft shadow, like a physical card being picked up. */
 .card-hover { transition: border-color .2s, box-shadow .25s, transform .25s cubic-bezier(.2, .8, .2, 1); }
@@ -96,3 +157,13 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Legal pages (LegalPage): readable long-form text. */
+.legal-prose { font-size: .9375rem; line-height: 1.7; color: #3f4a54; }
+.legal-prose > * + * { margin-top: .85rem; }
+.legal-prose h3 { margin-top: 1.25rem; font-size: 1rem; font-weight: 600; color: var(--foreground); }
+.legal-prose ul { list-style: disc; padding-left: 1.25rem; }
+.legal-prose ol { list-style: decimal; padding-left: 1.25rem; }
+.legal-prose li + li { margin-top: .35rem; }
+.legal-prose a { color: var(--foreground); text-decoration: underline; text-underline-offset: 3px; }
+.legal-prose strong { color: var(--foreground); font-weight: 600; }

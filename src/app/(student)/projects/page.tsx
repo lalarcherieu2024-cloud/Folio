@@ -11,6 +11,7 @@ import { SortSelect } from "@/components/student/SortSelect";
 import { getSession } from "@/lib/auth";
 import { getCategoryCounts, getOpenProjects, type Sort } from "@/lib/data/projects";
 import { getApplications, getSavedIds } from "@/lib/data/student";
+import { FIELD_TONES } from "@/lib/fields";
 import { CATEGORIES } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { eur, viewerFrom, weeksLabel } from "@/lib/work";
@@ -45,17 +46,13 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
   return (
     <PublicWrap signedIn={!!user}>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-[1.875rem] font-semibold tracking-[-0.025em]">Find projects</h1>
-          <p className="max-w-[60ch] text-[0.9375rem] text-muted-foreground">Paid work from startups and small businesses. Fixed price, clear finish line.</p>
-        </div>
-
         <div className="flex flex-wrap items-start gap-8">
           <aside className="flex max-w-60 flex-[1_1_12.5rem] flex-col gap-5">
+            <h1 className="px-2 text-[1.875rem] font-semibold leading-none tracking-[-0.025em]">Find projects</h1>
             <FieldFilters
               fields={[
                 { key: "all", label: "All fields", count: total, href: href({ category: undefined }), active: !category },
-                ...CATEGORIES.map((c) => ({ key: c, label: c, count: counts[c] ?? 0, href: href({ category: category === c ? undefined : c }), active: category === c })),
+                ...CATEGORIES.map((c) => ({ key: c, label: c, count: counts[c] ?? 0, href: href({ category: category === c ? undefined : c }), active: category === c, tone: FIELD_TONES[c] })),
               ]}
             />
           </aside>
@@ -66,7 +63,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
               {hasFilters && <Link href="/projects" className="inline-flex h-8 items-center rounded-md px-2.5 text-[0.8125rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">Clear filters</Link>}
               {user && (
                 <Link href={href({ saved: savedOnly ? undefined : "1" })} scroll={false} aria-pressed={savedOnly} className={cn("inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[0.8125rem] font-medium", savedOnly ? "border-[#e11d48]/40 bg-[#fff1f2] text-[#be123c]" : "bg-white text-zinc-600 hover:bg-muted")}>
-                  <Heart className={cn("size-3.5", savedOnly && "fill-[#e11d48] text-[#e11d48]")} />Saved <span className="font-mono text-xs">{savedIds.length}</span>
+                  <Heart className={cn("size-3.5", savedOnly && "fill-[#e11d48] text-[#e11d48]")} />Saved <span className="tabular-nums text-xs">{savedIds.length}</span>
                 </Link>
               )}
               <div className="flex rounded-md border bg-white p-0.5" role="group" aria-label="Layout">
@@ -101,9 +98,9 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
                       <span className="text-[0.8125rem] text-muted-foreground">{p.orgName ?? p.clientName}</span>
                     </div>
                     <span className="text-[0.8125rem] text-zinc-600">{p.category}</span>
-                    <span className="font-mono font-semibold">{eur(p.priceEur)}</span>
+                    <span className="tabular-nums font-semibold">{eur(p.priceEur)}</span>
                     <span className="text-zinc-600">{weeksLabel(p.weeks)}</span>
-                    <span className="font-mono text-zinc-600">{p.applicantCount}</span>
+                    <span className="tabular-nums text-zinc-600">{p.applicantCount}</span>
                   </Link>
                 ))}
               </div>

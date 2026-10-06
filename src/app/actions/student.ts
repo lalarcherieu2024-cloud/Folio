@@ -5,7 +5,7 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { isAvatarColor } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
-import { addProfileFile, confirmInterview, createApplication, reanalyzeStoredCv, deleteCv, removeAvatar, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, withdrawApplication } from "@/lib/data/student";
+import { addCertificate, addProfileFile, confirmInterview, createApplication, deleteCv, reanalyzeStoredCv, removeAvatar, removeCertificate, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, withdrawApplication } from "@/lib/data/student";
 import { str, type FormState } from "@/lib/form";
 
 export async function applyAction(_: FormState, f: FormData): Promise<FormState> {
@@ -139,5 +139,37 @@ export async function deleteCvAction(): Promise<FormState> {
   const res = await deleteCv(user);
   if (res.error) return res;
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+
+// ---- Certificates from other courses (Coursera, Programiz, …)
+const CERT_TYPES: Record<string, string> = { ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" };
+
+export async function addCertificateAction(_: FormState, f: FormData): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  const title = str(f, "title").slice(0, 120), issuer = str(f, "issuer").slice(0, 80), issuedOn = str(f, "issuedOn");
+  let credentialUrl = str(f, "credentialUrl");
+  if (!title || !issuer) return { error: "Add the course name and who issued it." };
+  if (issuedOn && !/^\d{4}-\d{2}$/.test(issuedOn)) return { error: "Pick the month you got it." };
+  if (credentialUrl && !/^https?:\/\//i.test(credentialUrl)) credentialUrl = `https://${credentialUrl}`;
+  if (credentialUrl && !/^https:\/\/[^\s]+\.[^\s]+$/i.test(credentialUrl)) return { error: "That link doesn't look right. Paste the full https:// address." };
+  const raw = f.get("file");
+  const file = raw instanceof File && raw.size > 0 ? raw : null;
+  const ext = file ? path.extname(file.name).toLowerCase() : "";
+  if (file && !CERT_TYPES[ext]) return { error: "Upload a PDF or an image (PNG, JPG, WebP)." };
+  if (file && file.size > 5 * 1024 * 1024) return { error: "The file must be under 5 MB." };
+  if (!file && !credentialUrl) return { error: "Add a link to the certificate or upload a copy, so clients can check it." };
+  const res = await addCertificate(user, { title, issuer, issuedOn: issuedOn || null, credentialUrl: credentialUrl || null, file, ext });
+  if (res.error) return res;
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+export async function deleteCertificateAction(id: string): Promise<FormState> {
+  const user = await requireUser("/profile", "student");
+  const res = await removeCertificate(user, id);
+  if (res.error) return res;
+  revalidatePath("/profile");
   return { ok: true };
 }

@@ -28,6 +28,8 @@ export type Project = {
   clientKind: "company" | "student";
   orgName: string | null; // null when a student is the client
   orgVerified: boolean;
+  orgLogoUrl: string | null; // company logo (migration 0024)
+  clientAvatarUrl: string | null; // photo of the student who posted it, when a student is the client
   hood: string;
   category: Category;
   title: string;
@@ -85,6 +87,13 @@ export type Credential = {
 };
 
 export type ProfileFile = { id: string; name: string; sizeKb: number; createdAt: string };
+
+/** A certificate from a course outside Folio (Coursera, Programiz, …), shown on the student's profile (migration 0025). */
+export type CourseCertificate = {
+  id: string; title: string; issuer: string; issuedOn: string | null; // "2026-05" month, or null
+  credentialUrl: string | null; // the issuer's own page for it
+  file: { name: string; sizeKb: number; url: string | null } | null; // uploaded copy; url is a short-lived signed link
+};
 
 export type Notification = { id: string; kind: string; title: string; body: string; link: string | null; read: boolean; createdAt: string };
 

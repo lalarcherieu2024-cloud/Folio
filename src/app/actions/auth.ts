@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import { EMAIL, safeNext, str, type FormState } from "@/lib/form";
+import { TERMS_VERSION } from "@/lib/legal";
 import { homeFor } from "@/lib/routes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +15,9 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
   if (!fullName) return { error: "Enter your name." };
   if (!EMAIL.test(email)) return { error: "Enter a valid email." };
   if (str(f, "password").length < 8) return { error: "Use a password of at least 8 characters." };
+  if (f.get("terms") !== "on") return { error: "Please agree to the Terms of Service to create an account." };
+  // Kept on the account as the record of what was agreed and when.
+  const consent = { terms_version: TERMS_VERSION, terms_accepted_at: new Date().toISOString() };
   const role: Role = str(f, "role") === "company" ? "company" : "student";
   const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const supabase = await createClient();
@@ -24,7 +28,7 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
     // No email step: create the account already confirmed, then sign straight in.
     const admin = createAdminClient();
     const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email, password, email_confirm: true, user_metadata: { full_name: fullName, program, role },
+      email, password, email_confirm: true, user_metadata: { full_name: fullName, program, role, ...consent },
     });
     if (createError) {
       if (createError.code === "email_exists" || /already (been )?registered/i.test(createError.message)) return { error: "An account with this email already exists. Sign in instead." };
@@ -40,7 +44,7 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
 
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { full_name: fullName, program, role }, emailRedirectTo: `${origin}/auth/callback` },
+    options: { data: { full_name: fullName, program, role, ...consent }, emailRedirectTo: `${origin}/auth/callback` },
   });
   if (error) {
     if (error.code === "user_already_exists" || /already registered/i.test(error.message)) return { error: "An account with this email already exists. Sign in instead." };
@@ -54,17 +58,6 @@ export async function signUpAction(_: FormState, f: FormData): Promise<FormState
   // With "Confirm email" on, there's no session until the link is clicked.
   if (!data.session) return { ok: true, notice: `Check ${email} for a confirmation link, then sign in.` };
   redirect(landing);
-}
-
-// Student sign-up step 2: the 6-digit code from the confirmation email (companies use verifyCompanyEmailAction).
-export async function verifyStudentEmailAction(_: FormState, f: FormData): Promise<FormState> {
-  const email = str(f, "email").toLowerCase(), token = str(f, "code").replace(/\D/g, "");
-  if (!EMAIL.test(email)) return { error: "Start again from Create account." };
-  if (token.length !== 6) return { error: "Enter all 6 digits." };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-  if (error) return { error: error.code === "otp_expired" ? "That code has expired. Send a new one." : "That code isn't right. Check the email and try again." };
-  redirect("/welcome");
 }
 
 export async function signInAction(_: FormState, f: FormData): Promise<FormState> {
