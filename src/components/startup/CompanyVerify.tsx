@@ -13,6 +13,7 @@ import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
 import { AuthFrame, outlineBtn, primaryBtn, StepCard, StepHeading } from "./CompanyAuth";
 import { CompanyDetailsForm } from "./CompanyDetailsForm";
+import type { SignupAccount } from "@/components/shared/SignupExits";
 
 const DOCS: { kind: DocKind; title: string; sub: string }[] = [
   { kind: "registry_extract", title: "Company registry extract", sub: "Nota simple from the Registro Mercantil, issued in the last 3 months" },
@@ -137,7 +138,7 @@ function Status({ org }: { org: Organization }) {
   );
 }
 
-export function CompanyVerify({ step, org, email, name }: { step: 3 | 4 | 5 | 6; org: Organization | null; email: string; name: string }) {
+export function CompanyVerify({ step, org, email, name, account }: { step: 3 | 4 | 5 | 6; org: Organization | null; email: string; name: string; account?: SignupAccount }) {
   const docsDone = DOCS.every((d) => org?.docs.some((x) => x.kind === d.kind)) && !!org?.logoUrl;
   const verified = org?.status === "verified";
   const status6 = verified
@@ -146,7 +147,7 @@ export function CompanyVerify({ step, org, email, name }: { step: 3 | 4 | 5 | 6;
       ? { eyebrow: "Changes needed", title: "We couldn’t verify your company yet", sub: "Fix what’s below and submit again." }
       : { eyebrow: "Under review", title: "Your company is under review", sub: "We usually finish within 1–2 business days. Check back here to see the result." };
   return (
-    <AuthFrame {...FRAME} current={step} allDone={step === 6 && verified}>
+    <AuthFrame {...FRAME} current={step} allDone={step === 6 && verified} account={account}>
       {step === 3 && <>
         <StepHeading eyebrow="Step 3 of 5" title="Company details" sub="This appears on your public profile and on every project you post." />
         <CompanyDetailsForm org={org} then="verify" backHref="/company" backLabel="Later" />

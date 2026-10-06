@@ -15,8 +15,8 @@ const sections: LegalSection[] = [
   </> },
   { id: "collect", title: "What we collect", body: <>
     <LegalTable head={["Data", "Examples", "Where it comes from"]} rows={[
-      ["Account", "Name, email, password (stored hashed), whether you're a student or a client", "You, when you sign up"],
-      ["Sign-in with LinkedIn or GitHub", "Name, email, profile picture link, account ID; your GitHub username", "LinkedIn or GitHub, when you connect them"],
+      ["Account", "Name, email, password (stored hashed), whether you're a student or a client. Students also confirm an IE University email, which becomes the email they sign in with", "You, when you sign up"],
+      ["Signing up or in with LinkedIn, connecting GitHub", "Name, email, profile picture link, account ID; your GitHub username", "LinkedIn or GitHub, when you connect them"],
       ["Student profile", "Photo, programme and year, links, CV, the strengths we read from your CV, certificates from other courses (with their links or uploaded copies), PayPal email for payouts", "You"],
       ["Client profile", "Company name, website, tax ID (CIF), description, logo, files and verification documents", "You"],
       ["Projects and applications", "Briefs, pitches, interviews, milestones, deliveries and files, requested changes", "You and the other side of the project"],
@@ -31,6 +31,7 @@ const sections: LegalSection[] = [
       ["Running your account and the service: profiles, applications, projects, messages, credentials", "Contract (6.1.b)"],
       ["Taking, holding, releasing and refunding payments", "Contract (6.1.b)"],
       ["Verifying clients before their projects go live, and preventing fraud and abuse", "Legitimate interest in a safe marketplace (6.1.f)"],
+      ["Confirming that students study at IE University, by emailing their IE address", "Contract (6.1.b): Folio is for IE students"],
       ["Reading your CV with AI to show your strengths and match projects", "Contract (6.1.b), as a feature you choose by uploading a CV"],
       ["Drafting a brief from a client's idea with AI", "Contract (6.1.b)"],
       ["Keeping payment and accounting records", "Legal obligation (6.1.c)"],
