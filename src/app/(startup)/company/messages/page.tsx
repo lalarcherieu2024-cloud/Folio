@@ -1,4 +1,5 @@
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
+import { EmptyState } from "@/components/shared/EmptyState";
 import Link from "next/link";
 import { ChatPanel } from "@/components/shared/ChatPanel";
 import { ConversationList } from "@/components/student/ConversationList";
@@ -26,11 +27,9 @@ export default async function CompanyMessages({ searchParams }: PageProps<"/comp
       <PageHeader title="Messages" sub="Talk to the students working on your projects. A conversation opens once you accept someone." />
 
       {conversations.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-panel px-6 py-12 text-center">
-          <span className="empty-icon grid size-12 place-items-center rounded-full bg-soft text-brand"><MessageSquare className="size-5" /></span>
-          <p className="max-w-[44ch] text-sm text-muted-foreground">No conversations yet. When you accept a student on one of your projects, you can message them here.</p>
-          <Link href="/company/applicants" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5")}>See applicants</Link>
-        </div>
+        <EmptyState icon={MessageSquare} title="No conversations yet" body="When you accept a student on one of your projects, you can message them here.">
+          <Link href="/company/applicants" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>See applicants <ArrowRight className="size-4" /></Link>
+        </EmptyState>
       ) : (
         <div className="grid items-start gap-4 md:grid-cols-[20rem_1fr]">
           <div className={cn("overflow-hidden rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]", picked && "hidden md:block")}>

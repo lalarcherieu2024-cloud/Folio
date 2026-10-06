@@ -54,7 +54,7 @@ export const isLink = (where: string) => /^(https?:\/\/|[\w-]+\.[\w.-]+\/)/i.tes
 export const linkHref = (where: string) => (/^https?:\/\//i.test(where) ? where : `https://${where}`);
 
 type ChecklistUser = {
-  cv: unknown; linkedinVerified: boolean; payoutLink: string | null; fileCount: number; certificateCount: number; strengths: { fields: { label: string }[] } | null;
+  cv: unknown; linkedinVerified: boolean; payoutLink: string | null; paypalEmail: string | null; fileCount: number; certificateCount: number; strengths: { fields: { label: string }[] } | null;
 };
 
 // "Complete your profile": things that make a client say yes. GitHub is optional (it only matters for
@@ -67,7 +67,8 @@ export function profileChecklist(user: ChecklistUser) {
     // Courses finished elsewhere (Coursera, Udemy, …): proof of skills before a first Folio project. Optional, so it
     // doesn't count towards the percentage or the steps left.
     { key: "courses", label: "Add your online course certificates", done: user.certificateCount > 0, href: "/profile#courses", optional: true },
-    { key: "payout", label: "Add your PayPal payout link", done: !!user.payoutLink },
+    // Payouts go to a PayPal email (set on Payments); a paypal.me link alone can't receive them.
+    { key: "payout", label: "Add your PayPal email for payouts", done: !!user.paypalEmail, href: "/payments#payout" },
     ...(isTech ? [] : [{ key: "portfolio", label: "Upload your portfolio (PDF)", done: user.fileCount > 0 }]),
     { key: "cv", label: "Upload your CV", done: !!user.cv },
   ];

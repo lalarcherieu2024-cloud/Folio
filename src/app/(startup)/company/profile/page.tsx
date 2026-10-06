@@ -1,5 +1,8 @@
-import { Check, ExternalLink } from "lucide-react";
+import { ArrowRight, Award, Check, ExternalLink, FolderOpen } from "lucide-react";
+import { EmptyState } from "@/components/shared/EmptyState";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { CredentialCard } from "@/components/shared/CredentialCard";
 import { SignCertificateDialog } from "@/components/shared/SignCertificateDialog";
@@ -76,7 +79,7 @@ export default async function CompanyProfile() {
           {unsigned > 0 && <span className="text-[0.8125rem] font-medium text-[#92400e]">{unsigned} waiting for your signature</span>}
         </div>
         {certificates.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-sm text-muted-foreground">When you verify a student&apos;s work, the certificate you issue shows up here.</div>
+          <EmptyState icon={Award} title="No certificates yet" body="When you verify a student's work, the certificate you issue shows up here." />
         ) : (
           <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
             {certificates.map((c) => (
@@ -97,7 +100,11 @@ export default async function CompanyProfile() {
 
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold tracking-tight">Open projects <span className="font-mono text-sm font-normal text-muted-foreground">{open.length}</span></h2>
-        {open.length === 0 ? <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-sm text-muted-foreground">No open projects right now.</div> : (
+        {open.length === 0 ? (
+          <EmptyState icon={FolderOpen} title="No open projects right now" body="Projects you publish show up here for students to find.">
+            <Link href="/company/projects/new" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>Post a project <ArrowRight className="size-4" /></Link>
+          </EmptyState>
+        ) : (
           <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-4">{open.map((p) => <CompanyProjectCard key={p.id} p={p} />)}</div>
         )}
       </div>

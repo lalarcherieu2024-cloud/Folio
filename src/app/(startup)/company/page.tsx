@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Circle } from "lucide-react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/shared/UserAvatar";
+import { FirstRunTour } from "@/components/startup/FirstRunTour";
 import { ago, card, CategoryChip, pastLabel } from "@/components/startup/ui";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
@@ -75,11 +76,25 @@ export default async function CompanyHome() {
         <Link href="/company/projects/new" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5")}>New project</Link>
       </div>
 
+      {/* Until the company is verified nothing else on this page matters much, so this leads the page: by size and
+          weight (a full card with a heading and a primary button), not by a warning colour. */}
+      {/* A new, unverified company gets a short walkthrough that starts on the verification card. */}
+      {!org && <FirstRunTour userId={user.id} />}
+
       {org?.status !== "verified" && (
-        <Link href="/company/verify" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600 hover:border-zinc-400">
-          {org?.status === "pending" ? "Folio is reviewing your company. You can publish once it’s verified." : "Verify your company to start publishing projects."}
-          <span className="font-medium text-foreground underline underline-offset-4">{org?.status === "pending" ? "See status" : "Continue verification"}</span>
-        </Link>
+        <div data-tour="verify" className={cn(card, "flex flex-wrap items-center gap-x-8 gap-y-4 p-6 md:p-7")}>
+          <div className="flex min-w-[16rem] flex-1 flex-col gap-1.5">
+            <h2 className="text-xl font-semibold tracking-tight">{org?.status === "pending" ? "Folio is reviewing your company" : "Verify your company to start publishing"}</h2>
+            <p className="max-w-[60ch] text-[0.9375rem] text-muted-foreground">
+              {org?.status === "pending"
+                ? "We check every company before students see its projects, usually within 1–2 business days. You can publish as soon as it's verified."
+                : "Students only see projects from verified companies. It takes about 5 minutes: your company details, logo and three documents."}
+            </p>
+          </div>
+          <Link href="/company/verify" className={cn(buttonVariants(), "h-11 shrink-0 gap-2 px-5 text-[0.9375rem]")}>
+            {org?.status === "pending" ? "See status" : "Continue verification"}<ArrowRight className="size-4" />
+          </Link>
+        </div>
       )}
 
       {/* Key figures in one strip, like a dashboard. */}

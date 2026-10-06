@@ -34,6 +34,7 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
     avatarColor: p.avatar_color ?? null,
     avatarUrl: avatarPublicUrl(p.avatar_path),
     payoutLink: p.payout_link ?? null,
+    paypalEmail: p.paypal_email ?? null,
     fileCount: fileCount ?? 0,
     certificateCount: certificateCount ?? 0,
   };
