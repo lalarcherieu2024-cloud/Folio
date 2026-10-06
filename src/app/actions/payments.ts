@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { getOrganization } from "@/lib/data/startup";
+import { isStartup, paymentDocsDone } from "@/lib/org";
 import { removeProject, savePaypalEmail, startFunding, withdraw } from "@/lib/data/payments";
 import { str, type FormState } from "@/lib/form";
 
@@ -18,8 +19,9 @@ export async function startPaymentAction(projectId: string): Promise<{ url?: str
   const user = await requireUser(`/company/projects/${projectId}/pay`, "company");
   // Verification stage 2 (migration 0030): no payment without the registry extract and the representative's ID.
   const org = await getOrganization(user);
-  if (!org || !["registry_extract", "representative_id"].every((k) => org.docs.some((d) => d.kind === k))) {
-    return { error: "Upload the registry extract and the representative's ID first." };
+  // A student startup (0031) only uploads the founder's ID; a company also the registry extract.
+  if (!paymentDocsDone(org)) {
+    return { error: isStartup(org) ? "Upload your ID first." : "Upload the registry extract and the representative's ID first." };
   }
   const res = await startFunding(user, projectId, await origin());
   if (res.funded) { revalidatePath("/company", "layout"); revalidatePath("/projects"); }

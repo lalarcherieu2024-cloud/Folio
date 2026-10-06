@@ -43,6 +43,7 @@ export default async function CompanyPage(props: PageProps<"/companies/[id]">) {
           {facts.length > 0 && <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>}
           <div className="flex flex-wrap gap-2">
             <span className={cn(chip, "bg-[#dcfce7] text-[#166534]")}><Check className="size-3" strokeWidth={3} />Verified by Folio</span>
+            {c.studentStartup && <span className={cn(chip, "bg-[#ede9fe] text-[#5b21b6]")}>Student startup · IE founder</span>}
             {c.founderLinkedinVerified && <span className={cn(chip, "bg-[#e0f2fe] text-[#0c4a6e]")}><Check className="size-3" strokeWidth={3} />Founder&apos;s LinkedIn verified</span>}
           </div>
         </div>

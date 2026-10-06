@@ -28,7 +28,7 @@ export function Landing({ projects, counts, paymentsLive = false }: { projects: 
       <section id="how" className="grid scroll-mt-20 items-center gap-10 pb-6 pt-1 md:gap-12 md:pb-8 md:pt-4 md:grid-cols-[1.1fr_.9fr]">
         {/* For both sides in one line; the demo next to it shows the rest. */}
         <div className="min-w-0">
-          <h1 className="text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real projects.<br />Real talent.<br /><span className="text-brand-mid">Real proof.</span></h1>
+          <h1 className="text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real talent.<br />Real projects.<br /><span className="text-brand-mid">Real milestones.</span></h1>
           <p className="mt-6 max-w-[40ch] text-lg leading-relaxed text-zinc-600">Where startups and small businesses hire IE University students for paid, verified projects.</p>
         </div>
         <div className="min-w-0 md:translate-y-6"><WorkflowDemo /></div>

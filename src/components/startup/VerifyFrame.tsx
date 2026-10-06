@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 // Stage 1 only; the documents come later, before the first payment (shown as a note under the steps).
 const STEPS = [
-  { title: "Company details", sub: "Legal name, CIF, website" },
+  { title: "Company details", sub: "Name, website, CIF or your IE email" },
   { title: "Review and submit", sub: "Add your LinkedIn, send to Folio" },
   { title: "Folio review", sub: "Usually 1–2 business days" },
 ] as const;
@@ -44,8 +44,8 @@ function FinishLater() {
 
 // Mirrors the Privacy Policy's "Company verification" section; keep them in step.
 const HANDLING = [
-  ["Now", "We check your CIF, website and LinkedIn against public records, so students only see genuine companies"],
-  ["Before your first payment", "A registry extract and the representative's ID, to confirm you can act for the company"],
+  ["Now", "We check your CIF (or, for a student startup, your IE email), website and LinkedIn, so students only see genuine companies"],
+  ["Before your first payment", "The representative's ID, and the registry extract for a registered company, to confirm you can act for it"],
   ["Who sees them", "Only you and Folio's review team. Students never do; they see your name, logo and a verified badge"],
   ["Where", "Encrypted, in private storage with our database provider (Supabase)"],
   ["How long", "While your company account is open; deleted within 30 days of closing it"],
@@ -99,7 +99,7 @@ export function VerifyFrame({ step, allDone, stepHref, children }: {
           </ol>
           <p className="flex gap-2.5 px-3 text-xs leading-relaxed text-muted-foreground">
             <FileText className="mt-0.5 size-3.5 shrink-0" />
-            <span>No documents needed now. Before your first payment we&apos;ll ask for a registry extract and the representative&apos;s ID.</span>
+            <span>No documents needed now. Before your first payment we&apos;ll ask for the representative&apos;s ID, and a registered company&apos;s registry extract.</span>
           </p>
           {/* Plain-language summary of how the documents are handled; the full version is in the Privacy Policy. */}
           <details className="group rounded-lg border bg-white text-xs leading-relaxed text-muted-foreground" open>

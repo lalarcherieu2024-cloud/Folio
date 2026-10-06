@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Circle } from "lucide-react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/shared/UserAvatar";
+import { FirstHireCard } from "@/components/startup/FirstHireCard";
 import { FirstRunTour } from "@/components/startup/FirstRunTour";
 import { ago, card, CategoryChip, pastLabel } from "@/components/startup/ui";
 import { buttonVariants } from "@/components/ui/button";
@@ -67,6 +68,16 @@ export default async function CompanyHome() {
     : rows.every((r) => r.stage.key === "draft" || r.stage.key === "cancelled") ? "post"
     : pending.length > 0 ? "applicants" : null;
 
+  // "Your first hire": until a first project is verified, what hiring involves and where they are in it.
+  const hired = applicants.find((a) => a.status === "accepted" || a.status === "delivered");
+  const delivered = applicants.find((a) => a.status === "delivered");
+  const draft = rows.find((r) => r.stage.key === "draft");
+  const firstHire = org?.status === "verified" && !rows.some((r) => r.stage.key === "verified") ? {
+    done: [rows.length > 0, rows.some((r) => r.stage.key !== "draft" && r.stage.key !== "cancelled"), !!hired, !!delivered, false],
+    hrefs: ["/company/projects/new", draft ? `/company/projects/${draft.project.id}/pay` : "/company/projects/new", "/company/applicants",
+      hired ? `/company/applicants/${hired.id}` : "/company/applicants", delivered ? `/company/applicants/${delivered.id}` : "/company/applicants"],
+  } : null;
+
   const kpis = [
     { label: "Live projects", value: String(rows.filter((r) => r.stage.key === "open").length), href: "/company/projects" },
     { label: "Ready for your review", value: String(queue.length), href: "/company/applicants", alert: queue.length > 0 },
@@ -97,6 +108,8 @@ export default async function CompanyHome() {
 
       {/* One coaching tip for the step the company is on: verify, then post a first project, then review applicants. */}
       {tourStage && <FirstRunTour userId={user.id} stage={tourStage} />}
+
+      {firstHire && <FirstHireCard {...firstHire} />}
 
       {/* Until the company is verified nothing else on this page matters much, so this leads the page and stays
           highlighted until it's done: a brand ring that gently pulses (verify-highlight), a "Next step" tag and how

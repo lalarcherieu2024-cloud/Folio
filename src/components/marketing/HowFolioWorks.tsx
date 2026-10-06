@@ -1,4 +1,5 @@
 import { Plus, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { ApplicantsSnippet, CredentialSnippet, EscrowSnippet } from "@/components/marketing/Snippets";
 import { FEE_RATE } from "@/lib/data/shared";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ const COMPANY_POINTS = ["Post a brief with a fixed price.", "Students apply. Int
 export function ForCompanies() {
   return (
     // Straight after the hero, so no divider: it carries on from the demo.
-    <Split id="hiring" rule={false} className="pt-8 md:pt-10"
+    <Split id="hiring" rule={false} className="pt-12 md:pt-16"
       text={<>
         <p className={kicker}>For companies</p>
         <h2 className={hook}>Hire an IE student this week. Pay only when the work is right.</h2>
@@ -44,6 +45,10 @@ export function ForCompanies() {
             </li>
           ))}
         </ol>
+        {/* Student founders hire through their own startup account (migration 0031). */}
+        <p className="mt-7 text-[0.9375rem] text-muted-foreground">
+          Student founder at IE? <Link href="/company/signup?founder=1" className="font-medium text-foreground underline underline-offset-4 hover:text-brand">You can hire too</Link>, even before your startup is registered.
+        </p>
       </>}
       visual={<ApplicantsSnippet />} />
   );

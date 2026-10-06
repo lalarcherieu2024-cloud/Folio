@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       // Copy the freshly linked identities onto the profile (safe to run after any sign-in).
       await supabase.rpc("sync_verified_identities");
       // Signing in with LinkedIn starts on your home page, like any other sign-in (or onboarding, for a new account).
-      if (viaLinkedIn) return NextResponse.redirect(`${origin}${await afterLinkedIn(supabase, data.user, asCompany)}`);
+      if (viaLinkedIn) return NextResponse.redirect(`${origin}${await afterLinkedIn(supabase, data.user, asCompany, next)}`);
       // Companies continue their verification; students continue their onboarding.
       const home = data.user?.user_metadata?.role === "company" ? "/company/verify" : "/welcome";
       return NextResponse.redirect(`${origin}${next || home}`);
@@ -59,7 +59,7 @@ type User = Awaited<ReturnType<Supabase["auth"]["exchangeCodeForSession"]>>["dat
 // metadata) and named after its email, so it takes the name from LinkedIn and starts onboarding. From the company
 // pages (asCompany) a brand-new account is switched to a company first (become_company, migration 0027). An existing
 // account (also one made with a password and the same email, which Supabase links) just goes home.
-async function afterLinkedIn(supabase: Supabase, user: User, asCompany: boolean) {
+async function afterLinkedIn(supabase: Supabase, user: User, asCompany: boolean, next = "") {
   if (!user) return "/signin";
   const { data: profile } = await supabase.from("profiles").select("role, full_name, avatar_path").eq("id", user.id).maybeSingle();
   if (!profile) return "/signin";
@@ -78,7 +78,7 @@ async function afterLinkedIn(supabase: Supabase, user: User, asCompany: boolean)
   if (name && profile.full_name === user.email?.split("@")[0]) await supabase.from("profiles").update({ full_name: name.trim() }).eq("id", user.id);
   // A new company starts verification; a student's onboarding starts with the profile photo, so no photo yet means
   // it isn't done.
-  if (newCompany) return "/company/verify";
+  if (newCompany) return next.startsWith("/company/verify") ? next : "/company/verify"; // e.g. ?founder=1
   if (profile.role === "company") return homeFor("company");
   return profile.avatar_path ? homeFor("student") : "/welcome";
 }

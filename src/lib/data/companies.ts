@@ -11,6 +11,7 @@ import { monthYear, toProject, UUID } from "./shared";
 export type PublicCompany = {
   id: string; name: string; hood: string; about: string; website: string; linkedinUrl: string;
   founded: string; teamSize: string; logoUrl: string | null; logoColor: string | null; founderLinkedinVerified: boolean;
+  studentStartup: boolean; // an IE student's own startup, not registered yet (migration 0031)
   openProjects: Project[];
   completed: number;
   certificatesIssued: number;
@@ -41,6 +42,7 @@ export async function getPublicCompany(id: string): Promise<PublicCompany | null
     id: o.id, name: o.name ?? "", hood: o.hood ?? "", about: o.blurb ?? "", website: o.website ?? "", linkedinUrl: o.linkedin_url ?? "",
     founded: o.founded ?? "", teamSize: o.size ?? "", logoUrl: avatarPublicUrl(o.logo_path), logoColor: o.logo_color ?? null,
     founderLinkedinVerified: !!founder?.linkedin_verified,
+    studentStartup: o.kind === "student_startup",
     openProjects: open.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     completed: (all ?? []).filter((p: any) => p.status === "verified").length,
     certificatesIssued: (creds ?? []).length,
@@ -51,4 +53,12 @@ export async function getPublicCompany(id: string): Promise<PublicCompany | null
       student: (people ?? []).find((p: any) => p.id === r.student_id)?.full_name ?? "A Folio student",
     })),
   };
+}
+
+/** Whether the company behind a project is an IE student's own startup (migration 0031), so students know who they'd
+ *  work for. False before the migration, and for projects without a company. */
+export async function isStudentStartup(orgId: string | null): Promise<boolean> {
+  if (!orgId || !UUID.test(orgId)) return false;
+  const { data } = await createAdminClient().from("organizations").select("*").eq("id", orgId).maybeSingle();
+  return data?.kind === "student_startup";
 }

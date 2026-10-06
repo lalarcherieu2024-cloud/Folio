@@ -8,6 +8,7 @@ import { ApplyDialog } from "@/components/student/ApplyDialog";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getSession } from "@/lib/auth";
+import { isStudentStartup } from "@/lib/data/companies";
 import { getProject } from "@/lib/data/projects";
 import { getApplicationFor, getSavedIds } from "@/lib/data/student";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
 
   const user = await getSession();
   const [application, savedIds] = user ? await Promise.all([getApplicationFor(user, p.id), getSavedIds(user)]) : [undefined, []];
+  const startup = await isStudentStartup(p.orgId);
   const viewer = viewerFrom(user, savedIds);
   const fit = user ? whyFits(p, viewer) : null;
   const mine = new Set(viewer.skills);
@@ -42,6 +44,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <div className="flex flex-wrap items-center gap-2 text-[0.8125rem] text-muted-foreground">
             <span className="font-medium text-foreground">{name}</span>
             {p.orgVerified && <Badge variant="outline" className="h-5 gap-1 rounded-md px-1.5 text-[0.6875rem] text-[#166534]"><Check className="size-3" />Verified</Badge>}
+            {startup && <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[0.6875rem] text-[#5b21b6]">Student startup · IE founder</Badge>}
             <span>· {p.hood}</span>
           </div>
           <h1 className="text-[2rem] font-semibold leading-tight tracking-[-0.025em]">{p.title}</h1>
