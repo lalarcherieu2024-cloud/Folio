@@ -1,13 +1,16 @@
-import { Check } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CredentialCard } from "@/components/shared/CredentialCard";
+import { SignCertificateDialog } from "@/components/shared/SignCertificateDialog";
 import { CompanyDetailsCard } from "@/components/startup/CompanyDetailsCard";
 import { CompanyFilesCard } from "@/components/startup/CompanyFiles";
 import { CompanyLogoEditor } from "@/components/startup/CompanyLogoEditor";
 import { CompanyProjectCard } from "@/components/startup/CompanyProjectCard";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
-import { countIssuedCredentials, getCompanyProjects, getOrganization } from "@/lib/data/startup";
+import { getCompanyProjects, getIssuedCredentials, getOrganization } from "@/lib/data/startup";
+import { firstName } from "@/lib/work";
 
 export const metadata = { title: "Company profile · Folio" };
 
@@ -29,8 +32,9 @@ export default async function CompanyProfile() {
   const user = await requireUser("/company/profile", "company");
   const org = await getOrganization(user);
   if (!org) redirect("/company/verify");
-  const projects = await getCompanyProjects(user);
-  const issued = await countIssuedCredentials(projects);
+  const [projects, certificates] = await Promise.all([getCompanyProjects(user), getIssuedCredentials(user)]);
+  const issued = certificates.length;
+  const unsigned = certificates.filter((c) => !c.signedByCompany).length;
   const open = projects.filter((p) => p.status === "open");
   const [statusLabel, verified] = STATUS[org.status];
 
@@ -40,7 +44,10 @@ export default async function CompanyProfile() {
         <CompanyLogoEditor org={org} />
         <div className="flex flex-col gap-2">
           <div>
-            <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em]">{org.name}</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em]">{org.name}</h1>
+              {org.status === "verified" && <Link href={`/companies/${org.id}`} className="inline-flex items-center gap-1 text-[0.8125rem] font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">See your public page<ExternalLink className="size-3" /></Link>}
+            </div>
             <p className="text-sm text-muted-foreground">{org.hood || "Add your neighbourhood"} · {projects.length} project{projects.length === 1 ? "" : "s"} · {issued} credential{issued === 1 ? "" : "s"} issued</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -61,6 +68,31 @@ export default async function CompanyProfile() {
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21.25rem),1fr))] items-start gap-4">
         <CompanyDetailsCard user={user} org={org} />
         <CompanyFilesCard files={org.files} />
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">Certificates issued <span className="font-mono text-sm font-normal text-muted-foreground">{issued}</span></h2>
+          {unsigned > 0 && <span className="text-[0.8125rem] font-medium text-[#92400e]">{unsigned} waiting for your signature</span>}
+        </div>
+        {certificates.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-sm text-muted-foreground">When you verify a student&apos;s work, the certificate you issue shows up here.</div>
+        ) : (
+          <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
+            {certificates.map((c) => (
+              <div key={c.credential.id} className="flex flex-col gap-2.5">
+                <CredentialCard c={c.credential} />
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>Earned by <span className="font-medium text-foreground">{c.student}</span></span>
+                  <span>·</span>
+                  {c.signedByCompany
+                    ? <span className="inline-flex items-center gap-1 font-medium text-[#166534]"><Check className="size-3" strokeWidth={3} />Signed by you{c.signedByStudent ? ` and ${firstName(c.student)}` : ""}</span>
+                    : <SignCertificateDialog credentialId={c.credential.id} as="company" project={c.credential.projectTitle} otherParty={firstName(c.student)} />}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-4">

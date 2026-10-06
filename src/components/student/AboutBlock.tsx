@@ -1,4 +1,5 @@
-import { ExternalLink, Globe } from "lucide-react";
+import { Building2, ExternalLink, Globe } from "lucide-react";
+import Link from "next/link";
 import type { Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/shared/UserAvatar";
@@ -23,6 +24,7 @@ export function AboutBlock({ p }: { p: Project }) {
       </div>
       {blurb && <p className="text-pretty text-sm leading-relaxed text-zinc-700">{blurb}</p>}
       <div className="flex flex-wrap gap-2">
+        {p.orgId && <Link href={`/companies/${p.orgId}`} className={btn}><Building2 className="size-3.5" />Company page</Link>}
         {p.about?.website && <a href={p.about.website} target="_blank" rel="noopener noreferrer" className={btn}><Globe className="size-3.5" />Website</a>}
         <a href={linkedin} target="_blank" rel="noopener noreferrer" className={cn(btn, "text-[#0a66c2]")}><ExternalLink className="size-3.5" />LinkedIn</a>
       </div>

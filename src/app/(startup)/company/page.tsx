@@ -1,80 +1,175 @@
+import { ArrowRight, Check, Circle } from "lucide-react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { CompanyProjectCard } from "@/components/startup/CompanyProjectCard";
-import { ago, card, PageHeader, pastLabel } from "@/components/startup/ui";
+import { ago, card, pastLabel } from "@/components/startup/ui";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
-import { getCompanyApplicants, getCompanyProjects, getOrganization } from "@/lib/data/startup";
+import { boardRows, COMPANY_STEPS, nextStep, toneClass, type BoardRow } from "@/lib/company-work";
+import { getCompanyLedger } from "@/lib/data/payments";
+import { getCompanyApplicants, getCompanyProjects, getOrganization, type Organization } from "@/lib/data/startup";
+import { eurFromCents } from "@/lib/payments/config";
+import type { StudentProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { firstName } from "@/lib/work";
+import { eur, firstName } from "@/lib/work";
 
-export const metadata = { title: "Dashboard · Folio" };
+export const metadata = { title: "Overview · Folio" };
 
-// STARTUP INTERFACE (owner: startup builder).
-export default async function CompanyDashboard() {
+function greeting() {
+  const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Madrid" }).format(new Date()));
+  return h < 12 ? "Good morning" : h < 19 ? "Good afternoon" : "Good evening";
+}
+
+// What makes students trust a company, in the order it's usually done (the student side has "Complete your profile").
+function setupSteps(user: StudentProfile, org: Organization | null, rows: BoardRow[]) {
+  return [
+    { label: "Company details", done: !!org?.about && !!org?.website, href: org ? "/company/profile" : "/company/verify" },
+    { label: "Verification by Folio", done: org?.status === "verified", href: "/company/verify" },
+    { label: "Company logo", done: !!org?.logoUrl, href: "/company/profile" },
+    { label: "LinkedIn connected", done: user.linkedinVerified, href: "/company/profile" },
+    { label: "First project published", done: rows.some((r) => r.stage.key !== "draft" && r.stage.key !== "cancelled"), href: "/company/projects/new" },
+  ];
+}
+
+// Where a pipeline row opens: the step that needs the company.
+function rowHref(r: BoardRow) {
+  if (r.stage.key === "draft") return `/company/projects/${r.project.id}/pay`;
+  if ((r.stage.key === "building" || r.stage.key === "submitted") && r.hired) return `/company/applicants/${r.hired.id}`;
+  if (r.stage.key === "open" && r.waiting) return `/company/applicants?project=${r.project.id}`;
+  return `/company/projects/${r.project.id}`;
+}
+
+// Most urgent first: work to review, applicants waiting, work in progress, then unpaid drafts.
+const URGENCY = { submitted: 0, open: 1, building: 2, draft: 3, verified: 4, cancelled: 5 } as const;
+const th = "px-5 py-2.5 text-left text-xs font-medium text-muted-foreground";
+
+// STARTUP INTERFACE. The company overview: the student home's content, presented as a calm dashboard.
+export default async function CompanyOverview() {
   const user = await requireUser("/company", "company");
   const projects = await getCompanyProjects(user);
-  const [applicants, org] = await Promise.all([getCompanyApplicants(projects), getOrganization(user)]);
-  const pending = applicants.filter((a) => a.status === "pending");
+  const [applicants, org, ledger] = await Promise.all([getCompanyApplicants(projects), getOrganization(user), getCompanyLedger(user)]);
+  const rows = boardRows(projects, applicants);
+  const active = rows.filter((r) => r.stage.key !== "verified" && r.stage.key !== "cancelled")
+    .sort((a, b) => URGENCY[a.stage.key] - URGENCY[b.stage.key] || b.waiting - a.waiting);
+  const pending = applicants.filter((a) => a.status === "pending" || a.status === "interview");
   const toVerify = applicants.filter((a) => a.status === "delivered" && a.projectStatus !== "verified");
   const queue = [...toVerify, ...pending];
+  const steps = setupSteps(user, org, rows);
+  const done = steps.filter((s) => s.done).length;
 
-  // Stat cards like the student Payments page: a thin coloured edge on top.
-  const stats = [
-    { label: "Open projects", value: projects.filter((p) => p.status === "open").length, href: "/company/projects", edge: "#22c55e", fg: "#166534" },
-    { label: "Applicants to review", value: pending.length, href: "/company/applicants", edge: "#f59e0b", fg: "#b45309" },
-    { label: "In progress", value: projects.filter((p) => p.status === "in_progress").length, href: "/company/projects", edge: "#0369a1", fg: "#0c4a6e" },
+  const kpis = [
+    { label: "Live projects", value: String(rows.filter((r) => r.stage.key === "open").length), href: "/company/projects" },
+    { label: "Ready for your review", value: String(queue.length), href: "/company/applicants", alert: queue.length > 0 },
+    { label: "In progress", value: String(rows.filter((r) => r.stage.key === "building" || r.stage.key === "submitted").length), href: "/company/projects" },
+    { label: "Held in escrow", value: eurFromCents(ledger.heldCents), href: "/company/payments" },
   ];
 
   return (
-    <div className="page-enter flex flex-col gap-8">
-      <PageHeader title={`Welcome, ${firstName(user.fullName)}`} sub="Post a project, pick a student, verify the work." />
+    <div className="page-enter flex flex-col gap-7">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[1.75rem] font-semibold tracking-[-0.02em]">Overview</h1>
+          <p className="text-[0.9375rem] text-muted-foreground">
+            {greeting()}, {firstName(user.fullName)}. {queue.length ? `${queue.length} thing${queue.length === 1 ? " is" : "s are"} ready for you.` : "You’re all caught up. A good moment to plan your next project."}
+          </p>
+        </div>
+        <Link href="/company/projects/new" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5")}>New project</Link>
+      </div>
 
       {org?.status !== "verified" && (
-        <Link href="/company/verify" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-dashed border-zinc-300 bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600 hover:border-zinc-400">
-          {org?.status === "pending" ? "Folio is reviewing your company. You can post once it’s verified." : "Verify your company to start posting projects."}
+        <Link href="/company/verify" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600 hover:border-zinc-400">
+          {org?.status === "pending" ? "Folio is reviewing your company. You can publish once it’s verified." : "Verify your company to start publishing projects."}
           <span className="font-medium text-foreground underline underline-offset-4">{org?.status === "pending" ? "See status" : "Continue verification"}</span>
         </Link>
       )}
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,13.75rem),1fr))] gap-4">
-        {stats.map((s) => (
-          <Link key={s.label} href={s.href} className={cn(card, "card-hover flex flex-col gap-1.5 p-5")} style={{ boxShadow: `inset 0 3px 0 ${s.edge}` }}>
-            <span className="text-[0.8125rem] text-muted-foreground">{s.label}</span>
-            <span className="font-mono text-[1.75rem] font-semibold" style={{ color: s.fg }}>{s.value}</span>
+      {/* Key figures in one strip, like a dashboard. */}
+      <div className={cn(card, "grid grid-cols-2 divide-zinc-100 md:grid-cols-4 md:divide-x")}>
+        {kpis.map((k, i) => (
+          <Link key={k.label} href={k.href} className={cn("flex flex-col gap-1 px-5 py-4 hover:bg-panel", i < 2 && "border-b border-zinc-100 md:border-b-0", i % 2 === 0 && "border-r border-zinc-100 md:border-r-0")}>
+            <span className="text-xs font-medium text-muted-foreground">{k.label}</span>
+            <span className={cn("font-mono text-2xl font-semibold tracking-tight", k.alert && "text-[#92400e]")}>{k.value}</span>
           </Link>
         ))}
       </div>
 
-      <div className={cn(card, "flex flex-col")}>
-        <div className="flex items-center justify-between px-5 pb-3 pt-5">
-          <div className="flex flex-col gap-1"><span className="text-base font-semibold">Needs your review</span><span className="text-[0.8125rem] text-muted-foreground">New applicants and delivered work</span></div>
-          <Link href="/company/applicants" className={cn(buttonVariants({ variant: "ghost" }), "h-8 px-3 text-[0.8125rem]")}>View all</Link>
+      {done < steps.length && (
+        <div className={cn(card, "flex flex-col gap-4 p-5")}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-base font-semibold">Complete your company profile</h2>
+              <span className="text-[0.8125rem] text-muted-foreground">A complete profile attracts stronger applicants. {done} of {steps.length} done.</span>
+            </div>
+            <Link href={steps.find((s) => !s.done)?.href ?? "/company/profile"} className={cn(buttonVariants(), "h-9 gap-1.5 px-3.5")}>Continue setup<ArrowRight className="size-3.5" /></Link>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-primary" style={{ width: `${(done / steps.length) * 100}%` }} /></div>
+          <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-5">
+            {steps.map((s) => (
+              <li key={s.label}>
+                <Link href={s.href} className={cn("flex items-center gap-2 text-[0.8125rem]", s.done ? "pointer-events-none text-muted-foreground" : "font-medium text-foreground hover:underline")}>
+                  {s.done ? <Check className="size-3.5 shrink-0 text-[#15803d]" strokeWidth={2.5} /> : <Circle className="size-3.5 shrink-0 text-zinc-300" />}{s.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
-        {queue.length === 0 ? <div className="border-t border-zinc-100 px-5 py-6 text-sm text-muted-foreground">You&apos;re all caught up.</div> : queue.slice(0, 5).map((a) => (
-          <Link key={a.id} href={`/company/applicants/${a.id}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3.5 hover:bg-panel">
-            <UserAvatar name={a.name} color={a.avatarColor} url={a.avatarUrl} className="size-10 rounded-lg text-xs" />
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      )}
+
+      <section className={cn(card, "flex flex-col")}>
+        <div className="flex items-center justify-between px-5 pb-3 pt-4">
+          <div className="flex flex-col gap-0.5"><h2 className="text-base font-semibold">Ready for you</h2><span className="text-[0.8125rem] text-muted-foreground">Students are waiting to hear from you. A quick reply keeps things moving.</span></div>
+          <Link href="/company/applicants" className="text-[0.8125rem] font-medium text-muted-foreground hover:text-foreground">View all</Link>
+        </div>
+        {queue.length === 0 ? <div className="border-t border-zinc-100 px-5 py-5 text-sm text-muted-foreground">You&apos;re all caught up. Nice work.</div> : queue.slice(0, 5).map((a) => (
+          <Link key={a.id} href={`/company/applicants/${a.id}`} className="flex items-center gap-3.5 border-t border-zinc-100 px-5 py-3 hover:bg-panel">
+            <UserAvatar name={a.name} color={a.avatarColor} url={a.avatarUrl} className="size-8 rounded-md text-[0.6875rem]" />
+            <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-sm font-medium">{a.name}</span>
-              <span className="truncate text-[0.8125rem] text-muted-foreground">{a.status === "delivered" ? `Delivered ${a.projectTitle}` : `Applied to ${a.projectTitle} · ${ago(a.createdAt)}`}</span>
+              <span className="truncate text-[0.8125rem] text-muted-foreground">{a.status === "delivered" ? `Submitted work · ${a.projectTitle}` : `Applied · ${a.projectTitle} · ${ago(a.createdAt)}`}</span>
             </span>
             {a.status === "delivered"
-              ? <span className="inline-flex h-[1.375rem] shrink-0 items-center rounded-md bg-[#ede9fe] px-2 text-xs font-medium text-[#5b21b6]">Verify the work</span>
+              ? <span className="inline-flex h-[1.375rem] shrink-0 items-center rounded bg-[#fef3c7] px-2 text-xs font-medium text-[#92400e]">Review the work</span>
               : <span className="hidden shrink-0 text-[0.8125rem] text-muted-foreground sm:inline">{pastLabel(a.pastCount, a.avgRating)}</span>}
           </Link>
         ))}
-      </div>
+      </section>
 
-      <div className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold tracking-tight">Your projects</h2>
-        {projects.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-sm text-muted-foreground">
-            Nothing posted yet. <Link href="/company/projects/new" className="font-medium text-foreground underline underline-offset-4">Post your first project</Link>
-          </div>
+      <section className={cn(card, "overflow-hidden")}>
+        <div className="flex items-center justify-between px-5 pb-3 pt-4">
+          <div className="flex flex-col gap-0.5"><h2 className="text-base font-semibold">Your projects</h2><span className="text-[0.8125rem] text-muted-foreground">How each one is moving forward, from creation to verified work</span></div>
+          <Link href="/company/projects" className="text-[0.8125rem] font-medium text-muted-foreground hover:text-foreground">All projects</Link>
+        </div>
+        {active.length === 0 ? (
+          <div className="border-t border-zinc-100 px-5 py-5 text-sm text-muted-foreground">Nothing in motion yet. <Link href="/company/projects/new" className="font-medium text-foreground underline underline-offset-4">Create your next project</Link> and IE students can start applying.</div>
         ) : (
-          <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-4">{projects.map((p) => <CompanyProjectCard key={p.id} p={p} />)}</div>
+          <div className="overflow-x-auto border-t border-zinc-100">
+            <table className="w-full min-w-[46rem] text-sm">
+              <thead className="bg-panel"><tr><th className={th}>Project</th><th className={th}>Stage</th><th className={th}>Student</th><th className={cn(th, "text-right")}>Value</th><th className={th}>Next step</th></tr></thead>
+              <tbody>
+                {active.map((r) => {
+                  const [ring] = r.stage.colors;
+                  return (
+                    <tr key={r.project.id} className="relative border-t border-zinc-100 hover:bg-panel">
+                      <td className="max-w-[16rem] px-5 py-3">
+                        <Link href={rowHref(r)} className="block truncate font-medium after:absolute after:inset-0">{r.project.title}</Link>
+                        <span className="text-xs text-muted-foreground">{r.project.category}</span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={cn("inline-flex h-[1.375rem] items-center rounded px-2 text-xs font-medium", toneClass(r.stage.tone))}>{r.stage.label}</span>
+                        <div className="mt-1.5 flex w-28 gap-0.5" title={`Step ${r.stage.step + 1} of ${COMPANY_STEPS.length}`}>
+                          {COMPANY_STEPS.map((s, i) => <span key={s} className="h-1 flex-1 rounded-full" style={{ background: i <= r.stage.step ? ring : "#e2e8f0" }} />)}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-zinc-700">{r.hired ? r.hired.name : r.waiting ? `${r.waiting} applicant${r.waiting === 1 ? "" : "s"}` : "–"}</td>
+                      <td className="px-5 py-3 text-right font-mono">{eur(r.project.priceEur)}</td>
+                      <td className="max-w-[18rem] px-5 py-3 text-[0.8125rem] text-muted-foreground"><span className="line-clamp-2">{nextStep(r)}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

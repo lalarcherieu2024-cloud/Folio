@@ -44,7 +44,8 @@ export function AppShell({ user, counts, notifications, defaultCollapsed, childr
 
   if (FULL_SCREEN.some((p) => path.startsWith(p))) return <>{children}</>;
   return (
-    <div className="flex min-h-screen">
+    // Companies get a calmer, more formal workspace than students (see [data-tone="pro"] in globals.css).
+    <div className="flex min-h-screen" data-tone={user.role === "company" ? "pro" : undefined}>
       <Sidebar user={user} counts={counts} collapsed={collapsed} />
       <div className="flex min-w-0 flex-1 flex-col bg-background">
         <Topbar user={user} counts={counts} notifications={notifications} sidebarCollapsed={collapsed} onToggleSidebar={toggle} />

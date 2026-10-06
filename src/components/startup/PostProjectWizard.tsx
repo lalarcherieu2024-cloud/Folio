@@ -2,14 +2,15 @@
 
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { postCompanyProjectAction } from "@/app/actions/startup";
+import { postCompanyProjectAction, saveProjectDraftAction } from "@/app/actions/startup";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import type { DraftData } from "@/lib/drafts";
 import type { FormState } from "@/lib/form";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -33,10 +34,23 @@ function Chip({ on, onClick, children, className }: { on: boolean; onClick: () =
   );
 }
 
-export function PostProjectWizard({ clientName, hood }: { clientName: string; hood: string }) {
+export function PostProjectWizard({ clientName, hood, draftId: savedId, initial, initialStep = 1 }: {
+  clientName: string; hood: string; draftId?: string; initial?: DraftData; initialStep?: number;
+}) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [f, setF] = useState(blank);
+  const [step, setStep] = useState(initialStep);
+  const [f, setF] = useState({ ...blank, ...initial, custom: "" });
+  // Saving a draft: any field may be empty. The first save creates it; later saves update the same one.
+  const [draftId, setDraftId] = useState(savedId ?? null);
+  const [saving, startSave] = useTransition();
+  const saveDraft = () => startSave(async () => {
+    const { custom: _custom, ...data } = f;
+    void _custom;
+    const r = await saveProjectDraftAction(draftId, data, step);
+    if (r.error || !r.id) { toast.error(r.error ?? "Couldn't save the draft."); return; }
+    toast.success("Draft saved", { description: "Find it under My projects → Drafts to finish later." });
+    if (!draftId) { setDraftId(r.id); router.replace(`/company/projects/new?draft=${r.id}`, { scroll: false }); }
+  });
   const set = (patch: Partial<typeof blank>) => setF((p) => ({ ...p, ...patch }));
   const [state, action, pending] = useActionState<FormState, FormData>(postCompanyProjectAction, {});
   const seen = useRef(state);
@@ -77,6 +91,7 @@ export function PostProjectWizard({ clientName, hood }: { clientName: string; ho
         {f.skills.map((s) => <input key={s} type="hidden" name="skills" value={s} />)}
         <input type="hidden" name="priceEur" value={f.pay} />
         <input type="hidden" name="weeks" value={f.weeks} />
+        {draftId && <input type="hidden" name="draftId" value={draftId} />}
 
         <div className="grid gap-4 p-5">
           {step === 1 && <>
@@ -150,9 +165,10 @@ export function PostProjectWizard({ clientName, hood }: { clientName: string; ho
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">
-          <Button type="button" variant="outline" onClick={() => (step === 1 ? router.push("/company") : setStep(step - 1))} className="h-9 bg-white px-3.5">{step === 1 ? "Cancel" : "Back"}</Button>
+          <Button type="button" variant="outline" onClick={() => (step === 1 ? router.push(draftId ? "/company/projects?tab=drafts" : "/company") : setStep(step - 1))} className="h-9 bg-white px-3.5">{step === 1 ? "Cancel" : "Back"}</Button>
           <div className="flex items-center gap-3">
             {!valid && <span className="hidden text-right text-xs text-muted-foreground sm:inline">{HINTS[step - 1]}</span>}
+            <Button type="button" variant="outline" disabled={saving || pending} onClick={saveDraft} className="h-9 bg-white px-3.5">{saving ? "Saving…" : draftId ? "Save draft" : "Save as draft"}</Button>
             {step < 4
               ? <Button type="button" disabled={!valid} onClick={() => { setStep(step + 1); window.scrollTo(0, 0); }} className="h-9 px-3.5">Continue</Button>
               : <Button type="submit" disabled={pending} className="h-9 px-3.5">{pending ? "Publishing…" : "Publish project"}</Button>}

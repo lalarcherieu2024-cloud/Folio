@@ -2,8 +2,14 @@ import { Award, Check, Lock } from "lucide-react";
 import { milestones } from "@/lib/work";
 import { cn } from "@/lib/utils";
 
+export type Milestone = { key: string; title: string; hint: string; done: boolean; progress: string };
+
 export function Milestones({ creds }: { creds: { rating: number; category: string; priceEur: number }[] }) {
-  const list = milestones(creds);
+  return <MilestoneGrid list={milestones(creds)} />;
+}
+
+/** The milestone cards themselves; the company "Impact" page passes its own list. */
+export function MilestoneGrid({ list }: { list: Milestone[] }) {
   const got = list.filter((m) => m.done).length;
   return (
     <section className="flex flex-col gap-4">

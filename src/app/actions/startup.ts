@@ -9,7 +9,7 @@ import { isAvatarColor } from "@/lib/avatar";
 import { createEscrow } from "@/lib/data/payments";
 import { paymentsMode } from "@/lib/payments/config";
 import {
-  acceptApplicant, createCompanyProject, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc,
+  acceptApplicant, createCompanyProject, deleteProjectDraft, saveProjectDraft, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc,
   removeOrgLogo, saveCompanyDoc, saveCompanyFile, saveOrganization, saveOrgLogo, setOrgLogoColor, submitVerification, verifyDelivery, type DocKind,
 } from "@/lib/data/startup";
 import { EMAIL, str, type FormState } from "@/lib/form";
@@ -170,6 +170,8 @@ export async function postCompanyProjectAction(_: FormState, f: FormData): Promi
   if (paymentsMode() === "off") return { error: "Payments aren't available yet, so projects can't be published right now." };
   const res = await createCompanyProject(user, org, { title, summary, deliverable, category, priceEur: Math.round(priceEur), weeks, skills });
   if (res.error || !res.id) return { error: res.error ?? "Couldn't post your project." };
+  const draftId = str(f, "draftId");
+  if (draftId) await deleteProjectDraft(user, draftId); // it became a real project
   refresh();
   if (!res.unpaid) redirect(`/company/projects/${res.id}?posted=1`);                // before the payments migration
   const escrow = await createEscrow(user, res.id, Math.round(priceEur));
@@ -220,5 +222,22 @@ export async function verifyDeliveryAction(_: FormState, f: FormData): Promise<F
   if (res.error) return res;
   refresh();
   revalidatePath("/profile");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- unfinished drafts
+
+/** Saves the "post a project" form as it is (any field may be empty) and returns the draft's id. */
+export async function saveProjectDraftAction(id: string | null, data: unknown, step: number): Promise<{ id?: string; error?: string }> {
+  const user = await requireUser("/company/projects/new", "company");
+  const res = await saveProjectDraft(user, id, data, step);
+  if (!res.error) revalidatePath("/company/projects");
+  return res;
+}
+
+export async function deleteProjectDraftAction(id: string): Promise<FormState> {
+  const user = await requireUser("/company/projects", "company");
+  await deleteProjectDraft(user, id);
+  revalidatePath("/company/projects");
   return { ok: true };
 }

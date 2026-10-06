@@ -6,6 +6,7 @@ import { avatarPublicUrl } from "../avatar";
 import { createClient } from "../supabase/server";
 import type { ApplicationStatus, Category, Credential, Interview, Project, ProjectStatus, StudentProfile } from "../types";
 import { MAX_COMPANY_FILES } from "../form";
+import { countUnreadMessages } from "./messages";
 import { monthYear, toInterview, toProject, UUID } from "./shared";
 
 export type CompanyProject = Project & { createdAt: string };
@@ -24,6 +25,7 @@ export type Applicant = {
   linkedinVerified: boolean;
   status: ApplicationStatus;
   createdAt: string;
+  acceptedAt: string | null; // when the company hired them (starts the hand-in clock)
   interview: Interview | null;
   hasCv: boolean;
   linkCount: number;
@@ -262,14 +264,6 @@ export async function createCompanyProject(user: StudentProfile, org: Organizati
   return { id: data.id, unpaid };
 }
 
-/** How many verified credentials this company has issued (for the profile). */
-export async function countIssuedCredentials(projects: CompanyProject[]): Promise<number> {
-  if (projects.length === 0) return 0;
-  const supabase = await createClient();
-  const { count } = await supabase.from("credentials").select("id", { count: "exact", head: true }).in("project_id", projects.map((p) => p.id));
-  return count ?? 0;
-}
-
 // ---------------------------------------------------------------- applicants
 
 // "*" for the application itself, so newer columns (interview_*, 0017) come along when they exist.
@@ -286,7 +280,7 @@ function toApplicant(a: any, project: Pick<Project, "title" | "status">, ratings
     name: a.student?.full_name ?? "Student", program: a.student?.program ?? "",
     avatarColor: a.student?.avatar_color ?? null, avatarUrl: avatarPublicUrl(a.student?.avatar_path),
     githubVerified: !!a.student?.github_verified, linkedinVerified: !!a.student?.linkedin_verified,
-    status: a.status, createdAt: a.created_at, interview: toInterview(a),
+    status: a.status, createdAt: a.created_at, acceptedAt: a.accepted_at ?? null, interview: toInterview(a),
     hasCv: !!a.student?.cv_path, linkCount: linksOf(a.student).length,
     pastCount: ratings.length, avgRating: ratings.length ? ratings.reduce((s, n) => s + n, 0) / ratings.length : null,
   };
@@ -378,9 +372,145 @@ export async function verifyDelivery(applicationId: string, rating: number, revi
 }
 
 /** Counts for the company sidebar. */
-export async function getCompanyNavCounts(user: StudentProfile): Promise<{ projects: number; applicants: number }> {
-  const projects = await getCompanyProjects(user);
-  return { projects: projects.length, applicants: projects.reduce((n, p) => n + p.applicantCount, 0) };
+export async function getCompanyNavCounts(user: StudentProfile): Promise<{ projects: number; applicants: number; messages: number }> {
+  const [projects, messages] = await Promise.all([getCompanyProjects(user), countUnreadMessages(user)]);
+  return { projects: projects.length, applicants: projects.reduce((n, p) => n + p.applicantCount, 0), messages };
 }
 
 // TODO (startup builder): payments (Stripe) once delivery verification is in use.
+
+// ---------------------------------------------------------------- impact (the company's "Progress")
+
+export type CompanyImpact = {
+  completed: number;          // verified projects
+  studentsWorkedWith: number; // different students hired
+  avgRatingGiven: number | null;
+  avgDaysToHire: number | null; // from posting to accepting someone
+  certificatesIssued: number;
+  certificatesSigned: number;
+  published: number;          // projects that went live (paid or legacy)
+  activity: string[];         // dates of things the company did, for the heatmap
+};
+
+export async function getCompanyImpact(user: StudentProfile): Promise<CompanyImpact> {
+  const projects = await getCompanyProjects(user);
+  const applicants = await getCompanyApplicants(projects);
+  const supabase = await createClient();
+  const ids = projects.map((p) => p.id);
+  const { data: creds } = ids.length ? await supabase.from("credentials").select("*").in("project_id", ids) : { data: [] as any[] };
+  const { data: escrows } = await supabase.from("escrows").select("funded_at").eq("payer_id", user.id); // empty before migration 0022
+
+  const hired = applicants.filter((a) => a.acceptedAt && (a.status === "accepted" || a.status === "delivered"));
+  const created = new Map(projects.map((p) => [p.id, p.createdAt]));
+  const days = hired.map((a) => (new Date(a.acceptedAt!).getTime() - new Date(created.get(a.projectId) ?? a.acceptedAt!).getTime()) / 86_400_000).filter((d) => d >= 0);
+  const ratings = (creds ?? []).map((c: any) => c.rating as number);
+  return {
+    completed: projects.filter((p) => p.status === "verified").length,
+    studentsWorkedWith: new Set(hired.map((a) => a.studentId)).size,
+    avgRatingGiven: ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null,
+    avgDaysToHire: days.length ? days.reduce((a, b) => a + b, 0) / days.length : null,
+    certificatesIssued: (creds ?? []).length,
+    certificatesSigned: (creds ?? []).filter((c: any) => c.client_signed_at).length,
+    published: projects.filter((p) => p.status !== "draft" && p.status !== "cancelled").length,
+    activity: [
+      ...projects.map((p) => p.createdAt),
+      ...hired.map((a) => a.acceptedAt!),
+      ...(creds ?? []).map((c: any) => c.issued_at),
+      ...(escrows ?? []).map((e: any) => e.funded_at).filter(Boolean),
+    ],
+  };
+}
+
+/** The company's milestones, shaped like the student's. */
+export function companyMilestones(i: CompanyImpact) {
+  const of = (n: number, goal: number) => `${Math.min(n, goal)}/${goal}`;
+  return [
+    { key: "publish", title: "First project live", hint: "Publish a project for students", done: i.published >= 1, progress: of(i.published, 1) },
+    { key: "hire", title: "First student hired", hint: "Accept a student on a project", done: i.studentsWorkedWith >= 1, progress: of(i.studentsWorkedWith, 1) },
+    { key: "verify", title: "First work verified", hint: "Verify a student's submitted work", done: i.completed >= 1, progress: of(i.completed, 1) },
+    { key: "team", title: "3 students worked with", hint: "Work with three different students", done: i.studentsWorkedWith >= 3, progress: of(i.studentsWorkedWith, 3) },
+    { key: "five", title: "5 projects verified", hint: "Verify the work on five projects", done: i.completed >= 5, progress: of(i.completed, 5) },
+    { key: "signed", title: "Every certificate signed", hint: "Sign each certificate you issue", done: i.certificatesIssued > 0 && i.certificatesSigned === i.certificatesIssued, progress: `${i.certificatesSigned}/${Math.max(1, i.certificatesIssued)}` },
+  ];
+}
+
+// ---------------------------------------------------------------- certificates this company issued
+
+export type IssuedCredential = {
+  credential: Credential;
+  student: string;
+  applicationId: string | null;
+  signedByCompany: boolean;
+  signedByStudent: boolean;
+};
+
+/** Every certificate issued on this company's projects, newest first, with who earned it and who has signed. */
+export async function getIssuedCredentials(user: StudentProfile): Promise<IssuedCredential[]> {
+  const projects = await getCompanyProjects(user);
+  if (!projects.length) return [];
+  const supabase = await createClient();
+  const ids = projects.map((p) => p.id);
+  const { data: cards } = await supabase.from("credential_cards").select("*").in("project_id", ids).order("issued_at", { ascending: false });
+  if (!cards?.length) return [];
+  const [{ data: raw }, { data: people }, { data: apps }] = await Promise.all([
+    supabase.from("credentials").select("*").in("id", cards.map((c: any) => c.id)), // signature columns exist after migration 0021
+    supabase.from("profiles").select("id, full_name").in("id", [...new Set(cards.map((c: any) => c.student_id))]),
+    supabase.from("applications").select("id, project_id, student_id").in("project_id", ids),
+  ]);
+  return cards.map((r: any) => {
+    const sig = (raw ?? []).find((x: any) => x.id === r.id);
+    return {
+      credential: {
+        id: r.id, projectId: r.project_id, projectTitle: r.project_title, clientName: r.client_name, orgName: r.org_name,
+        hood: r.hood, rating: r.rating, review: r.review, issuedAt: monthYear(r.issued_at), category: r.category ?? "", priceEur: r.price_eur ?? 0,
+      },
+      student: (people ?? []).find((p: any) => p.id === r.student_id)?.full_name ?? "Student",
+      applicationId: (apps ?? []).find((a: any) => a.project_id === r.project_id && a.student_id === r.student_id)?.id ?? null,
+      signedByCompany: !!sig?.client_signed_at,
+      signedByStudent: !!sig?.student_signed_at,
+    };
+  });
+}
+
+// ---------------------------------------------------------------- unfinished project drafts (migration 0029)
+
+export type ProjectDraft = { id: string; data: import("../drafts").DraftData; step: number; updatedAt: string };
+const DRAFTS_MIGRATION = "Saving drafts needs migration 0029. Run supabase/migrations/0029_project_drafts.sql in the Supabase SQL Editor.";
+
+export async function getProjectDrafts(user: StudentProfile): Promise<ProjectDraft[]> {
+  const { cleanDraft } = await import("../drafts");
+  const supabase = await createClient();
+  const { data } = await supabase.from("project_drafts").select("*").eq("owner_id", user.id).order("updated_at", { ascending: false });
+  return (data ?? []).map((r: any) => ({ id: r.id, data: cleanDraft(r.data), step: r.step, updatedAt: r.updated_at }));
+}
+
+export async function getProjectDraft(user: StudentProfile, id: string): Promise<ProjectDraft | null> {
+  if (!UUID.test(id)) return null;
+  const { cleanDraft } = await import("../drafts");
+  const supabase = await createClient();
+  const { data: r } = await supabase.from("project_drafts").select("*").eq("id", id).eq("owner_id", user.id).maybeSingle();
+  return r ? { id: r.id, data: cleanDraft(r.data), step: r.step, updatedAt: r.updated_at } : null;
+}
+
+/** Creates or updates a draft and returns its id. */
+export async function saveProjectDraft(user: StudentProfile, id: string | null, raw: unknown, step: number): Promise<{ id?: string; error?: string }> {
+  const { cleanDraft } = await import("../drafts");
+  const data = cleanDraft(raw);
+  const row = { owner_id: user.id, title: data.title, data, step: Math.min(4, Math.max(1, Math.round(step) || 1)), updated_at: new Date().toISOString() };
+  const supabase = await createClient();
+  const res = id && UUID.test(id)
+    ? await supabase.from("project_drafts").update(row).eq("id", id).eq("owner_id", user.id).select("id").maybeSingle()
+    : await supabase.from("project_drafts").insert(row).select("id").single();
+  if (res.error) {
+    console.error("saveProjectDraft", res.error);
+    return { error: res.error.code === "42P01" || res.error.code === "PGRST205" ? DRAFTS_MIGRATION : "Couldn't save the draft. Try again." };
+  }
+  if (!res.data) return { error: "That draft no longer exists." };
+  return { id: res.data.id };
+}
+
+export async function deleteProjectDraft(user: StudentProfile, id: string): Promise<void> {
+  if (!UUID.test(id)) return;
+  const supabase = await createClient();
+  await supabase.from("project_drafts").delete().eq("id", id).eq("owner_id", user.id);
+}

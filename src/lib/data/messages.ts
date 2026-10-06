@@ -34,22 +34,39 @@ export type Conversation = {
   last: { body: string; mine: boolean; createdAt: string; hasFiles: boolean } | null;
 };
 
-/** Every conversation the student has (hired on a company project), newest activity first.
- *  "Unread" counts the message notifications for that conversation the student hasn't opened yet. */
+// Each side's link to a conversation; the "new message" notifications point to these (see notify_new_message).
+const convoLink = (user: StudentProfile, applicationId: string) =>
+  user.role === "company" ? `/company/applicants/${applicationId}` : `/applications/${applicationId}`;
+
+/** Every conversation this person has, newest activity first. A student talks to the companies that hired them;
+ *  a company to the students it hired. "Unread" counts the message notifications for it not opened yet. */
 export async function getConversations(user: StudentProfile): Promise<Conversation[]> {
   const supabase = await createClient();
-  const { data: apps } = await supabase.from("applications").select("id, project_id, accepted_at, created_at")
-    .eq("student_id", user.id).in("status", ["accepted", "delivered"]);
-  if (!apps?.length) return [];
-  const { data: projects } = await supabase.from("project_cards").select("id, title, client_name, org_id, org_name, status").in("id", apps.map((a: any) => a.project_id));
-  const byProject = new Map((projects ?? []).filter((p: any) => p.org_id).map((p: any) => [p.id, p]));
+  const company = user.role === "company";
+
+  let apps: any[] = [];
+  const byProject = new Map<string, any>();
+  if (company) {
+    const { data: projects } = await supabase.from("project_cards").select("id, title, client_name, org_id, org_name, status").eq("client_id", user.id).not("org_id", "is", null);
+    for (const p of projects ?? []) byProject.set(p.id, p);
+    if (!byProject.size) return [];
+    const { data } = await supabase.from("applications").select("id, project_id, student_id, accepted_at, created_at").in("project_id", [...byProject.keys()]).in("status", ["accepted", "delivered"]);
+    apps = data ?? [];
+  } else {
+    const { data } = await supabase.from("applications").select("id, project_id, student_id, accepted_at, created_at").eq("student_id", user.id).in("status", ["accepted", "delivered"]);
+    if (!data?.length) return [];
+    const { data: projects } = await supabase.from("project_cards").select("id, title, client_name, org_id, org_name, status").in("id", data.map((a: any) => a.project_id));
+    for (const p of projects ?? []) if (p.org_id) byProject.set(p.id, p);
+    apps = data;
+  }
   const convos = apps.filter((a: any) => byProject.has(a.project_id));
   if (!convos.length) return [];
   const ids = convos.map((a: any) => a.id);
 
-  const [{ data: rows }, { data: unread }] = await Promise.all([
+  const [{ data: rows }, { data: unread }, { data: students }] = await Promise.all([
     supabase.from("messages").select("id, application_id, sender_id, body, created_at").in("application_id", ids).order("created_at", { ascending: false }).limit(500),
     supabase.from("notifications").select("link").eq("user_id", user.id).eq("kind", "message").is("read_at", null),
+    company ? supabase.from("profiles").select("id, full_name").in("id", [...new Set(convos.map((a: any) => a.student_id))]) : Promise.resolve({ data: [] as any[] }),
   ]);
   const latest = new Map<string, any>();
   for (const r of rows ?? []) if (!latest.has(r.application_id)) latest.set(r.application_id, r);
@@ -61,9 +78,10 @@ export async function getConversations(user: StudentProfile): Promise<Conversati
   return convos.map((a: any): Conversation => {
     const p = byProject.get(a.project_id);
     const m = latest.get(a.id);
+    const other = company ? (students ?? []).find((s: any) => s.id === a.student_id)?.full_name ?? "Student" : p.org_name ?? p.client_name;
     return {
-      applicationId: a.id, projectTitle: p.title, otherName: p.org_name ?? p.client_name, closed: p.status === "verified",
-      unread: (unread ?? []).filter((n: any) => n.link === `/applications/${a.id}`).length,
+      applicationId: a.id, projectTitle: p.title, otherName: other, closed: p.status === "verified",
+      unread: (unread ?? []).filter((n: any) => n.link === convoLink(user, a.id)).length,
       last: m ? { body: m.body, mine: m.sender_id === user.id, createdAt: m.created_at, hasFiles: withFiles.has(m.id) } : null,
     };
   }).sort((x, y) => (y.last?.createdAt ?? "").localeCompare(x.last?.createdAt ?? ""));
@@ -73,7 +91,7 @@ export async function getConversations(user: StudentProfile): Promise<Conversati
 export async function markConversationRead(user: StudentProfile, applicationId: string) {
   const supabase = await createClient();
   await supabase.from("notifications").update({ read_at: new Date().toISOString() })
-    .eq("user_id", user.id).eq("kind", "message").eq("link", `/applications/${applicationId}`).is("read_at", null);
+    .eq("user_id", user.id).eq("kind", "message").eq("link", convoLink(user, applicationId)).is("read_at", null);
 }
 
 /** How many new messages are waiting, across all conversations (for the sidebar badge). */
