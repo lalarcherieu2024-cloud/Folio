@@ -11,9 +11,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import type { DocKind, Organization } from "@/lib/data/startup";
 import type { FormState } from "@/lib/form";
 import { cn } from "@/lib/utils";
-import { AuthFrame, outlineBtn, primaryBtn, StepCard, StepHeading } from "./CompanyAuth";
+import { outlineBtn, primaryBtn, StepCard, StepHeading } from "./CompanyAuth";
+import { VerifyFrame } from "./VerifyFrame";
+import { detailsComplete } from "@/lib/org";
 import { CompanyDetailsForm } from "./CompanyDetailsForm";
-import type { SignupAccount } from "@/components/shared/SignupExits";
 
 const DOCS: { kind: DocKind; title: string; sub: string }[] = [
   { kind: "registry_extract", title: "Company registry extract", sub: "Nota simple from the Registro Mercantil, issued in the last 3 months" },
@@ -21,7 +22,6 @@ const DOCS: { kind: DocKind; title: string; sub: string }[] = [
   { kind: "bank_certificate", title: "Bank account certificate", sub: "Certificado de titularidad in the company’s name, used to pay students" },
 ];
 
-const FRAME = { title: "Get verified to post projects", sub: "Every company on Folio is checked before students see its projects. Here’s where you are." };
 
 function DocRow({ kind, title, sub, file }: (typeof DOCS)[number] & { file?: { fileName: string; sizeKb: number } }) {
   const [state, action, uploading] = useActionState<FormState, FormData>(uploadCompanyDocAction, {});
@@ -138,7 +138,7 @@ function Status({ org }: { org: Organization }) {
   );
 }
 
-export function CompanyVerify({ step, org, email, name, account }: { step: 3 | 4 | 5 | 6; org: Organization | null; email: string; name: string; account?: SignupAccount }) {
+export function CompanyVerify({ step, org, email, name }: { step: 3 | 4 | 5 | 6; org: Organization | null; email: string; name: string }) {
   const docsDone = DOCS.every((d) => org?.docs.some((x) => x.kind === d.kind)) && !!org?.logoUrl;
   const verified = org?.status === "verified";
   const status6 = verified
@@ -147,15 +147,17 @@ export function CompanyVerify({ step, org, email, name, account }: { step: 3 | 4
       ? { eyebrow: "Changes needed", title: "We couldn’t verify your company yet", sub: "Fix what’s below and submit again." }
       : { eyebrow: "Under review", title: "Your company is under review", sub: "We usually finish within 1–2 business days. Check back here to see the result." };
   return (
-    <AuthFrame {...FRAME} current={step} allDone={step === 6 && verified} account={account}
+    // The frame counts the verification steps 1–4 (page steps 3–6; account and email are already done by now).
+    <VerifyFrame step={step - 2} allDone={step === 6 && verified}
       // Before submitting, the details, documents and review steps can be reopened (review once the documents are in).
-      stepHref={(n) => step < 6 && (n === 3 || (n === 4 && org) || (n === 5 && docsDone)) ? `/company/verify?step=${n}` : null}>
+      stepHref={(n) => step < 6 && (n === 1 || (n === 2 && detailsComplete(org)) || (n === 3 && docsDone)) ? `/company/verify?step=${n + 2}` : null}>
       {step === 3 && <>
-        <StepHeading eyebrow="Step 3 of 6" title="Company details" sub="This appears on your public profile and on every project you post." />
-        <CompanyDetailsForm org={org} then="verify" backHref="/company" backLabel="Later" />
+        <StepHeading eyebrow="Step 1 of 3" title="Company details" sub="This appears on your public profile and on every project you post." />
+        {/* No "Later" here: the way out is "Finish later" in the frame's top bar. */}
+        <CompanyDetailsForm org={org} then="verify" />
       </>}
       {step === 4 && <>
-        <StepHeading eyebrow="Step 4 of 6" title="Logo and documents" sub="Your logo appears on every project you post. The documents confirm the company exists and that you can act for it (PDF, JPG or PNG, up to 10 MB)." />
+        <StepHeading eyebrow="Step 2 of 3" title="Logo and documents" sub="Your logo appears on every project you post. The documents confirm the company exists and that you can act for it (PDF, JPG or PNG, up to 10 MB)." />
         <StepCard footer={<>
           <Link href="/company/verify?step=3" className={outlineBtn}>Back</Link>
           <div className="flex items-center gap-3">
@@ -169,13 +171,13 @@ export function CompanyVerify({ step, org, email, name, account }: { step: 3 | 4
         </StepCard>
       </>}
       {step === 5 && org && <>
-        <StepHeading eyebrow="Step 5 of 6" title="Review & submit" sub="Check everything before sending it to Folio." />
+        <StepHeading eyebrow="Step 3 of 3" title="Review & submit" sub="Check everything before sending it to Folio." />
         <Review org={org} email={email} name={name} />
       </>}
       {step === 6 && org && <>
         <StepHeading {...status6} />
         <Status org={org} />
       </>}
-    </AuthFrame>
+    </VerifyFrame>
   );
 }

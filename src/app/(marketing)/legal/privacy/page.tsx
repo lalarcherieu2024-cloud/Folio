@@ -43,6 +43,24 @@ const sections: LegalSection[] = [
   { id: "ai", title: "AI processing", body: <>
     <p>When you upload a CV, its text is sent to Google&apos;s Gemini service to pick out your fields and skills. When a client describes a project idea, that text is sent to Gemini to draft a brief. Google processes this for us as a service provider and doesn&apos;t use it to train its models. The results are suggestions shown to you; no decision about you is made by AI alone. You can object to the CV analysis by not uploading a CV or by asking us to delete it.</p>
   </> },
+  // Keep in step with the verification page's "How we handle your documents" (VerifyFrame) and DOCS in CompanyVerify.
+  { id: "company-verification", title: "Company verification documents", body: <>
+    <p>Before a company can post projects, we check that it exists and that the person signing up can act for it. This protects students from fake or fraudulent offers and lets us pay and refund the right account.</p>
+    <LegalTable head={["Document", "What we check"]} rows={[
+      ["Company registry extract (nota simple)", "The company exists, its legal name, CIF and who can represent it"],
+      ["ID of the representative (DNI, NIE or passport)", "The person signing up is who they say they are and matches the registry"],
+      ["Bank account certificate", "The account is in the company's name"],
+      ["CIF, website, logo", "The details match, and what students see is accurate"],
+    ]} />
+    <ul>
+      <li><strong>Legal basis:</strong> our legitimate interest in keeping the marketplace safe from fraud (GDPR art. 6.1.f), and taking the steps you ask for before entering into our contract (art. 6.1.b).</li>
+      <li><strong>Who sees them:</strong> only you and Folio&apos;s review team. They&apos;re stored in a private storage area that other users, including students, can&apos;t open. Students only see your company name, logo, description and the verified badge.</li>
+      <li><strong>What we don&apos;t do:</strong> we don&apos;t share them with anyone else, use them for marketing, or make the verification decision automatically. A person reviews every company.</li>
+      <li><strong>Where:</strong> with our database and storage provider, Supabase (<Fill>{OPERATOR.dataRegion}</Fill>), encrypted in transit and at rest.</li>
+      <li><strong>How long:</strong> while your company account is open, so we can re-check details if something changes or a dispute comes up. When you close the account, they&apos;re deleted within 30 days, unless we need them to deal with a legal claim already under way.</li>
+      <li><strong>Before you submit</strong> you can replace or remove any document yourself. After that, ask us at <Fill>{OPERATOR.privacyEmail}</Fill> to see, correct or delete them.</li>
+    </ul>
+  </> },
   { id: "sharing", title: "Who can see your data", body: <>
     <h3>Other Folio users</h3>
     <ul>
@@ -70,6 +88,7 @@ const sections: LegalSection[] = [
   { id: "retention", title: "How long we keep it", body: <>
     <ul>
       <li><strong>Your account and profile:</strong> while your account is open. When you close it, we delete it within 30 days (backups roll over within a further 30 days).</li>
+      <li><strong>Company verification documents:</strong> while the company account is open, then deleted within 30 days of closing it (see <a href="#company-verification">Company verification documents</a>).</li>
       <li><strong>Credentials:</strong> deleted with the student&apos;s account, after which the verification link stops working.</li>
       <li><strong>Projects, messages and files</strong> you share with another user: kept while either side&apos;s account is open, so the other side keeps their record, then deleted.</li>
       <li><strong>Payment records:</strong> kept for 6 years, as Spanish commercial and tax law requires.</li>

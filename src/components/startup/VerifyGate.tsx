@@ -3,6 +3,7 @@ import Link from "next/link";
 import { card } from "@/components/startup/ui";
 import { buttonVariants } from "@/components/ui/button";
 import type { Organization } from "@/lib/data/startup";
+import { detailsComplete } from "@/lib/org";
 import { cn } from "@/lib/utils";
 
 // Shown on "Post a project" until the company is verified: the one hurdle before posting, so it sells the check
@@ -23,7 +24,7 @@ const PERKS = [
 export function VerifyGate({ org }: { org: Organization | null }) {
   const pending = org?.status === "pending";
   // How far a draft has got: details saved once the organisation exists, documents once all three and a logo are in.
-  const done = [!!org, !!org && org.docs.length >= 3 && !!org.logoUrl, pending];
+  const done = [detailsComplete(org), detailsComplete(org) && org!.docs.length >= 3 && !!org!.logoUrl, pending];
   const next = done.findIndex((d) => !d);
   const started = !!org && !pending;
 

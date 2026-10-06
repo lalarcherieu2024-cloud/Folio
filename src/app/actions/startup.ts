@@ -63,6 +63,21 @@ export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promi
   redirect("/company/verify?step=4");
 }
 
+/** "Finish later" on the details step: saves whatever is filled in (no format checks, that happens on Continue) and
+ *  goes back to the dashboard. The legal name is the one field a saved draft needs. */
+export async function saveCompanyDetailsDraftAction(f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/verify", "company");
+  const org = await getOrganization(user);
+  if (org?.status === "pending" || org?.status === "verified") redirect("/company"); // locked: nothing to save
+  const name = str(f, "name"), cif = str(f, "cif").toUpperCase().replace(/[\s-]/g, ""), website = str(f, "website").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const hood = str(f, "hood"), about = str(f, "about"), founded = str(f, "founded"), teamSize = str(f, "teamSize");
+  if (!name) return { error: "Add the legal company name to save your progress." };
+  const res = await saveOrganization(user, { name, cif, website, hood, about, founded: /^\d{4}$/.test(founded) ? founded : "", teamSize });
+  if (res.error) return res;
+  refresh();
+  redirect("/company");
+}
+
 // ---------------------------------------------------------------- company profile: logo + shared files
 
 export async function uploadLogoAction(f: FormData): Promise<FormState> {
