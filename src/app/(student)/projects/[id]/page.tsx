@@ -43,7 +43,6 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
             <span className="font-medium text-foreground">{name}</span>
             {p.orgVerified && <Badge variant="outline" className="h-5 gap-1 rounded-md px-1.5 text-[0.6875rem] text-[#166534]"><Check className="size-3" />Verified</Badge>}
             <span>· {p.hood}</span>
-            <Badge variant={p.clientKind === "company" ? "outline" : "secondary"} className="h-5 rounded-md px-1.5 text-[0.6875rem]">{p.clientKind === "company" ? "Company" : "Student"}</Badge>
           </div>
           <h1 className="text-[2rem] font-semibold leading-tight tracking-[-0.025em]">{p.title}</h1>
         </header>
@@ -106,8 +105,6 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
               <div className="flex flex-col gap-3 bg-panel p-4">
                 {!user ? (
                   <Link href={`/signin?next=${encodeURIComponent(`/projects/${p.id}`)}`} className={cn(buttonVariants({ size: "lg" }), "h-10 w-full px-4 text-sm")}>Sign in to apply</Link>
-                ) : p.postedById === user.id ? (
-                  <Link href={`/requests/${p.id}`} className={cn(buttonVariants({ size: "lg" }), "h-10 w-full px-4 text-sm")}>Manage applicants</Link>
                 ) : application ? (
                   <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-3.5 py-2.5 text-sm">
                     <span>You applied · <span className="font-medium">{statusInfo(application, p).label}</span></span>

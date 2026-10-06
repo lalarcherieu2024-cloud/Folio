@@ -5,7 +5,6 @@ import { SaveButton } from "@/components/student/SaveButton";
 import { eur, weeksLabel, whyFits, type Viewer } from "@/lib/work";
 import type { Project } from "@/lib/types";
 
-export const kindLabel = (p: Project) => (p.clientKind === "company" ? "Company" : "Student");
 
 export function ProjectCard({ p, applied, href, viewer }: { p: Project; applied?: boolean; href?: string; viewer?: Viewer }) {
   const mine = new Set(viewer?.skills ?? []);
@@ -20,7 +19,6 @@ export function ProjectCard({ p, applied, href, viewer }: { p: Project; applied?
           <span className="truncate">· {p.hood}</span>
         </span>
         <span className="flex shrink-0 items-center gap-1">
-          <Badge variant={p.clientKind === "company" ? "outline" : "secondary"} className="h-[1.375rem] rounded-md px-2 text-xs font-medium">{kindLabel(p)}</Badge>
           {viewer?.id && <SaveButton projectId={p.id} initial={viewer.saved.includes(p.id)} />}
         </span>
       </div>

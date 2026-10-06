@@ -5,7 +5,7 @@ import type { Project } from "../types";
 import { UUID, toProject } from "./shared";
 
 export type Sort = "new" | "pay" | "short" | "open";
-export type ProjectFilter = { q?: string; skill?: string; category?: string; kind?: "company" | "student"; sort?: Sort; viewerId?: string; onlyIds?: string[] };
+export type ProjectFilter = { q?: string; skill?: string; category?: string; sort?: Sort; viewerId?: string; onlyIds?: string[] };
 
 // Keeps projects with no owner (demo companies) while dropping the signed-in user's own.
 export const notOwnedBy = (id: string) => `client_id.is.null,client_id.neq.${id}`;
@@ -34,8 +34,7 @@ export async function getOpenProjects(f: ProjectFilter = {}): Promise<Project[]>
     : query.order("created_at", { ascending: false });
   query = hideViewersOwn(query, f.viewerId, f.viewerId ? await appliedProjectIds(f.viewerId) : []);
   if (f.onlyIds) query = query.in("id", f.onlyIds);
-  if (f.kind === "company") query = query.not("org_id", "is", null);
-  if (f.kind === "student") query = query.is("org_id", null);
+  query = query.not("org_id", "is", null); // only companies post projects
   if (f.category) query = query.eq("category", f.category);
   if (f.skill) query = query.contains("skills", [f.skill]);
   const q = f.q?.trim().replace(/[,()%*\\]/g, " ");

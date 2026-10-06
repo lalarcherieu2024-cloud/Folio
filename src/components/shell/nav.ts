@@ -17,8 +17,8 @@ export function navFor(role: Role, path: string, counts: NavCounts): NavEntry[] 
   }
   return [
     { href: "/home", label: "Home", icon: House, active: path === "/home" },
-    { href: "/projects", label: "Find projects", icon: Search, count: counts.open, active: path.startsWith("/projects") && !path.startsWith("/projects/new") },
-    { href: "/applications", label: "My work", icon: ListChecks, count: counts.mine, active: path.startsWith("/applications") || path.startsWith("/requests") },
+    { href: "/projects", label: "Find projects", icon: Search, count: counts.open, active: path.startsWith("/projects") },
+    { href: "/applications", label: "My work", icon: ListChecks, count: counts.mine, active: path.startsWith("/applications") },
     { href: "/payments", label: "Payments", icon: Wallet, active: path.startsWith("/payments") },
     { href: "/progress", label: "Progress", icon: TrendingUp, active: path.startsWith("/progress") },
     { href: "/profile", label: "Profile & record", icon: User, active: path.startsWith("/profile") },

@@ -35,7 +35,7 @@ export async function withdrawAction(): Promise<{ cents?: number; error?: string
   return res;
 }
 
-/** Deletes a project that hasn't started (or cancels and refunds it if it was already paid). Works for companies and students. */
+/** Deletes a project that hasn't started (or cancels and refunds it if it was already paid). Used by companies for their own projects. */
 export async function removeProjectAction(projectId: string): Promise<{ kind?: "deleted" | "cancelled"; error?: string }> {
   const user = await requireUser("/");
   const res = await removeProject(user, projectId);

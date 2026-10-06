@@ -14,7 +14,7 @@ import { getStudentNavCounts } from "@/lib/data/student";
 
 export const metadata: Metadata = {
   title: "Folio: real projects, verified proof",
-  description: "Do paid projects for startups and fellow students. Every finished project becomes verified proof of your skills.",
+  description: "Do paid projects for startups and small businesses. Every finished project becomes verified proof of your skills.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

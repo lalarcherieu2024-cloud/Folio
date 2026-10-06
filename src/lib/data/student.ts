@@ -22,12 +22,6 @@ export async function getApplications(user: StudentProfile): Promise<(Applicatio
   return apps.flatMap((a) => (byId.has(a.project_id) ? [{ ...toApplication(a), project: byId.get(a.project_id)! }] : []));
 }
 
-export async function getProjectsPostedBy(user: StudentProfile): Promise<Project[]> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("project_cards").select("*").eq("client_id", user.id).order("created_at", { ascending: false });
-  return (data ?? []).map(toProject);
-}
-
 export async function createApplication(user: StudentProfile, projectId: string, pitch: string, includeFiles: boolean): Promise<{ error?: string }> {
   if (!UUID.test(projectId)) return { error: "This project is no longer open." };
   if (!user.cv) return { error: "Add your CV to your profile before applying." };
@@ -40,18 +34,6 @@ export async function createApplication(user: StudentProfile, projectId: string,
   return { error: "Couldn't send your application. Try again." };
 }
 
-export type NewProject = Pick<Project, "title" | "category" | "summary" | "deliverables" | "doneWhen" | "priceEur" | "weeks" | "skills" | "hoursPerWeek" | "learn" | "beginnerFriendly">;
-
-export async function createProject(user: StudentProfile, p: NewProject): Promise<{ id?: string; error?: string }> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("projects").insert({
-    client_id: user.id, client_name: user.fullName, hood: "IE community", category: p.category, title: p.title.slice(0, 70),
-    summary: p.summary, deliverables: p.deliverables, done_when: p.doneWhen, price_eur: p.priceEur, weeks: p.weeks, skills: p.skills,
-    hours_per_week: p.hoursPerWeek, learn: p.learn, beginner_friendly: p.beginnerFriendly,
-  }).select("id").single();
-  if (error) { console.error("createProject", error); return { error: "Couldn't post your request. Check the fields and try again." }; }
-  return { id: data.id };
-}
 
 export type PayKind = "paid" | "escrow" | "review";
 export type PaymentRow = { projectId: string; title: string; org: string; amount: number; kind: PayKind; date: string };
@@ -88,26 +70,6 @@ export async function getPayments(user: StudentProfile): Promise<Payments> {
     return { label: d.toLocaleDateString("en-GB", { month: "short" }), value };
   });
   return { rows, earned: sum("paid"), escrow: sum("escrow"), review: sum("review"), paidCount: rows.filter((r) => r.kind === "paid").length, months };
-}
-
-// Edits an OPEN request you posted. Applicants (pending) are notified by the database function.
-// Returns how many were notified. Fails once someone has been accepted.
-export async function updateProject(user: StudentProfile, id: string, p: NewProject): Promise<{ notified?: number; error?: string }> {
-  if (!UUID.test(id)) return { error: "Request not found." };
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("update_project", {
-    p_id: id, p_title: p.title.slice(0, 70), p_category: p.category, p_summary: p.summary, p_deliverables: p.deliverables,
-    p_done_when: p.doneWhen, p_price: p.priceEur, p_weeks: p.weeks, p_skills: p.skills,
-    p_hours: p.hoursPerWeek, p_learn: p.learn, p_beginner: p.beginnerFriendly,
-  });
-  if (error) {
-    console.error("updateProject", error);
-    if (/no longer be edited/i.test(error.message)) return { error: "Someone is already working on this, so it can't be edited anymore." };
-    if (/not your project/i.test(error.message)) return { error: "Only the person who posted it can edit it." };
-    return { error: "Couldn't save your changes. Has migration 0010 been run?" };
-  }
-  void user;
-  return { notified: Number(data ?? 0) };
 }
 
 export async function getCredentials(user: StudentProfile): Promise<Credential[]> {
@@ -156,14 +118,6 @@ export async function getRecommended(user: StudentProfile, applied: Application[
   const ranked = [...candidates].sort((a, b) => score(b) - score(a));
   const basedOn = [...want.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
   return { projects: ranked.slice(0, 3), basedOn };
-}
-
-export async function markDelivered(user: StudentProfile, applicationId: string): Promise<{ error?: string }> {
-  if (!UUID.test(applicationId)) return { error: "Application not found." };
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("applications").update({ status: "delivered" }).eq("id", applicationId).eq("student_id", user.id).eq("status", "accepted").select("id");
-  if (error) { console.error("markDelivered", error); return { error: "Couldn't mark this as delivered. Has migration 0004 been run?" }; }
-  return data?.length ? {} : { error: "Only work in progress can be marked as delivered." };
 }
 
 export async function withdrawApplication(user: StudentProfile, applicationId: string): Promise<{ error?: string }> {

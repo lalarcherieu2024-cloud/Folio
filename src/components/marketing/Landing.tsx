@@ -28,7 +28,7 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
       <section id="how" className="grid scroll-mt-20 items-center gap-10 pb-16 pt-6 md:gap-12 md:pt-10 md:grid-cols-[1.1fr_.9fr]">
         <div>
           <h1 className="text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real projects.<br />Real pay.<br /><span className="text-brand-mid">Real proof.</span></h1>
-          <p className="mt-6 max-w-[48ch] text-lg leading-relaxed text-zinc-600">Take paid projects from startups, small businesses and fellow students, in any field. Every finished project becomes a credential the client signs.</p>
+          <p className="mt-6 max-w-[48ch] text-lg leading-relaxed text-zinc-600">Take paid projects from startups and small businesses, in any field. Every finished project becomes a credential the client signs.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/projects" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4 text-sm")}>See open projects <ArrowRight className="size-4" /></Link>
             <Link href="/signup" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-10 px-4 text-sm")}>Create your account</Link>

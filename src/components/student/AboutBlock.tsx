@@ -2,13 +2,12 @@ import { ExternalLink, Globe } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// Who is behind a project: a company (with its details) or a fellow student.
+// Who is behind a project: the company (with its details).
 export function AboutBlock({ p }: { p: Project }) {
   const name = p.orgName ?? p.clientName;
-  const company = p.clientKind === "company";
-  const meta = company ? (p.about ? [p.about.industry, p.about.size, p.about.founded && `Founded ${p.about.founded}`].filter(Boolean).join(" · ") : "Company") : "IE University student";
-  const blurb = company ? p.about?.blurb : "Fellow IE student posting their own project. Check their profile before you apply.";
-  const linkedin = `https://www.linkedin.com/search/results/${company ? "companies" : "people"}/?keywords=${encodeURIComponent(name)}`;
+  const meta = p.about ? [p.about.industry, p.about.size, p.about.founded && `Founded ${p.about.founded}`].filter(Boolean).join(" · ") : "Company";
+  const blurb = p.about?.blurb;
+  const linkedin = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(name)}`;
   const btn = "inline-flex h-8 items-center gap-1.5 rounded-md border bg-white px-3 text-[0.8125rem] font-medium hover:bg-muted";
   return (
     <section className="flex flex-col gap-3 rounded-xl border bg-panel p-5">
