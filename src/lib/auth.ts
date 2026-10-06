@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
 import { avatarPublicUrl } from "./avatar";
@@ -33,11 +34,17 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
   };
 });
 
+/** A student who hasn't finished the required onboarding (the profile photo): not "in the app" yet. */
+export const isOnboarding = (user: StudentProfile) => user.role === "student" && !user.avatarUrl;
+
 // Signed-in user, or a redirect to sign-in. Pass a role to also keep the other kind of
 // account out: a student opening a /company page lands on their own home, and vice versa.
 export async function requireUser(next = "/", role?: Role): Promise<StudentProfile> {
   const user = await getSession();
   if (!user) redirect(`${role === "company" ? "/company/signin" : "/signin"}?next=${encodeURIComponent(next)}`);
   if (role && user.role !== role) redirect(homeFor(user.role));
+  // Sign-up can't be skipped: a student without the required profile photo is sent back to onboarding.
+  // Only for page loads, so the onboarding steps' own uploads (server actions) still work.
+  if (isOnboarding(user) && !next.startsWith("/welcome") && !(await headers()).get("next-action")) redirect("/welcome");
   return user;
 }

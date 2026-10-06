@@ -5,7 +5,8 @@ import { CredentialCard } from "@/components/shared/CredentialCard";
 import { CvCard, DetailsCard, FilesCard } from "@/components/student/ProfileCards";
 import { requireUser } from "@/lib/auth";
 import { getSignatureStates } from "@/lib/data/signatures";
-import { getCredentials, getProfileFiles } from "@/lib/data/student";
+import { getCertificates, getCredentials, getProfileFiles } from "@/lib/data/student";
+import { CertificatesCard } from "@/components/student/CertificatesCard";
 import { AvatarEditor } from "@/components/student/AvatarEditor";
 import { CredentialActions } from "@/components/student/CredentialActions";
 
@@ -19,7 +20,7 @@ function Status({ on, yes, no }: { on: boolean; yes: string; no: string }) {
 
 export default async function ProfilePage() {
   const me = await requireUser("/profile", "student");
-  const [creds, files] = await Promise.all([getCredentials(me), getProfileFiles(me)]);
+  const [creds, files, certificates] = await Promise.all([getCredentials(me), getProfileFiles(me), getCertificates(me.id)]);
   const sigs = await getSignatureStates(creds.map((c) => c.id));
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`; // the address people use to reach Folio, for the verify link
@@ -42,7 +43,7 @@ export default async function ProfilePage() {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21.25rem),1fr))] items-start gap-4">
         <div className="flex flex-col gap-4"><CvCard cv={me.cv} /><FilesCard files={files} /></div>
-        <DetailsCard user={me} />
+        <div className="flex flex-col gap-4"><DetailsCard user={me} /><CertificatesCard certificates={certificates} /></div>
       </div>
 
       <div className="flex flex-col gap-4">

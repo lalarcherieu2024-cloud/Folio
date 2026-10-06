@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/marketing/SiteHeader";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { getSession } from "@/lib/auth";
+import { getSession, isOnboarding } from "@/lib/auth";
 import { getNotifications } from "@/lib/data/notifications";
 import { getCompanyNavCounts } from "@/lib/data/startup";
 import { getStudentNavCounts } from "@/lib/data/student";
@@ -28,11 +28,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} h-full`}>
       <body className="min-h-full">
         <TooltipProvider>
-          {user && counts ? (
+          {/* Students still in onboarding see the public site, with a way back to their set-up. */}
+          {user && counts && !isOnboarding(user) ? (
             <AppShell user={user} counts={counts} notifications={notifications} defaultCollapsed={sidebarCollapsed}>{children}</AppShell>
           ) : (
             <div className="flex min-h-screen flex-col overflow-x-clip">
-              <SiteHeader />
+              <SiteHeader onboarding={!!user && isOnboarding(user)} />
               <main className="flex-1">{children}</main>
               <SiteFooter />
             </div>

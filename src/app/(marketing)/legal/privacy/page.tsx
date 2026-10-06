@@ -17,7 +17,7 @@ const sections: LegalSection[] = [
     <LegalTable head={["Data", "Examples", "Where it comes from"]} rows={[
       ["Account", "Name, email, password (stored hashed), whether you're a student or a client", "You, when you sign up"],
       ["Sign-in with LinkedIn or GitHub", "Name, email, profile picture link, account ID; your GitHub username", "LinkedIn or GitHub, when you connect them"],
-      ["Student profile", "Photo, programme and year, links, CV, the strengths we read from your CV, PayPal email for payouts", "You"],
+      ["Student profile", "Photo, programme and year, links, CV, the strengths we read from your CV, certificates from other courses (with their links or uploaded copies), PayPal email for payouts", "You"],
       ["Client profile", "Company name, website, tax ID (CIF), description, logo, files and verification documents", "You"],
       ["Projects and applications", "Briefs, pitches, interviews, milestones, deliveries and files, requested changes", "You and the other side of the project"],
       ["Messages", "Chat messages and attached files", "You and the people you talk to"],
@@ -45,7 +45,7 @@ const sections: LegalSection[] = [
   { id: "sharing", title: "Who can see your data", body: <>
     <h3>Other Folio users</h3>
     <ul>
-      <li>Clients see the profile of students who apply to their projects, including the CV, through a private link that expires after an hour.</li>
+      <li>Clients see the profile of students who apply to their projects, including the CV and course certificates, through a private link that expires after an hour.</li>
       <li>Students see client profiles and the projects they post.</li>
       <li>The two sides of a project see their messages, files, deliveries, the brief and the credential.</li>
     </ul>
