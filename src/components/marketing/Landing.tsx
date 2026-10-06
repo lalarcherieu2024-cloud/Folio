@@ -25,8 +25,8 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
   const priceRange = prices.length ? `${eur(Math.min(...prices))}–${eur(Math.max(...prices))}` : null;
   return (
     <div className={cn(campusQuirk, "mx-auto w-full max-w-[75rem] px-6")}>
-      <section id="how" className="grid scroll-mt-20 items-center gap-10 pb-16 pt-6 md:gap-12 md:pt-10 md:grid-cols-[1.1fr_.9fr]">
-        <div>
+      <section id="how" className="grid scroll-mt-20 items-center gap-10 pb-16 pt-1 md:gap-12 md:pt-4 md:grid-cols-[1.1fr_.9fr]">
+        <div className="md:-translate-y-9">
           <h1 className="text-[clamp(2.5rem,5.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">Real projects.<br />Real pay.<br /><span className="text-brand-mid">Real proof.</span></h1>
           <p className="mt-6 max-w-[48ch] text-lg leading-relaxed text-zinc-600">Take paid projects from startups, small businesses and fellow students, in any field. Every finished project becomes a credential the client signs.</p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -34,7 +34,7 @@ export function Landing({ projects, counts }: { projects: Project[]; counts: Rec
             <Link href="/signup" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-10 px-4 text-sm")}>Create your account</Link>
           </div>
         </div>
-        <WorkflowDemo />
+        <div className="min-w-0 md:translate-y-6"><WorkflowDemo /></div>
       </section>
 
       <GettingPaid priceRange={priceRange} />
