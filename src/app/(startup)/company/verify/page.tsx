@@ -1,5 +1,6 @@
 import { CompanyVerify } from "@/components/startup/CompanyVerify";
 import { requireUser } from "@/lib/auth";
+import { getUnfinishedSignup } from "@/lib/data/signup";
 import { getOrganization } from "@/lib/data/startup";
 
 export const metadata = { title: "Company verification · Folio" };
@@ -19,5 +20,6 @@ export default async function VerifyCompany({ searchParams }: PageProps<"/compan
   else if (asked === 5) step = docsDone ? 5 : 4;
   else step = org.status === "rejected" ? 6 : docsDone ? 5 : 4;
 
-  return <CompanyVerify step={step} org={org} email={user.email} name={user.fullName} />;
+  // Until the company submits, its frame keeps the ways out (sign out, start from scratch, "I'm a student").
+  return <CompanyVerify step={step} org={org} email={user.email} name={user.fullName} account={(await getUnfinishedSignup(user)) ?? undefined} />;
 }

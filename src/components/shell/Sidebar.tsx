@@ -21,9 +21,10 @@ export function NavItems({ role, counts, onNavigate, collapsed = false }: { role
       {items.map(({ href, label, icon: Icon, count, alert, active }) => (
         <Link
           key={href} href={href} onClick={onNavigate} aria-current={active ? "page" : undefined} title={collapsed ? label : undefined}
-          className={cn("relative flex h-[2.125rem] items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors", collapsed && "h-12 justify-center rounded-xl px-0", active ? "bg-soft font-medium text-primary" : "text-zinc-600 hover:bg-[#eef4f8] hover:text-foreground")}
+          className={cn("group/nav relative flex h-[2.125rem] items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors", collapsed && "h-11 justify-center rounded-xl px-0", active ? "bg-soft font-medium text-primary" : "text-zinc-600 hover:bg-[#eef4f8] hover:text-foreground")}
         >
-          <Icon className={cn("shrink-0", collapsed ? "size-[1.875rem]" : "size-6")} />
+          {/* Each section keeps its colour, muted until it's the current page or hovered, so the list reads calm. */}
+          <Icon className={cn("shrink-0 transition-[filter,opacity] duration-200", collapsed ? "size-[1.625rem]" : "size-5", !active && "opacity-75 saturate-[.35] group-hover/nav:opacity-100 group-hover/nav:saturate-100")} />
           <span className={cn("flex-1", collapsed && "sr-only")}>{label}</span>
           {count !== undefined && !collapsed && (alert
             ? <span aria-label={`${count} unread`} className="grid min-w-5 place-items-center rounded-full bg-[#16a34a] px-1.5 text-[0.6875rem] font-semibold leading-5 text-white">{count > 9 ? "9+" : count}</span>

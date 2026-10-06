@@ -12,12 +12,13 @@ import { RoleSwitch } from "@/components/shared/RoleSwitch";
 import { AuthFrame, Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "@/components/startup/CompanyAuth";
 import { SKIP_EMAIL_CONFIRMATION } from "@/lib/config";
 import type { FormState } from "@/lib/form";
+import { isIeEmail } from "@/lib/ie-email";
 
 // Student sign-up, mirroring the company flow (CompanyAuth + CompanyVerify): same frame, same step tracker.
 // Steps 1–2 happen here; 3–6 run signed in on /welcome (StudentOnboarding).
 export const STUDENT_STEPS: readonly (readonly [string, string])[] = [
-  ["Create your account", "Name, university email and password"],
-  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Confirm your email", "Click the link we email you"],
+  ["Create your account", "LinkedIn, or your IE email and a password"],
+  SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Confirm your IE email", "Click the link we email you"],
   ["Your photo and details", "Photo, programme and payout link"],
   ["Upload your CV", "Clients read it when you apply"],
   ["Verify your accounts", "LinkedIn, and GitHub if you do tech work"],
@@ -26,8 +27,6 @@ export const STUDENT_STEPS: readonly (readonly [string, string])[] = [
 
 export const STUDENT_FRAME = { title: "Start doing real, paid work", sub: "Set up your profile once, then apply to any project in a couple of clicks. Here’s where you are." };
 
-// Mirrors allowed_email_domains in supabase/migrations/0001_init.sql.
-const isUniEmail = (e: string) => ["ie.edu", "student.ie.edu"].includes(e.trim().split("@")[1]?.toLowerCase() ?? "");
 
 // Step 2: Supabase's confirmation email carries a link (no 6-digit code). Clicking it lands on
 // /auth/callback, which signs the student in and continues to /welcome.
@@ -71,23 +70,23 @@ export function StudentSignup() {
     <AuthFrame title={STUDENT_FRAME.title} sub={STUDENT_FRAME.sub} current={sentTo ? 2 : 1} steps={STUDENT_STEPS} audience="For students">
       {!sentTo && <RoleSwitch role="student" />}
       {!sentTo && <>
-        <StepHeading eyebrow="Step 1 of 6" title="Create your account" sub="Free for IE students. Takes about 3 minutes, and you can apply as soon as your CV is up." />
+        <StepHeading eyebrow="Step 1 of 6" title="Create your account" />
         <form action={action}>
           <input type="hidden" name="role" value="student" />
           <StepCard footer={<>
             <Link href="/" className={outlineBtn}>Back</Link>
             <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Creating…" : "Create account"}</button>
           </>}>
-            {/* Skips the password and the email check; LinkedIn also counts as verified straight away. */}
+            {/* Skips the password; the IE email is confirmed next (/welcome) unless LinkedIn's email already is one. */}
             <LinkedInButton label="Sign up with LinkedIn" />
             <TermsNotice action="signing up with LinkedIn" />
             <OrDivider>or with your university email</OrDivider>
             <Field id="fullName" label="Full name" autoComplete="name" placeholder="Lucía Fernández" required />
             <div className="grid gap-1.5">
               <Field id="email" label="University email" type="email" autoComplete="email" placeholder="you@student.ie.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              {email.includes("@") && !SKIP_EMAIL_CONFIRMATION && (isUniEmail(email)
+              {email.includes("@") && !SKIP_EMAIL_CONFIRMATION && (isIeEmail(email)
                 ? <span className="flex items-center gap-1.5 text-xs font-medium text-brand"><BadgeCheck className="size-3.5" />You&apos;ll get the verified IE student badge.</span>
-                : <span className="text-xs text-muted-foreground">Use your @student.ie.edu address to get the verified student badge.</span>)}
+                : <span className="text-xs text-muted-foreground">Folio is for IE students: with another email, you&apos;ll also confirm your @student.ie.edu address.</span>)}
             </div>
             <Field id="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} required />
             <TermsConsent />
