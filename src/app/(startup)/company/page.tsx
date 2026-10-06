@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Circle } from "lucide-react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/shared/UserAvatar";
+import { FirstRunTour } from "@/components/startup/FirstRunTour";
 import { ago, card, CategoryChip, pastLabel } from "@/components/startup/ui";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
@@ -9,10 +10,14 @@ import { getCompanyLedger } from "@/lib/data/payments";
 import { getCompanyApplicants, getCompanyProjects, getOrganization, type Organization } from "@/lib/data/startup";
 import { eurFromCents } from "@/lib/payments/config";
 import type { StudentProfile } from "@/lib/types";
+import { detailsComplete } from "@/lib/org";
 import { cn } from "@/lib/utils";
 import { eur, firstName } from "@/lib/work";
 
 export const metadata = { title: "Home · Folio" };
+
+// "Tuesday 6 October", in Madrid time like the greeting.
+const today = () => new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Madrid" }).format(new Date());
 
 function greeting() {
   const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/Madrid" }).format(new Date()));
@@ -55,6 +60,12 @@ export default async function CompanyHome() {
   const queue = [...toVerify, ...pending];
   const steps = setupSteps(user, org, rows);
   const done = steps.filter((s) => s.done).length;
+  // Verification steps done (details, then submitted with LinkedIn), for the card's progress. Documents come later,
+  // on the payment page.
+  const verifyDone = org?.status === "pending" ? 2 : detailsComplete(org) ? 1 : 0;
+  const tourStage = org?.status !== "verified" ? (org?.status === "pending" ? null : "verify")
+    : rows.every((r) => r.stage.key === "draft" || r.stage.key === "cancelled") ? "post"
+    : pending.length > 0 ? "applicants" : null;
 
   const kpis = [
     { label: "Live projects", value: String(rows.filter((r) => r.stage.key === "open").length), href: "/company/projects" },
@@ -65,21 +76,52 @@ export default async function CompanyHome() {
 
   return (
     <div className="page-enter flex flex-col gap-7">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-[1.75rem] font-semibold tracking-[-0.02em]">{greeting()}, {firstName(user.fullName)}</h1>
-          <p className="text-[0.9375rem] text-muted-foreground">
-            {queue.length ? `${queue.length} thing${queue.length === 1 ? " is" : "s are"} ready for you.` : "You’re all caught up. A good moment to plan your next project."}
+      {/* The greeting as a small masthead: today's date, the company (logo, name, verification), and what needs
+          attention (the figures are in the strip below). The topbar already has "Post a project", so no button here. */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+        <UserAvatar name={org?.name || user.fullName} color={org?.logoColor} url={org?.logoUrl} className="size-14 shrink-0 rounded-2xl text-lg ring-1 ring-black/5" />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{today()}</span>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em]">{greeting()}, {firstName(user.fullName)}</h1>
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.9375rem] text-muted-foreground">
+            {org?.name && <span className="font-medium text-zinc-700">{org.name}</span>}
+            {org?.name && <span aria-hidden>·</span>}
+            {org?.status === "verified"
+              ? <span className="inline-flex items-center gap-1 font-medium text-[#15803d]"><Check className="size-3.5" strokeWidth={3} />Verified</span>
+              : org?.status === "pending" ? <span>Verification in review</span>
+              : <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fef2f2] px-2.5 py-0.5 text-[0.8125rem] font-medium text-[#b91c1c]"><span className="size-1.5 rounded-full bg-[#ef4444]" />Not verified yet</span>}
+            {queue.length > 0 && <><span aria-hidden>·</span><span>{queue.length} thing{queue.length === 1 ? " needs" : "s need"} you</span></>}
           </p>
         </div>
-        <Link href="/company/projects/new" className={cn(buttonVariants({ variant: "outline" }), "h-9 bg-white px-3.5")}>New project</Link>
       </div>
 
+      {/* One coaching tip for the step the company is on: verify, then post a first project, then review applicants. */}
+      {tourStage && <FirstRunTour userId={user.id} stage={tourStage} />}
+
+      {/* Until the company is verified nothing else on this page matters much, so this leads the page and stays
+          highlighted until it's done: a brand ring that gently pulses (verify-highlight), a "Next step" tag and how
+          far along they are. By size and emphasis, not a warning colour. */}
       {org?.status !== "verified" && (
-        <Link href="/company/verify" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border bg-panel px-4 py-3 text-[0.8125rem] text-zinc-600 hover:border-zinc-400">
-          {org?.status === "pending" ? "Folio is reviewing your company. You can publish once it’s verified." : "Verify your company to start publishing projects."}
-          <span className="font-medium text-foreground underline underline-offset-4">{org?.status === "pending" ? "See status" : "Continue verification"}</span>
-        </Link>
+        <div data-tour="verify" className={cn(card, "verify-highlight flex flex-wrap items-center gap-x-8 gap-y-4 border-brand/40 p-6 md:p-7")}>
+          <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-soft px-2.5 py-0.5 text-xs font-medium text-brand">
+              <span className="size-1.5 rounded-full bg-brand" />{org?.status === "pending" ? "In review" : "Next step"}
+            </span>
+            <h2 className="text-xl font-semibold tracking-tight">{org?.status === "pending" ? "Folio is reviewing your company" : "Verify your company to start publishing"}</h2>
+            <p className="max-w-[60ch] text-[0.9375rem] text-muted-foreground">
+              {org?.status === "pending"
+                ? "We check every company before students see its projects, usually within 1–2 business days. You can publish as soon as it's verified."
+                : "Students only see projects from verified companies. It takes about 2 minutes: your company details and your LinkedIn. No documents needed yet."}
+            </p>
+            <div className="mt-1 flex max-w-[22rem] items-center gap-3">
+              <div className="flex flex-1 gap-1">{[0, 1].map((n) => <span key={n} className={cn("h-1.5 flex-1 rounded-full", n < verifyDone ? "bg-brand" : "bg-zinc-200")} />)}</div>
+              <span className="text-xs tabular-nums text-muted-foreground">{verifyDone} of 2 done</span>
+            </div>
+          </div>
+          <Link href="/company/verify" className={cn(buttonVariants(), "h-11 shrink-0 gap-2 px-5 text-[0.9375rem]")}>
+            {org?.status === "pending" ? "See status" : verifyDone ? "Continue verification" : "Start verification"}<ArrowRight className="size-4" />
+          </Link>
+        </div>
       )}
 
       {/* Key figures in one strip, like a dashboard. */}

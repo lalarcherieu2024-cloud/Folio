@@ -1,6 +1,5 @@
 // Two-tone sidebar icons: a soft tinted fill, a darker outline and a few solid details.
 // Each section has its own colour so it is easy to spot at a glance (also when the sidebar is collapsed).
-import { BarChart3, FolderKanban, LayoutDashboard, MessageSquare, PlusCircle, Users, Wallet, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 export type NavIcon = (props: { className?: string }) => ReactNode;
@@ -126,13 +125,3 @@ export const BuildingIcon: NavIcon = ({ className }) => (
     <path d="M17 12.5h1.5M17 15.5h1.5" />
   </Svg>
 );
-
-// ---- Company workspace: plain monochrome line icons (they take the text colour), for a more formal look.
-const line = (I: LucideIcon): NavIcon => function LineIcon({ className }) { return <I className={className} strokeWidth={1.6} aria-hidden />; };
-export const ProOverviewIcon = line(LayoutDashboard);
-export const ProProjectsIcon = line(FolderKanban);
-export const ProApplicantsIcon = line(Users);
-export const ProMessagesIcon = line(MessageSquare);
-export const ProPaymentsIcon = line(Wallet);
-export const ProImpactIcon = line(BarChart3);
-export const ProPostIcon = line(PlusCircle);

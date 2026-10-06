@@ -11,16 +11,17 @@ import { Field, outlineBtn, primaryBtn, StepCard } from "./CompanyAuth";
 
 /** Company details (sign-up step 3, and "Edit profile" afterwards). Legal name and CIF lock once submitted. */
 export function CompanyDetailsForm({ org, then, backHref, backLabel = "Back", submitLabel = "Continue" }: {
-  org: Organization | null; then: "verify" | "profile"; backHref: string; backLabel?: string; submitLabel?: string;
+  org: Organization | null; then: "verify" | "profile"; backHref?: string; backLabel?: string; submitLabel?: string;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveCompanyDetailsAction, {});
   const locked = org?.status === "pending" || org?.status === "verified";
   const extended = then === "profile";
   return (
-    <form action={action}>
+    // The id lets the verification frame's "Finish later" save what's typed here (FinishLater in VerifyFrame).
+    <form id="company-details-form" action={action}>
       <input type="hidden" name="then" value={then} />
       <StepCard footer={<>
-        <Link href={backHref} className={outlineBtn}>{backLabel}</Link>
+        {backHref ? <Link href={backHref} className={outlineBtn}>{backLabel}</Link> : <span />}
         <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Saving…" : submitLabel}</button>
       </>}>
         <Field id="name" label="Legal company name" defaultValue={org?.name} placeholder="Nubo Labs S.L." readOnly={locked} required

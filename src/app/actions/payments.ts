@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { getOrganization } from "@/lib/data/startup";
 import { removeProject, savePaypalEmail, startFunding, withdraw } from "@/lib/data/payments";
 import { str, type FormState } from "@/lib/form";
 
@@ -15,6 +16,11 @@ async function origin() {
 /** The company pays for a draft project. Returns a PayPal URL to go to, or `funded` when the payment is done. */
 export async function startPaymentAction(projectId: string): Promise<{ url?: string; funded?: boolean; error?: string }> {
   const user = await requireUser(`/company/projects/${projectId}/pay`, "company");
+  // Verification stage 2 (migration 0030): no payment without the registry extract and the representative's ID.
+  const org = await getOrganization(user);
+  if (!org || !["registry_extract", "representative_id"].every((k) => org.docs.some((d) => d.kind === k))) {
+    return { error: "Upload the registry extract and the representative's ID first." };
+  }
   const res = await startFunding(user, projectId, await origin());
   if (res.funded) { revalidatePath("/company", "layout"); revalidatePath("/projects"); }
   return res;

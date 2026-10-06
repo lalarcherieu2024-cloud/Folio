@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Clock, MessageSquare, PenLine, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Clock, FolderOpen, MessageSquare, PenLine, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/shared/EmptyState";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -129,11 +130,9 @@ function Section({ title, sub, children }: { title: string; sub: string; childre
 
 function Empty({ title, body, cta }: { title: string; body: string; cta?: boolean }) {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-zinc-300 px-6 py-12">
-      <span className="text-base font-semibold">{title}</span>
-      <span className="text-muted-foreground">{body}</span>
-      {cta && <Link href="/company/projects/new" className={cn(buttonVariants(), "h-9 px-3.5")}>Post a project</Link>}
-    </div>
+    <EmptyState icon={FolderOpen} title={title} body={body}>
+      {cta && <Link href="/company/projects/new" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>Post a project <ArrowRight className="size-4" /></Link>}
+    </EmptyState>
   );
 }
 

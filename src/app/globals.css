@@ -178,3 +178,26 @@
 [data-tone="pro"] .card-hover:hover { transform: none; box-shadow: none; border-color: #94a3b8; }
 [data-tone="pro"] .card-hover:active { transform: none; }
 [data-tone="pro"] h1 { letter-spacing: -0.02em; }
+
+/* Company dashboard: the verification card stays highlighted until the company is verified, with a slow, soft
+   pulse of the brand colour around it. Still for anyone who prefers reduced motion. */
+@keyframes verify-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(12, 74, 110, .18), 0 1px 2px rgba(0, 0, 0, .04); } 50% { box-shadow: 0 0 0 6px rgba(12, 74, 110, .06), 0 1px 2px rgba(0, 0, 0, .04); } }
+.verify-highlight { animation: verify-pulse 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .verify-highlight { animation: none; box-shadow: 0 0 0 3px rgba(12, 74, 110, .1); } }
+
+/* Landing snippets (Snippets.tsx): a button being pressed, and the escrow gently pulsing while it holds the money.
+   Everything else in them is a transition. Still for anyone who prefers reduced motion. */
+@keyframes snip-press { 0%, 100% { transform: none; filter: none; } 45% { transform: scale(.92); filter: brightness(1.2); } }
+@keyframes snip-hold { 0%, 100% { box-shadow: 0 0 0 0 rgba(12, 74, 110, .3); } 50% { box-shadow: 0 0 0 8px rgba(12, 74, 110, 0); } }
+.snip-press { animation: snip-press .6s ease-in-out .3s both; }
+.snip-hold { animation: snip-hold 1.8s ease-in-out infinite; }
+@keyframes snip-in { from { opacity: 0; transform: translateY(3px); } }
+@keyframes snip-pop { from { opacity: 0; transform: scale(.4); } }
+.snip-in { display: inline-flex; animation: snip-in .45s cubic-bezier(.22, 1, .36, 1) both; }
+.snip-pop { animation: snip-pop .45s cubic-bezier(.34, 1.56, .64, 1) both; }
+@media (prefers-reduced-motion: reduce) { .snip-press, .snip-hold, .snip-in, .snip-pop { animation: none; } }
+
+/* Landing sections: instead of a hard full-width border, a hairline that fades out at both ends. The brand accent
+   sits on the section label (the eyebrow in HowFolioWorks), in line with the left-aligned heading. */
+.section-rule { position: relative; }
+.section-rule::before { content: ""; position: absolute; inset: 0 0 auto; height: 1px; background: linear-gradient(90deg, transparent, var(--border) 18%, var(--border) 82%, transparent); }

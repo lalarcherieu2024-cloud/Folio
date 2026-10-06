@@ -121,6 +121,7 @@ export type StudentProfile = {
   avatarColor: string | null; // chosen background colour for the initials
   avatarUrl: string | null; // uploaded photo, if any
   payoutLink: string | null; // PayPal link where the student gets paid
+  paypalEmail: string | null; // the PayPal account payouts are sent to (Payments page, migration 0022)
   fileCount: number; // additional files (portfolio etc.)
   certificateCount: number; // course certificates from outside Folio (profile, #courses)
 };

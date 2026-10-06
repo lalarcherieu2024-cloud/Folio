@@ -9,7 +9,7 @@ import { isAvatarColor } from "@/lib/avatar";
 import { createEscrow } from "@/lib/data/payments";
 import { paymentsMode } from "@/lib/payments/config";
 import {
-  acceptApplicant, createCompanyProject, deleteProjectDraft, saveProjectDraft, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc,
+  acceptApplicant, createCompanyProject, deleteProjectDraft, saveProjectDraft, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc, saveFounderLinkedin,
   removeOrgLogo, saveCompanyDoc, saveCompanyFile, saveOrganization, saveOrgLogo, setOrgLogoColor, submitVerification, verifyDelivery, type DocKind,
 } from "@/lib/data/startup";
 import { EMAIL, str, type FormState } from "@/lib/form";
@@ -60,7 +60,22 @@ export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promi
   if (res.error) return res;
   refresh();
   if (str(f, "then") === "profile") return { ok: true }; // saved from the profile page: stay there and show a toast
-  redirect("/company/verify?step=4");
+  redirect("/company/verify?step=5");
+}
+
+/** "Finish later" on the details step: saves whatever is filled in (no format checks, that happens on Continue) and
+ *  goes back to the dashboard. The legal name is the one field a saved draft needs. */
+export async function saveCompanyDetailsDraftAction(f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/verify", "company");
+  const org = await getOrganization(user);
+  if (org?.status === "pending" || org?.status === "verified") redirect("/company"); // locked: nothing to save
+  const name = str(f, "name"), cif = str(f, "cif").toUpperCase().replace(/[\s-]/g, ""), website = str(f, "website").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const hood = str(f, "hood"), about = str(f, "about"), founded = str(f, "founded"), teamSize = str(f, "teamSize");
+  if (!name) return { error: "Add the legal company name to save your progress." };
+  const res = await saveOrganization(user, { name, cif, website, hood, about, founded: /^\d{4}$/.test(founded) ? founded : "", teamSize });
+  if (res.error) return res;
+  refresh();
+  redirect("/company");
 }
 
 // ---------------------------------------------------------------- company profile: logo + shared files
@@ -129,7 +144,7 @@ export async function uploadCompanyDocAction(_: FormState, f: FormData): Promise
   if (file.size > 10 * 1024 * 1024) return { error: "The file must be under 10 MB." };
   const res = await saveCompanyDoc(user, kind, file, ext);
   if (res.error) return res;
-  revalidatePath("/company/verify");
+  revalidatePath("/company", "layout"); // the payment page asks for them now
   return { ok: true };
 }
 
@@ -138,14 +153,21 @@ export async function removeCompanyDocAction(kind: DocKind): Promise<FormState> 
   if (!DOC_KINDS.includes(kind)) return { error: "Unknown document." };
   const res = await removeCompanyDoc(user, kind);
   if (res.error) return res;
-  revalidatePath("/company/verify");
+  revalidatePath("/company", "layout");
   return { ok: true };
 }
 
 export async function submitVerificationAction(_: FormState, f: FormData): Promise<FormState> {
   const user = await requireUser("/company/verify", "company");
   if (f.get("agree") !== "on") return { error: "Tick the declaration to submit." };
-  if (!(await getOrganization(user))?.logoUrl) return { error: "Upload your company logo first (step 4)." };
+  // The founder's LinkedIn: connected (verified), or a profile link Folio checks by hand.
+  if (!user.linkedinVerified) {
+    const raw = str(f, "founderLinkedin");
+    if (!raw) return { error: "Connect your LinkedIn, or paste a link to your LinkedIn profile." };
+    if (!/^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/in\/[^\s/]+\/?$/i.test(raw)) return { error: "Use the link to your personal LinkedIn profile, like linkedin.com/in/your-name." };
+    const saved = await saveFounderLinkedin(user, /^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    if (saved.error) return saved;
+  }
   const res = await submitVerification();
   if (res.error) return res;
   refresh();

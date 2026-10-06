@@ -53,7 +53,7 @@ export function Topbar({ user, account, counts, notifications, sidebarCollapsed,
         </form>
       )}
       <NotificationsMenu items={notifications.items} unread={notifications.unread} />
-      {company && <Link href="/company/projects/new" className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />Post a project</Link>}
+      {company && <Link data-tour="post" href="/company/projects/new" className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />Post a project</Link>}
       <UserMenu user={user} account={account} />
 
       <Sheet open={open} onOpenChange={setOpen}>
