@@ -5,6 +5,7 @@
 import "server-only";
 import { avatarPublicUrl } from "../avatar";
 import { createAdminClient } from "../supabase/admin";
+import { createClient } from "../supabase/server";
 import type { Credential, Project } from "../types";
 import { monthYear, toProject, UUID } from "./shared";
 
@@ -59,6 +60,7 @@ export async function getPublicCompany(id: string): Promise<PublicCompany | null
  *  work for. False before the migration, and for projects without a company. */
 export async function isStudentStartup(orgId: string | null): Promise<boolean> {
   if (!orgId || !UUID.test(orgId)) return false;
-  const { data } = await createAdminClient().from("organizations").select("*").eq("id", orgId).maybeSingle();
+  // The visitor's own client (organizations are readable, 0001), so it works without the service-role key too.
+  const { data } = await (await createClient()).from("organizations").select("*").eq("id", orgId).maybeSingle();
   return data?.kind === "student_startup";
 }

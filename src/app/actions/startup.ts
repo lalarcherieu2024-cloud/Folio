@@ -41,13 +41,21 @@ export async function resendCompanyCodeAction(email: string): Promise<FormState>
   return { ok: true };
 }
 
-// ---------------------------------------------------------------- company verification (steps 3–5) + profile
+// ---------------------------------------------------------------- company verification (one step) + profile
 
 /** The details form's kind ("company" unless the student-startup option was picked; the profile editor sends none). */
 const kindOf = (f: FormData): OrgKind | undefined => (f.has("kind") ? (str(f, "kind") === "student_startup" ? "student_startup" : "company") : undefined);
 
+/** Company details. From the verification page it also sends them to Folio for review in the same step (migration 0032:
+ *  the founder's LinkedIn is optional); from the profile page it only saves. */
 export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promise<FormState> {
   const user = await requireUser("/company/verify", "company");
+  const submitting = str(f, "then") !== "profile";
+  if (submitting && f.get("agree") !== "on") return { error: "Tick the declaration at the bottom to send it for review." };
+  const founderLinkedin = str(f, "founderLinkedin");
+  if (submitting && founderLinkedin && !/^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/in\/[^\s/]+\/?$/i.test(founderLinkedin)) {
+    return { error: "Use the link to your personal LinkedIn profile, like linkedin.com/in/your-name, or leave it empty." };
+  }
   const name = str(f, "name"), cif = str(f, "cif").toUpperCase().replace(/[\s-]/g, ""), website = str(f, "website").replace(/^https?:\/\//, "").replace(/\/$/, "");
   const hood = str(f, "hood"), about = str(f, "about"), teamSize = str(f, "teamSize"), founded = str(f, "founded");
   const kind = kindOf(f), founderIeEmail = str(f, "founderIeEmail").toLowerCase();
@@ -75,8 +83,15 @@ export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promi
   const res = await saveOrganization(user, { name, cif, website, hood, about, founded, teamSize, linkedinUrl, kind, founderIeEmail });
   if (res.error) return res;
   refresh();
-  if (str(f, "then") === "profile") return { ok: true }; // saved from the profile page: stay there and show a toast
-  redirect("/company/verify?step=5");
+  if (!submitting) return { ok: true }; // saved from the profile page: stay there and show a toast
+  if (founderLinkedin && !user.linkedinVerified) {
+    const saved = await saveFounderLinkedin(user, /^https?:\/\//i.test(founderLinkedin) ? founderLinkedin : `https://${founderLinkedin}`);
+    if (saved.error) return saved;
+  }
+  const sent = await submitVerification();
+  if (sent.error) return sent;
+  refresh();
+  redirect("/company/verify");
 }
 
 /** "Finish later" on the details step: saves whatever is filled in (no format checks, that happens on Continue) and
@@ -184,23 +199,6 @@ export async function removeCompanyDocAction(kind: DocKind): Promise<FormState> 
   if (res.error) return res;
   revalidatePath("/company", "layout");
   return { ok: true };
-}
-
-export async function submitVerificationAction(_: FormState, f: FormData): Promise<FormState> {
-  const user = await requireUser("/company/verify", "company");
-  if (f.get("agree") !== "on") return { error: "Tick the declaration to submit." };
-  // The founder's LinkedIn: connected (verified), or a profile link Folio checks by hand.
-  if (!user.linkedinVerified) {
-    const raw = str(f, "founderLinkedin");
-    if (!raw) return { error: "Connect your LinkedIn, or paste a link to your LinkedIn profile." };
-    if (!/^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/in\/[^\s/]+\/?$/i.test(raw)) return { error: "Use the link to your personal LinkedIn profile, like linkedin.com/in/your-name." };
-    const saved = await saveFounderLinkedin(user, /^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
-    if (saved.error) return saved;
-  }
-  const res = await submitVerification();
-  if (res.error) return res;
-  refresh();
-  redirect("/company/verify");
 }
 
 // ---------------------------------------------------------------- projects

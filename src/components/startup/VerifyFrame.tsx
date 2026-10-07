@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, FileText, Lock, ShieldCheck, X } from "lucide-react";
+import { Check, ChevronDown, FileText, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -11,12 +11,12 @@ import { cn } from "@/lib/utils";
 
 // The frame for company verification (/company/verify): a calm, document-style layout like a bank or payment
 // provider's business check, rather than the sign-up's marketing panel. A slim bar with a "secure" note and the way
-// out (Finish later), a compact step list, the current step in the middle, and how the documents are handled.
+// out (Save and exit), a compact step list, the current step in the middle, and how the documents are handled.
 
-// Stage 1 only; the documents come later, before the first payment (shown as a note under the steps).
+// Stage 1 only, in one step (migration 0032); the documents come later, before the first payment (a note under the
+// steps).
 const STEPS = [
-  { title: "Company details", sub: "Name, website, CIF or your IE email" },
-  { title: "Review and submit", sub: "Add your LinkedIn, send to Folio" },
+  { title: "Your company", sub: "A few details, about 2 minutes" },
   { title: "Folio review", sub: "Usually 1–2 business days" },
 ] as const;
 
@@ -36,15 +36,15 @@ function FinishLater() {
   };
   return (
     <button type="button" onClick={go} disabled={saving} title="Saves what you've filled in. Pick it up from your dashboard."
-      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#fecaca] bg-[#fef2f2] px-3 text-sm font-medium text-[#b91c1c] transition-colors hover:border-[#fca5a5] hover:bg-[#fee2e2] disabled:opacity-60">
-      <X className="size-4" />{saving ? "Saving…" : "Finish later"}
+      className="inline-flex h-9 items-center rounded-lg border bg-white px-3.5 text-sm font-medium text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,.04)] transition-colors hover:bg-panel hover:text-foreground disabled:opacity-60">
+      {saving ? "Saving…" : "Save and exit"}
     </button>
   );
 }
 
 // Mirrors the Privacy Policy's "Company verification" section; keep them in step.
 const HANDLING = [
-  ["Now", "We check your CIF (or, for a student startup, your IE email), website and LinkedIn, so students only see genuine companies"],
+  ["Now", "We check your CIF (or, for a student startup, your IE email) and website against public records, so students only see genuine companies"],
   ["Before your first payment", "The representative's ID, and the registry extract for a registered company, to confirm you can act for it"],
   ["Who sees them", "Only you and Folio's review team. Students never do; they see your name, logo and a verified badge"],
   ["Where", "Encrypted, in private storage with our database provider (Supabase)"],
@@ -53,7 +53,7 @@ const HANDLING = [
 ] as const;
 
 export function VerifyFrame({ step, allDone, stepHref, children }: {
-  /** 1–3 in STEPS. */
+  /** 1–2 in STEPS. */
   step: number; allDone?: boolean; stepHref?: (n: number) => string | null; children: React.ReactNode;
 }) {
   return (
@@ -64,7 +64,10 @@ export function VerifyFrame({ step, allDone, stepHref, children }: {
           <span className="h-5 w-px bg-border" aria-hidden />
           <span className="text-sm font-medium text-zinc-600">Company verification</span>
           <span className="flex-1" />
-          <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex"><Lock className="size-3.5" />Secure and private</span>
+          <span className="hidden items-center gap-1.5 rounded-full bg-panel px-3 py-1.5 text-xs font-medium text-zinc-600 sm:inline-flex">
+            <ShieldCheck className="size-3.5 text-[#16a34a]" />Encrypted and private
+          </span>
+          <span className="hidden h-5 w-px bg-border sm:block" aria-hidden />
           {/* The one way out, where people look for it: everything saved so far stays, and the dashboard keeps the
               verification card (and the account menu, with sign out). */}
           <FinishLater />

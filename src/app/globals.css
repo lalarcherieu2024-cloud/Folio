@@ -197,6 +197,12 @@
 .snip-pop { animation: snip-pop .45s cubic-bezier(.34, 1.56, .64, 1) both; }
 @media (prefers-reduced-motion: reduce) { .snip-press, .snip-hold, .snip-in, .snip-pop { animation: none; } }
 
+/* Field explorer on the front page (FieldExplorer.tsx): the open field eases in, and a bar shows when it moves on. */
+@keyframes field-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.field-in { animation: fade-up .45s cubic-bezier(.22, 1, .36, 1) both; }
+.field-progress { animation: field-progress linear both; }
+@media (prefers-reduced-motion: reduce) { .field-in, .field-progress { animation: none; } }
+
 /* Landing sections: instead of a hard full-width border, a hairline that fades out at both ends. The brand accent
    sits on the section label (the eyebrow in HowFolioWorks), in line with the left-aligned heading. */
 .section-rule { position: relative; }

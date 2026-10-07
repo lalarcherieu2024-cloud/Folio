@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, BadgeCheck, Check, Cloud, Lock, Star } from "lucide-react";
+import { Award, BadgeCheck, Check, Cloud, FileText, Lock, Star, Video } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/shared/Logo";
 import { cn } from "@/lib/utils";
@@ -91,15 +91,18 @@ const APPLICANTS = [
   { look: MARCO, name: "Marco R.", note: "First project" },
   { look: SARA, name: "Sara P.", note: "1 project · ★ 5.0" },
 ];
-// 0 the brief is up · 1–3 applicants arrive · 4 Lucía is interviewed · 5 Hire is pressed · 6 hired
-// · 7 the list clears (with Lucía still hired, so nothing flips back while it's visible)
-const HIRE_MS = [1700, 1100, 1000, 1000, 2000, 1400, 3200, 800];
+// 0 a short pause on the empty list · 1–3 applicants arrive · 4 Lucía's CV is checked · 5 a quick interview
+// · 6 interviewed, Hire appears · 7 Hire is pressed · 8 hired · 9 the list clears (with Lucía still hired, so nothing
+// flips back while it's visible)
+const HIRE_MS = [500, 1100, 1000, 1000, 1700, 1900, 1500, 1400, 3200, 800];
 
 export function ApplicantsSnippet() {
-  const { ref, beat } = useBeats(HIRE_MS, 6);
-  const clearing = beat === 7;
+  const { ref, beat } = useBeats(HIRE_MS, 8);
+  const clearing = beat === 9;
   const count = clearing ? 0 : Math.min(3, beat);
-  const interviewed = beat >= 4, pressing = beat === 5, hired = beat >= 6;
+  const picked = beat >= 4, interviewed = beat >= 6, pressing = beat === 7, hired = beat >= 8;
+  // What's happening with Lucía, under her name: her CV, then a short call, then done.
+  const status = beat === 4 ? "cv" : beat === 5 ? "call" : interviewed ? "done" : null;
   return (
     <div ref={ref} className={frame}>
       <div className={cn(panel, "p-4")}>
@@ -112,25 +115,21 @@ export function ApplicantsSnippet() {
             <Swap k={String(count)}>{count === 1 ? "1 applicant" : `${count} applicants`}</Swap>
           </span>
         </div>
-        <div className="relative mt-3">
-          {/* Before anyone applies: the brief is live (a real empty state, not empty slots). */}
-          <p className={cn(move, shown(beat === 0), "absolute inset-0 flex items-center justify-center gap-2 text-sm text-muted-foreground")}>
-            <span className="relative flex size-2"><span className="absolute inset-0 animate-ping rounded-full bg-brand/40" /><span className="relative size-2 rounded-full bg-brand" /></span>
-            Brief posted · waiting for applicants
-          </p>
+        <div className="mt-3">
           <ul className="flex flex-col gap-2">
             {APPLICANTS.map((a, i) => {
               const lucia = i === 0;
               return (
                 <li key={a.name} className={cn(move, "flex items-center gap-2.5 rounded-lg border px-3 py-2",
-                  lucia && interviewed ? "border-brand/40 bg-soft/60" : "bg-white",
+                  lucia && picked ? "border-brand/40 bg-soft/60" : "bg-white",
                   i >= count ? "pointer-events-none translate-y-1.5 opacity-0" : !lucia && hired ? "opacity-40" : "opacity-100")}>
                   <Face look={a.look} className="size-8" />
                   <span className="flex min-w-0 flex-1 flex-col leading-tight">
                     <span className="text-sm font-medium">{a.name}</span>
                     <span className="text-xs text-muted-foreground">
-                      {lucia && interviewed
-                        ? <Swap k="interviewed" className="inline-flex items-center gap-1 font-medium text-brand"><Check className="size-3" strokeWidth={3} />Interviewed</Swap>
+                      {lucia && status === "cv" ? <Swap k="cv" className="inline-flex items-center gap-1 font-medium text-zinc-700"><FileText className="size-3" />CV checked<Check className="size-3 text-[#16a34a]" strokeWidth={3} /></Swap>
+                        : lucia && status === "call" ? <Swap k="call" className="inline-flex items-center gap-1.5 font-medium text-[#155e75]"><span className="size-1.5 animate-pulse rounded-full bg-[#06b6d4]" /><Video className="size-3" />Quick interview · 15 min</Swap>
+                        : lucia && status === "done" ? <Swap k="done" className="inline-flex items-center gap-1 font-medium text-brand"><Check className="size-3" strokeWidth={3} />Interviewed</Swap>
                         : <Swap k="note">{a.note}</Swap>}
                     </span>
                   </span>

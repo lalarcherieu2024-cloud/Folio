@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Organization, OrgKind } from "@/lib/data/startup";
 import type { FormState } from "@/lib/form";
 import { STARTUP_MAX_PAY } from "@/lib/org";
+import type { StudentProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Field, outlineBtn, primaryBtn, StepCard } from "./CompanyAuth";
 
@@ -17,10 +18,11 @@ const KINDS: { kind: OrgKind; icon: typeof Building2; title: string; sub: string
   { kind: "student_startup", icon: Rocket, title: "Student startup", sub: "Your own, not registered yet" },
 ];
 
-/** Company details (sign-up step 3, and "Edit profile" afterwards). Legal name and CIF lock once submitted.
- *  On the details step an IE student can pick "Student startup" (migration 0031): no CIF, their IE email instead. */
-export function CompanyDetailsForm({ org, then, founder = false, backHref, backLabel = "Back", submitLabel = "Continue" }: {
-  org: Organization | null; then: "verify" | "profile"; founder?: boolean; backHref?: string; backLabel?: string; submitLabel?: string;
+/** Company details: the whole verification in one form (it sends them for review, migration 0032), and "Edit profile"
+ *  afterwards. Legal name and CIF lock once submitted. An IE student can pick "Student startup" (migration 0031): no
+ *  CIF, their IE email instead. The founder's LinkedIn is optional. */
+export function CompanyDetailsForm({ org, user, then, founder = false, backHref, backLabel = "Back", submitLabel }: {
+  org: Organization | null; user?: StudentProfile; then: "verify" | "profile"; founder?: boolean; backHref?: string; backLabel?: string; submitLabel?: string;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveCompanyDetailsAction, {});
   const locked = org?.status === "pending" || org?.status === "verified";
@@ -34,8 +36,8 @@ export function CompanyDetailsForm({ org, then, founder = false, backHref, backL
       <input type="hidden" name="then" value={then} />
       <input type="hidden" name="kind" value={kind} />
       <StepCard footer={<>
-        {backHref ? <Link href={backHref} className={outlineBtn}>{backLabel}</Link> : <span />}
-        <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Saving…" : submitLabel}</button>
+        {backHref ? <Link href={backHref} className={outlineBtn}>{backLabel}</Link> : <span className="text-xs text-muted-foreground">{extended ? "" : "No documents needed now"}</span>}
+        <button type="submit" disabled={pending} className={primaryBtn}>{pending ? (extended ? "Saving…" : "Sending…") : submitLabel ?? (extended ? "Save" : "Send for review")}</button>
       </>}>
         {!locked && !extended && (
           <fieldset className="grid gap-2">
@@ -70,7 +72,7 @@ export function CompanyDetailsForm({ org, then, founder = false, backHref, backL
             <Field id="website" label="Website" defaultValue={org?.website} placeholder="nubolabs.es" required />
           </div>
         )}
-        <Field id="hood" label="Neighbourhood, city" defaultValue={org?.hood} placeholder="Malasaña, Madrid" />
+        <Field id="hood" label="Neighbourhood, city (optional)" defaultValue={org?.hood} placeholder="Malasaña, Madrid" />
         <div className="grid gap-1.5">
           <Label htmlFor="about">{startup ? "What does the startup do?" : "What does the company do?"}</Label>
           <Textarea id="about" name="about" defaultValue={org?.about} rows={3} required placeholder="One or two sentences students will read on your profile." className="resize-y bg-white leading-relaxed" />
@@ -81,6 +83,18 @@ export function CompanyDetailsForm({ org, then, founder = false, backHref, backL
             <Field id="teamSize" label="Team size (optional)" defaultValue={org?.teamSize} placeholder={startup ? "2 founders" : "11–50 employees"} />
           </div>
         )}
+        {!extended && <>
+          {!user?.linkedinVerified && (
+            <Field id="founderLinkedin" label="Your LinkedIn (optional)" defaultValue={user?.linkedinUrl ?? ""} placeholder="linkedin.com/in/your-name"
+              hint="Helps us confirm who's behind it, and can speed up the review." />
+          )}
+          <label className="flex cursor-pointer items-start gap-2.5 border-t border-zinc-100 pt-4 text-[0.8125rem] leading-normal text-zinc-700">
+            <input type="checkbox" name="agree" required className="mt-0.5 size-[1.125rem] shrink-0 accent-primary" />
+            <span>{startup
+              ? "I'm a founder of this startup, and I will pay students the agreed amount once I verify their work."
+              : "I can act on behalf of this company, and we will pay students the agreed amount once we verify their work."}</span>
+          </label>
+        </>}
         {state.error && <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>}
       </StepCard>
     </form>

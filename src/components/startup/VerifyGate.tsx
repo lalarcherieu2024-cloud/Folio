@@ -1,18 +1,16 @@
-import { ArrowRight, BadgeCheck, Building2, Check, Clock, FileCheck2, Lock, ShieldCheck, UserCheck, Users } from "lucide-react";
+import { ArrowRight, BadgeCheck, Building2, Check, Clock, FileCheck2, Lock, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { card } from "@/components/startup/ui";
 import { buttonVariants } from "@/components/ui/button";
 import type { Organization } from "@/lib/data/startup";
-import { detailsComplete } from "@/lib/org";
 import { cn } from "@/lib/utils";
 
 // Shown on "Post a project" until the company is verified: the one hurdle before posting, so it sells the check
 // (what you get, how little it takes) and shows exactly where you are, instead of just blocking the page.
 
-// Stage 1 of verification (migration 0030); documents only come later, before the first payment.
+// Stage 1 of verification, one form (migration 0032); documents only come later, before the first payment.
 const STEPS = [
-  { icon: Building2, title: "Company details", sub: "Legal name, CIF, website", time: "1 min" },
-  { icon: UserCheck, title: "Your LinkedIn and submit", sub: "So we know who's behind the company", time: "1 min" },
+  { icon: Building2, title: "Your company", sub: "Name, website, CIF or your IE email", time: "2 min" },
   { icon: FileCheck2, title: "Folio review", sub: "Checked against public records", time: "1–2 business days" },
 ] as const;
 
@@ -24,8 +22,8 @@ const PERKS = [
 
 export function VerifyGate({ org }: { org: Organization | null }) {
   const pending = org?.status === "pending";
-  // How far it's got: details complete, then submitted (pending); the review is the last step.
-  const done = [detailsComplete(org), pending, false];
+  // How far it's got: sent for review (pending); the review is the last step.
+  const done = [pending, false];
   const next = done.findIndex((d) => !d);
   const started = !!org && !pending;
 
@@ -42,8 +40,8 @@ export function VerifyGate({ org }: { org: Organization | null }) {
             </h2>
             <p className="text-pretty text-[0.9375rem] leading-relaxed text-brand-low">
               {pending
-                ? "Folio is checking your documents, usually within 1–2 business days. We'll let you know the moment you can publish."
-                : "Every company on Folio is checked once, so students know the work and the pay are real. It takes about 2 minutes: your company details and your LinkedIn. No documents until your first payment."}
+                ? "Folio is checking your company, usually within 1–2 business days. We'll let you know the moment you can publish."
+                : "Every company on Folio is checked once, so students know the work and the pay are real. It's one short form, about 2 minutes. No documents until your first payment."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -54,8 +52,8 @@ export function VerifyGate({ org }: { org: Organization | null }) {
           </div>
         </div>
 
-        {/* Where you are: three short steps, with the next one marked. */}
-        <ol className="grid divide-y divide-zinc-100 md:grid-cols-3 md:divide-x md:divide-y-0">
+        {/* Where you are: two short steps, with the next one marked. */}
+        <ol className="grid divide-y divide-zinc-100 md:grid-cols-2 md:divide-x md:divide-y-0">
           {STEPS.map((s, i) => {
             const isDone = done[i], isNext = i === next && !pending;
             const Icon = s.icon;
