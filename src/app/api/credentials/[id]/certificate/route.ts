@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     rating: c.rating, review: c.review, issuedAt, credentialId: c.id, verifyUrl: `${new URL(request.url).origin}/verify/${c.id}`,
     clientSignature: sig?.client_signature, clientSigner: sig?.client_signer, clientSignedAt: sig?.client_signed_at,
     studentSignature: sig?.student_signature, studentSignedAt: sig?.student_signed_at,
-  });
+  }, new URL(request.url).origin);
   const slug = String(c.project_title).normalize("NFKD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "project";
   return new Response(Buffer.from(pdf), {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Folio-certificate-${slug}.pdf"`, "Cache-Control": "private, no-store" },

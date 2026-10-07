@@ -27,6 +27,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} h-full`}>
       <body className="min-h-full">
+        {/* Set NEXT_PUBLIC_APP_ENV=staging in the staging build so nobody mistakes it for the real site. */}
+        {process.env.NEXT_PUBLIC_APP_ENV === "staging" && (
+          <div className="bg-[#fef3c7] px-4 py-1.5 text-center text-xs font-medium text-[#92400e]">Staging: test data only. Payments are simulated and nothing here is real.</div>
+        )}
         <TooltipProvider>
           {/* Students still in onboarding see the public site, with a way back to their set-up. */}
           {user && counts && !isOnboarding(user) ? (

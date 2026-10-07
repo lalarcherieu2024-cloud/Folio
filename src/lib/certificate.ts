@@ -1,8 +1,6 @@
 // The Folio certificate: A4 landscape, drawn to match the approved design (folio-certificate.html) —
 // cream paper, triple navy/gold border, corner ornaments, watermark, centre seal, two signature blocks.
 // All measurements below are the design's own millimetres; `top(…)` converts "mm from the top edge".
-import fs from "node:fs";
-import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { degrees, LineCapStyle, PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
@@ -33,17 +31,29 @@ const hex = (h: string) => rgb(parseInt(h.slice(1, 3), 16) / 255, parseInt(h.sli
 const NAVY = hex("#13324f"), GOLD = hex("#b08d57"), GOLD2 = hex("#d6bd8e"), INK = hex("#1b2430"), MUTED = hex("#6a7380"), PAPER = hex("#fdfbf6");
 
 // ---------------------------------------------------------------- fonts (OFL: Cormorant Garamond, Inter)
-const FONT_DIR = path.join(process.cwd(), "src/assets/fonts");
+// Served as static files from public/fonts/certificate and fetched from the site itself, so this works the same
+// in local dev and on Cloudflare Workers (which have no filesystem). Cached per server instance after first use.
+const FONT_PATH = "/fonts/certificate/";
+const fontCache = new Map<string, ArrayBuffer>();
+async function loadFont(origin: string, file: string): Promise<ArrayBuffer> {
+  const hit = fontCache.get(file);
+  if (hit) return hit;
+  const res = await fetch(`${origin}${FONT_PATH}${file}`);
+  if (!res.ok) throw new Error(`Certificate font ${file} not found (${res.status})`);
+  const bytes = await res.arrayBuffer();
+  fontCache.set(file, bytes);
+  return bytes;
+}
 const FILES = {
   serif: "CormorantGaramond-SemiBold.ttf", serifItalic: "CormorantGaramond-MediumItalic.ttf",
   sans: "Inter-Regular.ttf", sansMedium: "Inter-Medium.ttf", sansBold: "Inter-SemiBold.ttf",
 } as const;
 type Fonts = Record<keyof typeof FILES, PDFFont>;
 
-async function embedFonts(pdf: PDFDocument): Promise<Fonts> {
+async function embedFonts(pdf: PDFDocument, origin: string): Promise<Fonts> {
   pdf.registerFontkit(fontkit);
   const out = {} as Fonts;
-  for (const [k, file] of Object.entries(FILES)) out[k as keyof typeof FILES] = await pdf.embedFont(fs.readFileSync(path.join(FONT_DIR, file)), { subset: false }); // embedded whole: the subsetter in pdf-lib's font library mangles composed letters (í, á, ñ)
+  for (const [k, file] of Object.entries(FILES)) out[k as keyof typeof FILES] = await pdf.embedFont(await loadFont(origin, file), { subset: false }); // embedded whole: the subsetter in pdf-lib's font library mangles composed letters (í, á, ñ)
   return out;
 }
 
@@ -101,12 +111,13 @@ const CORNERS = {
   br: "M38 2V32a6 6 0 0 1-6 6h-30M32 2V26a6 6 0 0 1-6 6h-24M26 20a6 6 0 0 1-6 6",
 };
 
-export async function buildCertificate(d: CertificateData): Promise<Uint8Array> {
+/** `origin` is the site's own address (e.g. https://folio.app), used to load the fonts. */
+export async function buildCertificate(d: CertificateData, origin: string): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Folio certificate: ${clean(d.projectTitle)}`);
   pdf.setAuthor("Folio");
   const page = pdf.addPage([W, H]);
-  const f = await embedFonts(pdf);
+  const f = await embedFonts(pdf, origin);
   const cx = W / 2;
 
   // ---- paper and the triple border (CSS borders sit inside their box, so strokes are inset by half a width)

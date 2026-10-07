@@ -1,0 +1,3 @@
+# Copy to .dev.vars for `npm run preview` (runs the real Cloudflare Worker locally).
+# Makes the Worker load your .env.local values, like `npm run dev` does.
+NEXTJS_ENV=development
