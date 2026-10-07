@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
 import { avatarPublicUrl } from "./avatar";
+import { SKIP_EMAIL_CONFIRMATION } from "./config";
 import { homeFor } from "./routes";
 import type { Role, StudentProfile } from "./types";
 
@@ -13,7 +14,10 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
   if (!user) return null;
   const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   if (!p) return null;
-  const { count: fileCount } = await supabase.from("profile_files").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+  const [{ count: fileCount }, { count: certificateCount }] = await Promise.all([
+    supabase.from("profile_files").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("course_certificates").select("id", { count: "exact", head: true }).eq("user_id", user.id), // null before migration 0025
+  ]);
   return {
     id: user.id,
     role: (p.role as Role) ?? "student",
@@ -30,12 +34,19 @@ export const getSession = cache(async (): Promise<StudentProfile | null> => {
     avatarColor: p.avatar_color ?? null,
     avatarUrl: avatarPublicUrl(p.avatar_path),
     payoutLink: p.payout_link ?? null,
+    paypalEmail: p.paypal_email ?? null,
     fileCount: fileCount ?? 0,
+    certificateCount: certificateCount ?? 0,
   };
 });
 
-/** A student who hasn't finished the required onboarding (the profile photo): not "in the app" yet. */
-export const isOnboarding = (user: StudentProfile) => user.role === "student" && !user.avatarUrl;
+/** A student without a confirmed IE email. Signing up with LinkedIn or a personal email is allowed, but Folio is for
+ *  IE students, so onboarding starts by confirming an IE address (migration 0028). Not checked while email checks are
+ *  skipped, since no email is ever proven then. */
+export const needsIeEmail = (user: StudentProfile) => user.role === "student" && !user.uniEmailVerified && !SKIP_EMAIL_CONFIRMATION;
+
+/** A student who hasn't finished the required onboarding (IE email, profile photo): not "in the app" yet. */
+export const isOnboarding = (user: StudentProfile) => user.role === "student" && (needsIeEmail(user) || !user.avatarUrl);
 
 // Signed-in user, or a redirect to sign-in. Pass a role to also keep the other kind of
 // account out: a student opening a /company page lands on their own home, and vice versa.

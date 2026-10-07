@@ -6,7 +6,6 @@ import { FIELD_TONES } from "@/lib/fields";
 import { eur, type Viewer } from "@/lib/work";
 import type { Project } from "@/lib/types";
 
-export const kindLabel = (p: Project) => (p.clientKind === "company" ? "Company" : "Student");
 
 // How many skill chips a card shows before "+N", so cards stay the same height in the grid.
 const MAX_SKILLS = 3;
@@ -18,7 +17,7 @@ const MAX_SKILLS = 3;
 // their own on top (links can't nest): it opens the project page at "About <client>".
 export function ProjectCard({ p, applied, href, viewer }: { p: Project; applied?: boolean; href?: string; viewer?: Viewer }) {
   const mine = new Set(viewer?.skills ?? []);
-  const pic = p.orgName ? p.orgLogoUrl : p.clientAvatarUrl;
+  const pic = p.orgLogoUrl;
   const name = p.orgName ?? p.clientName;
   const url = href ?? `/projects/${p.id}`;
   const tone = FIELD_TONES[p.category] ?? { bg: "#f1f5f9", fg: "#334155" };
@@ -37,7 +36,7 @@ export function ProjectCard({ p, applied, href, viewer }: { p: Project; applied?
           <Link href={url} scroll={false} className="outline-none after:absolute after:inset-0 after:rounded-xl">{p.title}</Link>
         </h3>
         <div className="flex min-w-0 items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
-          {/* The company's logo (or the posting student's photo; initials without one), linking to who they are. */}
+          {/* The company's logo (initials without one), linking to who they are. */}
           <Link href={`${url}#client`} title={`About ${name}`} className="group/client relative z-10 flex min-w-0 items-center gap-2 rounded-md">
             <UserAvatar name={name} url={pic} className="size-6 rounded-md text-[0.625rem] ring-1 ring-black/5" />
             <span className="truncate font-medium text-zinc-700 underline-offset-2 group-hover/client:text-foreground group-hover/client:underline">{name}</span>

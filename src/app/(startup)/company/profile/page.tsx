@@ -1,13 +1,21 @@
-import { Check } from "lucide-react";
+import { ArrowRight, Award, Check, ExternalLink, FolderOpen } from "lucide-react";
+import { EmptyState } from "@/components/shared/EmptyState";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { redirect } from "next/navigation";
+import { CredentialCard } from "@/components/shared/CredentialCard";
+import { SignCertificateDialog } from "@/components/shared/SignCertificateDialog";
 import { CompanyDetailsCard } from "@/components/startup/CompanyDetailsCard";
+import { RegisterStartupCard } from "@/components/startup/RegisterStartupCard";
+import { isStartup } from "@/lib/org";
 import { CompanyFilesCard } from "@/components/startup/CompanyFiles";
 import { CompanyLogoEditor } from "@/components/startup/CompanyLogoEditor";
 import { CompanyProjectCard } from "@/components/startup/CompanyProjectCard";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
-import { countIssuedCredentials, getCompanyProjects, getOrganization } from "@/lib/data/startup";
+import { getCompanyProjects, getIssuedCredentials, getOrganization } from "@/lib/data/startup";
+import { firstName } from "@/lib/work";
 
 export const metadata = { title: "Company profile · Folio" };
 
@@ -29,8 +37,9 @@ export default async function CompanyProfile() {
   const user = await requireUser("/company/profile", "company");
   const org = await getOrganization(user);
   if (!org) redirect("/company/verify");
-  const projects = await getCompanyProjects(user);
-  const issued = await countIssuedCredentials(projects);
+  const [projects, certificates] = await Promise.all([getCompanyProjects(user), getIssuedCredentials(user)]);
+  const issued = certificates.length;
+  const unsigned = certificates.filter((c) => !c.signedByCompany).length;
   const open = projects.filter((p) => p.status === "open");
   const [statusLabel, verified] = STATUS[org.status];
 
@@ -40,13 +49,15 @@ export default async function CompanyProfile() {
         <CompanyLogoEditor org={org} />
         <div className="flex flex-col gap-2">
           <div>
-            <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em]">{org.name}</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em]">{org.name}</h1>
+              {org.status === "verified" && <Link href={`/companies/${org.id}`} className="inline-flex items-center gap-1 text-[0.8125rem] font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">See your public page<ExternalLink className="size-3" /></Link>}
+            </div>
             <p className="text-sm text-muted-foreground">{org.hood || "Add your neighbourhood"} · {projects.length} project{projects.length === 1 ? "" : "s"} · {issued} credential{issued === 1 ? "" : "s"} issued</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Status on={verified} yes={statusLabel} no={statusLabel} />
             <Status on={user.linkedinVerified} yes="LinkedIn verified" no="LinkedIn not connected" />
-            <Status on={!!org.linkedinUrl} yes="Company page added" no="No company page" />
             <Status on={!!org.website} yes={org.website} no="No website" />
             <Status on={org.files.length > 0} yes={`${org.files.length} file${org.files.length === 1 ? "" : "s"} shared`} no="No files shared" />
           </div>
@@ -60,13 +71,43 @@ export default async function CompanyProfile() {
       )}
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21.25rem),1fr))] items-start gap-4">
-        <CompanyFilesCard files={org.files} />
         <CompanyDetailsCard user={user} org={org} />
+        <CompanyFilesCard files={org.files} />
+      </div>
+      {isStartup(org) && org.status === "verified" && <RegisterStartupCard name={org.name} />}
+
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">Certificates issued <span className="font-mono text-sm font-normal text-muted-foreground">{issued}</span></h2>
+          {unsigned > 0 && <span className="text-[0.8125rem] font-medium text-[#92400e]">{unsigned} waiting for your signature</span>}
+        </div>
+        {certificates.length === 0 ? (
+          <EmptyState icon={Award} title="No certificates yet" body="When you verify a student's work, the certificate you issue shows up here." />
+        ) : (
+          <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
+            {certificates.map((c) => (
+              <div key={c.credential.id} className="flex flex-col gap-2.5">
+                <CredentialCard c={c.credential} />
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>Earned by <span className="font-medium text-foreground">{c.student}</span></span>
+                  <span>·</span>
+                  {c.signedByCompany
+                    ? <span className="inline-flex items-center gap-1 font-medium text-[#166534]"><Check className="size-3" strokeWidth={3} />Signed by you{c.signedByStudent ? ` and ${firstName(c.student)}` : ""}</span>
+                    : <SignCertificateDialog credentialId={c.credential.id} as="company" project={c.credential.projectTitle} otherParty={firstName(c.student)} />}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold tracking-tight">Open projects <span className="font-mono text-sm font-normal text-muted-foreground">{open.length}</span></h2>
-        {open.length === 0 ? <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-sm text-muted-foreground">No open projects right now.</div> : (
+        {open.length === 0 ? (
+          <EmptyState icon={FolderOpen} title="No open projects right now" body="Projects you publish show up here for students to find.">
+            <Link href="/company/projects/new" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>Post a project <ArrowRight className="size-4" /></Link>
+          </EmptyState>
+        ) : (
           <div className="stagger grid grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-4">{open.map((p) => <CompanyProjectCard key={p.id} p={p} />)}</div>
         )}
       </div>

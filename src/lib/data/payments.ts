@@ -213,3 +213,69 @@ export async function removeProject(user: StudentProfile, projectId: string): Pr
   }
   return { kind: "deleted" };
 }
+
+// ---------------------------------------------------------------- company side: what you paid
+
+export type SpendKind = "awaiting" | "held" | "released" | "paid" | "refunded";
+export type SpendRow = {
+  escrowId: string; projectId: string; title: string; student: string | null; kind: SpendKind;
+  amountCents: number; feeCents: number; totalCents: number; provider: string; at: string; fundedAt: string | null;
+};
+export type CompanyLedger = {
+  rows: SpendRow[];
+  awaitingCents: number;  // drafts not paid yet (price + fee)
+  heldCents: number;      // held for students until you verify their work (price only)
+  toStudentsCents: number; // released or paid out to students (price only)
+  spentCents: number;     // everything you paid (price + fee), refunds excluded
+  feesCents: number;      // Folio's fees inside that
+  refundedCents: number;
+  months: { label: string; value: number }[]; // spent per month, last 6, in euros
+  mode: PaymentsMode;
+};
+
+export async function getCompanyLedger(user: StudentProfile): Promise<CompanyLedger> {
+  const mode = paymentsMode();
+  const empty: CompanyLedger = { rows: [], awaitingCents: 0, heldCents: 0, toStudentsCents: 0, spentCents: 0, feesCents: 0, refundedCents: 0, months: lastMonths([]), mode };
+  const supabase = await createClient();
+  const { data: escrows, error } = await supabase.from("escrows").select("*").eq("payer_id", user.id).order("created_at", { ascending: false });
+  if (error || !escrows?.length) return empty;
+
+  const ids = escrows.map((e: any) => e.project_id);
+  const [{ data: projects }, { data: apps }] = await Promise.all([
+    supabase.from("project_cards").select("id, title").in("id", ids),
+    supabase.from("applications").select("project_id, student_id, status").in("project_id", ids).in("status", ["accepted", "delivered"]),
+  ]);
+  const studentIds = [...new Set([...(apps ?? []).map((a: any) => a.student_id), ...escrows.map((e: any) => e.student_id).filter(Boolean)])];
+  const { data: people } = studentIds.length ? await supabase.from("profiles").select("id, full_name").in("id", studentIds) : { data: [] as any[] };
+  const nameOf = (id?: string | null) => (id ? (people ?? []).find((p: any) => p.id === id)?.full_name ?? null : null);
+
+  const KIND: Record<string, SpendKind> = { awaiting_payment: "awaiting", held: "held", released: "released", paid_out: "paid", refunded: "refunded" };
+  const rows: SpendRow[] = escrows.map((e: any) => ({
+    escrowId: e.id, projectId: e.project_id, title: (projects ?? []).find((p: any) => p.id === e.project_id)?.title ?? "Project",
+    student: nameOf(e.student_id ?? (apps ?? []).find((a: any) => a.project_id === e.project_id)?.student_id),
+    kind: KIND[e.status] ?? "awaiting", amountCents: e.amount_cents, feeCents: e.fee_cents, totalCents: e.amount_cents + e.fee_cents,
+    provider: e.provider, fundedAt: e.funded_at,
+    at: e.refunded_at ?? e.paid_out_at ?? e.released_at ?? e.funded_at ?? e.created_at,
+  }));
+  const sum = (kinds: SpendKind[], f: (r: SpendRow) => number) => rows.filter((r) => kinds.includes(r.kind)).reduce((n, r) => n + f(r), 0);
+  const funded = rows.filter((r) => r.fundedAt && r.kind !== "refunded");
+  return {
+    rows, mode,
+    awaitingCents: sum(["awaiting"], (r) => r.totalCents),
+    heldCents: sum(["held"], (r) => r.amountCents),
+    toStudentsCents: sum(["released", "paid"], (r) => r.amountCents),
+    spentCents: funded.reduce((n, r) => n + r.totalCents, 0),
+    feesCents: funded.reduce((n, r) => n + r.feeCents, 0),
+    refundedCents: sum(["refunded"], (r) => r.totalCents),
+    months: lastMonths(funded.map((r) => ({ at: r.fundedAt!, cents: r.totalCents }))),
+  };
+}
+
+function lastMonths(items: { at: string; cents: number }[]) {
+  const now = new Date();
+  return Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    const value = items.filter((x) => { const t = new Date(x.at); return t.getFullYear() === d.getFullYear() && t.getMonth() === d.getMonth(); }).reduce((n, x) => n + x.cents / 100, 0);
+    return { label: d.toLocaleDateString("en-GB", { month: "short" }), value };
+  });
+}

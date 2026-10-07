@@ -1,5 +1,7 @@
-import { CalendarClock, Check, MessageSquare } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, MessageSquare, Users } from "lucide-react";
+import { EmptyState } from "@/components/shared/EmptyState";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { ApplicantActions } from "@/components/startup/ApplicantActions";
 import { ago, card, chip, PageHeader, pastLabel, TONES } from "@/components/startup/ui";
@@ -45,7 +47,11 @@ export default async function CompanyApplicants({ searchParams }: PageProps<"/co
 
         <section className="flex min-w-0 flex-col gap-3">
           <h2 className="text-lg font-semibold tracking-tight">{list.length} applicant{list.length === 1 ? "" : "s"} <span className="font-mono text-sm font-normal text-muted-foreground">· {toReview} to review</span></h2>
-          {list.length === 0 && <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-sm text-muted-foreground">No one has applied yet. Students who apply will show up here with their CV and skills.</div>}
+          {list.length === 0 && (
+            <EmptyState icon={Users} title="No applicants yet" body="Students who apply show up here with their CV, skills and pitch.">
+              <Link href="/company/projects" className={cn(buttonVariants({ size: "lg" }), "h-10 px-4")}>See your projects <ArrowRight className="size-4" /></Link>
+            </EmptyState>
+          )}
           <div className="stagger flex flex-col gap-3">
             {list.map((a) => {
               const working = a.status === "accepted" || a.status === "delivered";

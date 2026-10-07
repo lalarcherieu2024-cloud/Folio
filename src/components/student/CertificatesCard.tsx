@@ -76,7 +76,7 @@ function AddForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-/** Profile card: showcase and manage certificates from other courses and websites. */
+/** Profile section: showcase and manage certificates from other courses and websites. */
 export function CertificatesCard({ certificates }: { certificates: CourseCertificate[] }) {
   const [adding, setAdding] = useState(false);
   const [removing, startRemove] = useTransition();
@@ -85,20 +85,20 @@ export function CertificatesCard({ certificates }: { certificates: CourseCertifi
     if (r.error) toast.error(r.error); else toast("Certificate removed");
   });
   return (
-    <section className="flex flex-col gap-4 rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
-      <div className="flex items-start justify-between gap-3">
+    <section id="courses" className="flex scroll-mt-24 flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-base font-semibold">Certificates <span className="font-normal text-muted-foreground">(optional)</span></span>
-          <span className="text-[0.8125rem] text-muted-foreground">Courses you finished elsewhere, like Coursera, Udemy or Programiz. Clients see them when you apply.</span>
+          <h2 className="text-lg font-semibold tracking-tight">Courses and certificates <span className="text-sm font-normal text-muted-foreground">(optional)</span></h2>
+          <p className="text-[0.8125rem] text-muted-foreground">Online courses you finished elsewhere, like Coursera, Udemy or Programiz. Clients see them when you apply.</p>
         </div>
         <Button type="button" variant={adding ? "ghost" : "outline"} size="sm" onClick={() => setAdding(!adding)} className={cn("h-8 shrink-0 gap-1.5 px-3 text-[0.8125rem]", !adding && "bg-white")}>
-          {adding ? <><X className="size-3.5" />Close</> : <><Plus className="size-3.5" />Add</>}
+          {adding ? <><X className="size-3.5" />Close</> : <><Plus className="size-3.5" />Add certificate</>}
         </Button>
       </div>
       {adding && <AddForm onDone={() => setAdding(false)} />}
       {certificates.length > 0
-        ? <ul className="flex flex-col gap-2">{certificates.map((c) => <CertificateRow key={c.id} c={c} onRemove={() => remove(c.id)} removing={removing} />)}</ul>
-        : !adding && <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-6 text-center text-[0.8125rem] text-muted-foreground">No certificates yet. Add one to show what you&apos;ve learned outside class.</p>}
+        ? <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-2">{certificates.map((c) => <CertificateRow key={c.id} c={c} onRemove={() => remove(c.id)} removing={removing} />)}</ul>
+        : !adding && <p className="rounded-xl border border-dashed border-zinc-300 px-4 py-6 text-center text-[0.8125rem] text-muted-foreground">No certificates yet. Add one to show what you&apos;ve learned outside class.</p>}
     </section>
   );
 }

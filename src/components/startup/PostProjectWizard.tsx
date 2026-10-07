@@ -2,14 +2,16 @@
 
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { postCompanyProjectAction } from "@/app/actions/startup";
+import { postCompanyProjectAction, saveProjectDraftAction } from "@/app/actions/startup";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BRIEF_TEMPLATES } from "@/lib/brief-templates";
+import type { DraftData } from "@/lib/drafts";
 import type { FormState } from "@/lib/form";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,9 @@ const MIN_PAY = 150; // the database rejects projects under €150
 const STEPS = ["Basics", "Deliverable & skills", "Pay & duration", "Review"];
 const HINTS = ["Add a title and description", "Describe the deliverable and pick at least one skill", `Set a price of at least €${MIN_PAY} and a duration`, ""];
 
+/** What open projects in a field pay right now, from the cheapest to the best paid. */
+export type PriceRanges = Partial<Record<Category, [number, number]>>;
+
 const blank = { title: "", category: "" as Category | "", summary: "", deliverable: "", skills: [] as string[], custom: "", pay: "", weeks: 0 };
 const selectCls = "h-9 w-full rounded-md border bg-white px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -33,10 +38,28 @@ function Chip({ on, onClick, children, className }: { on: boolean; onClick: () =
   );
 }
 
-export function PostProjectWizard({ clientName, hood }: { clientName: string; hood: string }) {
+export function PostProjectWizard({ clientName, hood, draftId: savedId, initial, initialStep = 1, canPublish = true, maxPay, priceRanges = {} }: {
+  clientName: string; hood: string; draftId?: string; initial?: DraftData; initialStep?: number;
+  /** False while Folio is still reviewing the company: everything works except publishing, so drafts are saved. */
+  canPublish?: boolean;
+  /** A student startup's budget cap until it's registered (migration 0031). */
+  maxPay?: number;
+  priceRanges?: PriceRanges;
+}) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [f, setF] = useState(blank);
+  const [step, setStep] = useState(initialStep);
+  const [f, setF] = useState({ ...blank, ...initial, custom: "" });
+  // Saving a draft: any field may be empty. The first save creates it; later saves update the same one.
+  const [draftId, setDraftId] = useState(savedId ?? null);
+  const [saving, startSave] = useTransition();
+  const saveDraft = () => startSave(async () => {
+    const { custom: _custom, ...data } = f;
+    void _custom;
+    const r = await saveProjectDraftAction(draftId, data, step);
+    if (r.error || !r.id) { toast.error(r.error ?? "Couldn't save the draft."); return; }
+    toast.success("Draft saved", { description: "Find it under My projects → Drafts to finish later." });
+    if (!draftId) { setDraftId(r.id); router.replace(`/company/projects/new?draft=${r.id}`, { scroll: false }); }
+  });
   const set = (patch: Partial<typeof blank>) => setF((p) => ({ ...p, ...patch }));
   const [state, action, pending] = useActionState<FormState, FormData>(postCompanyProjectAction, {});
   const seen = useRef(state);
@@ -45,9 +68,13 @@ export function PostProjectWizard({ clientName, hood }: { clientName: string; ho
   const valid = [
     !!(f.title.trim() && f.category && f.summary.trim()),
     !!(f.deliverable.trim() && f.skills.length > 0),
-    Number(f.pay) >= MIN_PAY && f.weeks > 0,
+    Number(f.pay) >= MIN_PAY && (!maxPay || Number(f.pay) <= maxPay) && f.weeks > 0,
     true,
   ][step - 1];
+  const hint = step === 3 && maxPay ? `Set a price from €${MIN_PAY} to €${maxPay} and a duration` : HINTS[step - 1];
+  // A blank brief can start from a template (it fills in every step; the [brackets] are theirs to complete).
+  const blankBrief = !f.title.trim() && !f.summary.trim() && !f.deliverable.trim();
+  const range = f.category ? priceRanges[f.category] : undefined;
   const toggleSkill = (s: string) => set({ skills: f.skills.includes(s) ? f.skills.filter((x) => x !== s) : [...f.skills, s] });
   const addCustom = () => { const v = f.custom.trim(); if (v && !f.skills.includes(v)) set({ skills: [...f.skills, v], custom: "" }); };
   const allSkills = [...SKILLS, ...f.skills.filter((s) => !SKILLS.includes(s))];
@@ -77,9 +104,23 @@ export function PostProjectWizard({ clientName, hood }: { clientName: string; ho
         {f.skills.map((s) => <input key={s} type="hidden" name="skills" value={s} />)}
         <input type="hidden" name="priceEur" value={f.pay} />
         <input type="hidden" name="weeks" value={f.weeks} />
+        {draftId && <input type="hidden" name="draftId" value={draftId} />}
 
         <div className="grid gap-4 p-5">
           {step === 1 && <>
+            {blankBrief && (
+              <div className="grid gap-2 rounded-lg bg-panel p-3.5">
+                <span className="text-[0.8125rem] font-medium">Start from a template <span className="font-normal text-muted-foreground">· then fill in the [brackets]</span></span>
+                <div className="flex flex-wrap gap-1.5">
+                  {BRIEF_TEMPLATES.filter((t) => !maxPay || t.pay <= maxPay).map((t) => (
+                    <button key={t.id} type="button" onClick={() => set({ title: t.title, category: t.category, summary: t.summary, deliverable: t.deliverable, skills: t.skills, pay: String(t.pay), weeks: t.weeks })}
+                      className="inline-flex h-8 items-center rounded-md border bg-white px-3 text-[0.8125rem] font-medium text-zinc-800 hover:border-zinc-400">
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid gap-1.5">
               <Label htmlFor="w-title">Title</Label>
               <Input id="w-title" value={f.title} maxLength={70} onChange={(e) => set({ title: e.target.value })} placeholder="e.g. Landing page redesign for our clinic app" className="h-9" />
@@ -118,7 +159,14 @@ export function PostProjectWizard({ clientName, hood }: { clientName: string; ho
             <div className="grid gap-1.5">
               <Label htmlFor="w-pay">Price paid to student (€)</Label>
               <Input id="w-pay" inputMode="numeric" value={f.pay} onChange={(e) => set({ pay: e.target.value.replace(/[^0-9]/g, "") })} placeholder="600" className="h-9 max-w-[15rem] font-mono" />
-              <span className="text-xs text-muted-foreground">Fixed price for the whole project, paid when you verify delivery. Minimum €{MIN_PAY}.</span>
+              <span className="text-xs text-muted-foreground">
+                Fixed price for the whole project, paid when you verify delivery. {maxPay ? `From €${MIN_PAY} to €${maxPay} while your startup isn't registered.` : `Minimum €${MIN_PAY}.`}
+              </span>
+              {range && (
+                <span className="text-xs text-muted-foreground">
+                  Open {f.category} projects pay <span className="font-medium tabular-nums text-foreground">{range[0] === range[1] ? eur(range[0]) : `${eur(range[0])}–${eur(range[1])}`}</span> right now. Price for the time it takes: a fair price gets stronger applicants.
+                </span>
+              )}
             </div>
             <div className="grid gap-2.5">
               <Label>Duration</Label>
@@ -150,12 +198,15 @@ export function PostProjectWizard({ clientName, hood }: { clientName: string; ho
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-b-xl border-t bg-panel px-5 py-4">
-          <Button type="button" variant="outline" onClick={() => (step === 1 ? router.push("/company") : setStep(step - 1))} className="h-9 bg-white px-3.5">{step === 1 ? "Cancel" : "Back"}</Button>
+          <Button type="button" variant="outline" onClick={() => (step === 1 ? router.push(draftId ? "/company/projects?tab=drafts" : "/company") : setStep(step - 1))} className="h-9 bg-white px-3.5">{step === 1 ? "Cancel" : "Back"}</Button>
           <div className="flex items-center gap-3">
-            {!valid && <span className="hidden text-right text-xs text-muted-foreground sm:inline">{HINTS[step - 1]}</span>}
+            {!valid && <span className="hidden text-right text-xs text-muted-foreground sm:inline">{hint}</span>}
+            <Button type="button" variant="outline" disabled={saving || pending} onClick={saveDraft} className="h-9 bg-white px-3.5">{saving ? "Saving…" : draftId ? "Save draft" : "Save as draft"}</Button>
             {step < 4
               ? <Button type="button" disabled={!valid} onClick={() => { setStep(step + 1); window.scrollTo(0, 0); }} className="h-9 px-3.5">Continue</Button>
-              : <Button type="submit" disabled={pending} className="h-9 px-3.5">{pending ? "Publishing…" : "Publish project"}</Button>}
+              : canPublish
+                ? <Button type="submit" disabled={pending} className="h-9 px-3.5">{pending ? "Publishing…" : "Publish project"}</Button>
+                : <Button type="button" disabled title="You can publish as soon as Folio has verified your company." className="h-9 px-3.5">Publish after verification</Button>}
           </div>
         </div>
       </form>

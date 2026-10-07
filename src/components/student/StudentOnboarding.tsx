@@ -7,6 +7,7 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { toast } from "sonner";
 import { updateProfileAction, uploadAvatarAction, uploadCvAction } from "@/app/actions/student";
+import { confirmIeEmailAction } from "@/app/actions/auth";
 import { AuthFrame, Field, outlineBtn, primaryBtn, StepCard, StepHeading } from "@/components/startup/CompanyAuth";
 import { ConnectAccounts } from "@/components/student/ConnectAccounts";
 import { ProgramPicker } from "@/components/student/ProgramPicker";
@@ -14,8 +15,9 @@ import { STUDENT_FRAME, STUDENT_STEPS } from "@/components/student/StudentSignup
 import type { FormState } from "@/lib/form";
 import type { StudentProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { SignupAccount } from "@/components/shared/SignupExits";
 
-export type OnboardingStep = 3 | 4 | 5 | 6;
+export type OnboardingStep = 2 | 3 | 4 | 5 | 6;
 const go = (step: OnboardingStep) => `/welcome?step=${step}`;
 
 // Runs an action's result once: toast the error, or move on when it succeeds.
@@ -54,6 +56,28 @@ function Photo({ user }: { user: StudentProfile }) {
       </div>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
     </div>
+  );
+}
+
+/** Step 2 for anyone who signed up with LinkedIn or a non-IE email: confirm an IE address (confirmIeEmailAction). */
+function IeEmail({ user }: { user: StudentProfile }) {
+  const router = useRouter();
+  const [state, action, pending] = useActionState<FormState, FormData>(confirmIeEmailAction, {});
+  useResult(state, () => {});
+  const sentTo = state.ok ? state.notice : null;
+  return (
+    <>
+      <StepHeading eyebrow="Step 2 of 6" title="Confirm your IE email" sub="Folio is for IE students. We'll email your IE address a link; it becomes the email you sign in with." />
+      <form action={action}>
+        <StepCard footer={<>
+          {sentTo ? <button type="button" onClick={() => router.refresh()} className={outlineBtn}>I&apos;ve clicked the link</button> : <span />}
+          <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Sending…" : sentTo ? "Send again" : "Send link"}</button>
+        </>}>
+          <Field id="email" label="IE email" type="email" autoComplete="email" placeholder="you@student.ie.edu" defaultValue={user.email.endsWith("ie.edu") ? user.email : ""} required />
+          {sentTo && <p role="status" className="text-sm text-muted-foreground">Sent to <span className="font-medium text-foreground">{sentTo}</span>. Open the link in this browser. If an email also arrives at {user.email}, confirm that one too.</p>}
+        </StepCard>
+      </form>
+    </>
   );
 }
 
@@ -129,7 +153,7 @@ function Accounts({ user }: { user: StudentProfile }) {
 
 function Done({ user }: { user: StudentProfile }) {
   const items = [
-    ["Email verified", true],
+    ["IE email verified", true],
     ["Details added", !!user.program],
     ["CV uploaded", !!user.cv],
     ["Accounts verified", user.linkedinVerified || user.githubVerified],
@@ -154,9 +178,12 @@ function Done({ user }: { user: StudentProfile }) {
   );
 }
 
-export function StudentOnboarding({ step, user }: { step: OnboardingStep; user: StudentProfile }) {
+export function StudentOnboarding({ step, user, account }: { step: OnboardingStep; user: StudentProfile; account?: SignupAccount }) {
   return (
-    <AuthFrame title={STUDENT_FRAME.title} sub={STUDENT_FRAME.sub} current={step} allDone={step === 6} steps={STUDENT_STEPS} audience="For students">
+    <AuthFrame title={STUDENT_FRAME.title} sub={STUDENT_FRAME.sub} current={step} allDone={step === 6} steps={STUDENT_STEPS} audience="For students" account={account}
+      // Once the photo is in (and the IE email, which is step 2), any of the profile steps can be opened from the panel.
+      stepHref={(n) => step > 2 && user.avatarUrl && n >= 3 ? go(n as OnboardingStep) : null}>
+      {step === 2 && <IeEmail user={user} />}
       {step === 3 && <Details user={user} />}
       {step === 4 && <Cv user={user} />}
       {step === 5 && <Accounts user={user} />}

@@ -16,7 +16,8 @@ const sections: LegalSection[] = [
     <ul>
       <li>You must be at least <strong>18 years old</strong>.</li>
       <li><strong>Students</strong> must be enrolled at a university or business school, and must be legally allowed to do paid work. If you are in Spain on a student visa or permit, check what work it allows before taking a project.</li>
-      <li><strong>Clients</strong> must act for a genuine business, organisation or project, and the person who signs up must be authorised to act for it. We verify clients before their first project goes live and may ask for documents to do so.</li>
+      <li><strong>Clients</strong> must act for a genuine business, organisation or project, and the person who signs up must be authorised to act for it. We verify clients before their projects can be published, and ask for documents (a company registry extract and the representative&apos;s ID) before their first payment.</li>
+      <li><strong>Student startups</strong> (an IE student&apos;s own startup that isn&apos;t registered yet) can be clients too. The founder signs up with a separate client account and is responsible for the startup&apos;s projects and payments in person. Until the startup is registered, its projects are limited to €500 each, and only the founder&apos;s ID is asked for before the first payment.</li>
     </ul>
   </> },
   { id: "accounts", title: "Your account", body: <>

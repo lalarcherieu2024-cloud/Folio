@@ -15,8 +15,8 @@ const sections: LegalSection[] = [
   </> },
   { id: "collect", title: "What we collect", body: <>
     <LegalTable head={["Data", "Examples", "Where it comes from"]} rows={[
-      ["Account", "Name, email, password (stored hashed), whether you're a student or a client", "You, when you sign up"],
-      ["Sign-in with LinkedIn or GitHub", "Name, email, profile picture link, account ID; your GitHub username", "LinkedIn or GitHub, when you connect them"],
+      ["Account", "Name, email, password (stored hashed), whether you're a student or a client. Students also confirm an IE University email, which becomes the email they sign in with", "You, when you sign up"],
+      ["Signing up or in with LinkedIn, connecting GitHub", "Name, email, profile picture link, account ID; your GitHub username", "LinkedIn or GitHub, when you connect them"],
       ["Student profile", "Photo, programme and year, links, CV, the strengths we read from your CV, certificates from other courses (with their links or uploaded copies), PayPal email for payouts", "You"],
       ["Client profile", "Company name, website, tax ID (CIF), description, logo, files and verification documents", "You"],
       ["Projects and applications", "Briefs, pitches, interviews, milestones, deliveries and files, requested changes", "You and the other side of the project"],
@@ -31,6 +31,7 @@ const sections: LegalSection[] = [
       ["Running your account and the service: profiles, applications, projects, messages, credentials", "Contract (6.1.b)"],
       ["Taking, holding, releasing and refunding payments", "Contract (6.1.b)"],
       ["Verifying clients before their projects go live, and preventing fraud and abuse", "Legitimate interest in a safe marketplace (6.1.f)"],
+      ["Confirming that students study at IE University, by emailing their IE address", "Contract (6.1.b): Folio is for IE students"],
       ["Reading your CV with AI to show your strengths and match projects", "Contract (6.1.b), as a feature you choose by uploading a CV"],
       ["Drafting a brief from a client's idea with AI", "Contract (6.1.b)"],
       ["Keeping payment and accounting records", "Legal obligation (6.1.c)"],
@@ -41,6 +42,24 @@ const sections: LegalSection[] = [
   </> },
   { id: "ai", title: "AI processing", body: <>
     <p>When you upload a CV, its text is sent to Google&apos;s Gemini service to pick out your fields and skills. When a client describes a project idea, that text is sent to Gemini to draft a brief. Google processes this for us as a service provider and doesn&apos;t use it to train its models. The results are suggestions shown to you; no decision about you is made by AI alone. You can object to the CV analysis by not uploading a CV or by asking us to delete it.</p>
+  </> },
+  // Keep in step with the verification page's "How we handle your documents" (VerifyFrame) and DOCS in CompanyVerify.
+  { id: "company-verification", title: "Company verification", body: <>
+    <p>We check every company that wants to post projects, in two stages. This protects students from fake or fraudulent offers and makes sure we deal with someone who can act for the company.</p>
+    <LegalTable head={["When", "What we ask for", "What we check"]} rows={[
+      ["Before the company can publish", "Legal name, CIF, website and description; optionally the founder's LinkedIn (connected, or a profile link)", "Against public records (for example the company registry and the website) that the company exists and the person is real"],
+      ["Before the company's first payment", "Company registry extract (nota simple); ID of the representative (DNI, NIE or passport)", "The company's legal details and who can represent it, and that the person signing up is that representative"],
+    ]} />
+    <p>A <strong>student startup</strong> (an IE student&apos;s own startup that isn&apos;t registered yet) has no CIF or registry extract. Instead we ask for the founder&apos;s IE email, which we write to once to confirm the founder is an IE student, and before the first payment only the founder&apos;s ID. The IE email isn&apos;t shown to students or anyone else, and is kept and deleted like the documents below.</p>
+    <ul>
+      <li><strong>Legal basis:</strong> our legitimate interest in keeping the marketplace safe from fraud (GDPR art. 6.1.f), and taking the steps you ask for before entering into our contract (art. 6.1.b).</li>
+      <li><strong>Who sees them:</strong> only you and Folio&apos;s review team. Documents are stored in a private storage area that other users, including students, can&apos;t open. Students only see your company name, logo, description and the verified badge.</li>
+      <li><strong>What we don&apos;t do:</strong> we don&apos;t share them with anyone else, use them for marketing, or make the verification decision automatically. A person reviews every company.</li>
+      <li><strong>Where:</strong> with our database and storage provider, Supabase (<Fill>{OPERATOR.dataRegion}</Fill>), encrypted in transit and at rest.</li>
+      <li><strong>How long:</strong> while your company account is open, so we can re-check details if something changes or a dispute comes up. When you close the account, they&apos;re deleted within 30 days, unless we need them to deal with a legal claim already under way.</li>
+      <li><strong>Your control:</strong> you can replace or remove the documents yourself until your first payment. After that, ask us at <Fill>{OPERATOR.privacyEmail}</Fill> to see, correct or delete them.</li>
+      <li><strong>Progress records:</strong> we note when each verification step is completed (for example when the details were filled in or the documents uploaded), to see where companies get stuck and make the process easier.</li>
+    </ul>
   </> },
   { id: "sharing", title: "Who can see your data", body: <>
     <h3>Other Folio users</h3>
@@ -69,6 +88,7 @@ const sections: LegalSection[] = [
   { id: "retention", title: "How long we keep it", body: <>
     <ul>
       <li><strong>Your account and profile:</strong> while your account is open. When you close it, we delete it within 30 days (backups roll over within a further 30 days).</li>
+      <li><strong>Company verification documents:</strong> while the company account is open, then deleted within 30 days of closing it (see <a href="#company-verification">Company verification</a>).</li>
       <li><strong>Credentials:</strong> deleted with the student&apos;s account, after which the verification link stops working.</li>
       <li><strong>Projects, messages and files</strong> you share with another user: kept while either side&apos;s account is open, so the other side keeps their record, then deleted.</li>
       <li><strong>Payment records:</strong> kept for 6 years, as Spanish commercial and tax law requires.</li>

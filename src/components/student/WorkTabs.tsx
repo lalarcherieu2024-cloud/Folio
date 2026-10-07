@@ -2,7 +2,7 @@
 
 import { ArrowRight, Briefcase, Check, Clock, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useTransition } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 import { withdrawApplicationAction } from "@/app/actions/student";
 import { InterviewCard } from "@/components/student/InterviewCard";
@@ -83,18 +83,16 @@ function AppCard({ a, userId, latest }: { a: Row; userId: string; latest?: Submi
   );
 }
 
-export function WorkTabs({ apps, requests, tab, posted, userId, submissions }: { apps: Row[]; requests: Project[]; tab: "applications" | "past" | "requests"; posted: boolean; userId: string; submissions: Record<string, Submission> }) {
+export function WorkTabs({ apps, tab, userId, submissions }: { apps: Row[]; tab: "applications" | "past"; userId: string; submissions: Record<string, Submission> }) {
   // Active = still moving (applied, interview, building, delivered). Past = finished (verified) or not selected.
   const isPast = (a: Row) => { const stage = statusInfo(a, a.project).stage; return stage === "verified" || stage === "declined"; };
   const active = apps.filter((a) => !isPast(a));
   const past = apps.filter(isPast);
-  useEffect(() => { if (posted) toast.success("Project posted", { description: "Every IE student can see it now." }); }, [posted]);
   return (
     <Tabs defaultValue={tab} className="gap-5">
       <TabsList className="h-9 self-start">
         <TabsTrigger value="applications" className="px-3 text-[0.8125rem]">Active · {active.length}</TabsTrigger>
         <TabsTrigger value="past" className="px-3 text-[0.8125rem]">Past · {past.length}</TabsTrigger>
-        <TabsTrigger value="requests" className="px-3 text-[0.8125rem]">Posted by me · {requests.length}</TabsTrigger>
       </TabsList>
       <TabsContent value="applications" className="flex flex-col gap-3">
         {active.length === 0 ? (
@@ -113,23 +111,6 @@ export function WorkTabs({ apps, requests, tab, posted, userId, submissions }: {
             <span className="text-muted-foreground">Verified projects and applications that weren&apos;t selected end up here.</span>
           </div>
         ) : past.map((a) => <AppCard key={a.id} a={a} userId={userId} latest={submissions[a.id]} />)}
-      </TabsContent>
-      <TabsContent value="requests" className="flex flex-col gap-3">
-        {requests.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-zinc-300 px-6 py-12">
-            <span className="text-base font-semibold">You haven&apos;t posted anything yet</span>
-            <span className="text-muted-foreground">Describe an idea and another student picks it up.</span>
-            <Link href="/projects/new" className={cn(buttonVariants(), "h-9 px-3.5")}>Post a project</Link>
-          </div>
-        ) : requests.map((p) => (
-          <Link key={p.id} href={`/requests/${p.id}`} className="card-hover flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-5 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]">
-            <span className="text-base font-semibold">{p.title}</span>
-            <span className="flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
-              <span>{p.status === "open" ? `${p.applicantCount} applicant${p.applicantCount === 1 ? "" : "s"}` : "Review →"}</span><span className="font-mono font-semibold text-foreground">{eur(p.priceEur)}</span>
-              <span className={cn("inline-flex h-[1.375rem] items-center rounded-md px-2 text-xs font-medium", p.status === "open" ? "bg-[#dcfce7] text-[#166534]" : "bg-[#e0f2fe] text-[#0c4a6e]")}>{p.status === "open" ? "Open" : p.status === "verified" ? "Verified" : "In progress"}</span>
-            </span>
-          </Link>
-        ))}
       </TabsContent>
     </Tabs>
   );

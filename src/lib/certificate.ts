@@ -48,9 +48,10 @@ const FILES = {
   serif: "CormorantGaramond-SemiBold.ttf", serifItalic: "CormorantGaramond-MediumItalic.ttf",
   sans: "Inter-Regular.ttf", sansMedium: "Inter-Medium.ttf", sansBold: "Inter-SemiBold.ttf",
 } as const;
-type Fonts = Record<keyof typeof FILES, PDFFont>;
+export type Fonts = Record<keyof typeof FILES, PDFFont>;
 
-async function embedFonts(pdf: PDFDocument, origin: string): Promise<Fonts> {
+/** Folio's fonts (Cormorant Garamond + Inter), embedded whole. Shared with the payment receipt. */
+export async function embedFolioFonts(pdf: PDFDocument, origin: string): Promise<Fonts> {
   pdf.registerFontkit(fontkit);
   const out = {} as Fonts;
   for (const [k, file] of Object.entries(FILES)) out[k as keyof typeof FILES] = await pdf.embedFont(await loadFont(origin, file), { subset: false }); // embedded whole: the subsetter in pdf-lib's font library mangles composed letters (í, á, ñ)
@@ -59,7 +60,7 @@ async function embedFonts(pdf: PDFDocument, origin: string): Promise<Fonts> {
 
 // ---------------------------------------------------------------- text helpers
 // Only characters the fonts cover (Latin-1 plus typographic punctuation); anything else is dropped.
-const clean = (s: string) => s.replace(/[\r\n\t]+/g, " ").replace(/[^\x20-\x7E -ÿ–—‘’“”…]/g, "").replace(/ +/g, " ").trim();
+const clean = (s: string) => s.replace(/[\r\n\t]+/g, " ").replace(/[^\x20-\x7E -ÿ–—‘’“”…€]/g, "").replace(/ +/g, " ").trim();
 const pngBytes = (dataUrl: string) => Uint8Array.from(Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ""), "base64"));
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -117,7 +118,7 @@ export async function buildCertificate(d: CertificateData, origin: string): Prom
   pdf.setTitle(`Folio certificate: ${clean(d.projectTitle)}`);
   pdf.setAuthor("Folio");
   const page = pdf.addPage([W, H]);
-  const f = await embedFonts(pdf, origin);
+  const f = await embedFolioFonts(pdf, origin);
   const cx = W / 2;
 
   // ---- paper and the triple border (CSS borders sit inside their box, so strokes are inset by half a width)

@@ -6,7 +6,7 @@ const LEVEL = ["bg-zinc-100", "bg-[#bbf7d0]", "bg-[#4ade80]", "bg-[#16a34a]"];
 
 // A contribution-style grid of the last 26 weeks, built from real events:
 // applications sent, projects accepted and credentials earned.
-export function ActivityHeatmap({ dates }: { dates: string[] }) {
+export function ActivityHeatmap({ dates, empty = "Your activity shows up here as you apply and deliver." }: { dates: string[]; empty?: string }) {
   const counts = new Map<string, number>();
   for (const iso of dates) { const k = day(new Date(iso)); counts.set(k, (counts.get(k) ?? 0) + 1); }
 
@@ -23,7 +23,7 @@ export function ActivityHeatmap({ dates }: { dates: string[] }) {
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold tracking-tight">Activity</h2>
-        <span className="text-[0.8125rem] text-muted-foreground">{total === 0 ? "Your activity shows up here as you apply and deliver." : <><span className="font-mono">{activeWeeks}</span> active week{activeWeeks === 1 ? "" : "s"} in the last 6 months</>}</span>
+        <span className="text-[0.8125rem] text-muted-foreground">{total === 0 ? empty : <><span className="font-mono">{activeWeeks}</span> active week{activeWeeks === 1 ? "" : "s"} in the last 6 months</>}</span>
       </div>
       <div className="overflow-x-auto rounded-xl border bg-white p-4">
         <div className="mx-auto grid max-w-[60rem] grid-flow-col grid-rows-7 auto-cols-fr gap-1">

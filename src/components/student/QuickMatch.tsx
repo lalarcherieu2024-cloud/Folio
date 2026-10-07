@@ -71,7 +71,6 @@ export function QuickMatch({ projects, viewer }: { projects: Project[]; viewer: 
       >
         <div className="flex items-center justify-between gap-2 text-[0.8125rem] text-muted-foreground">
           <span className="flex items-center gap-1.5"><span className="font-medium text-foreground">{p.orgName ?? p.clientName}</span>{p.orgVerified && <Check className="size-3.5 text-[#16a34a]" strokeWidth={2.5} />}<span>· {p.hood}</span></span>
-          <Badge variant={p.clientKind === "company" ? "outline" : "secondary"} className="h-[1.375rem] rounded-md px-2 text-xs font-medium">{p.clientKind === "company" ? "Company" : "Student"}</Badge>
         </div>
         <h2 className="text-2xl font-semibold leading-tight tracking-tight">{p.title}</h2>
         <p className="text-[0.9375rem] leading-relaxed text-muted-foreground">{p.summary}</p>

@@ -4,20 +4,16 @@ import { getOrganization } from "@/lib/data/startup";
 
 export const metadata = { title: "Company verification · Folio" };
 
-// STARTUP INTERFACE (owner: startup builder). Sign-up steps 3–6, after the account and email exist.
+// STARTUP INTERFACE (owner: startup builder). Verification stage 1, after the account and email exist.
 export default async function VerifyCompany({ searchParams }: PageProps<"/company/verify">) {
   const user = await requireUser("/company/verify", "company");
   const org = await getOrganization(user);
-  const asked = Number((await searchParams).step);
-  const docsDone = org?.docs.length === 3 && !!org.logoUrl; // three documents and a logo (required for brand recognition)
+  const sp = await searchParams;
 
-  // Submitted or verified companies only see their status; drafts move through 3 → 4 → 5.
-  let step: 3 | 4 | 5 | 6;
-  if (org && (org.status === "pending" || org.status === "verified")) step = 6;
-  else if (!org) step = 3;
-  else if (asked === 3 || asked === 4) step = asked;
-  else if (asked === 5) step = docsDone ? 5 : 4;
-  else step = org.status === "rejected" ? 6 : docsDone ? 5 : 4;
+  // One step (migration 0032): the details form, which sends them for review, then the status. A company that was asked
+  // for changes sees the status with the note, and "Fix and resubmit" (?edit=1) reopens the form.
+  const step: 1 | 2 = !org || org.status === "draft" || (org.status === "rejected" && (sp.edit === "1" || sp.step !== undefined)) ? 1 : 2;
 
-  return <CompanyVerify step={step} org={org} email={user.email} name={user.fullName} />;
+  // "?founder=1" comes from the student-founder sign-up: the details step starts on "Student startup".
+  return <CompanyVerify step={step} org={org} user={user} founder={sp.founder === "1"} />;
 }

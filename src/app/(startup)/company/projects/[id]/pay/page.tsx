@@ -6,7 +6,9 @@ import { PayButton } from "@/components/startup/PayButton";
 import { card, PageHeader } from "@/components/startup/ui";
 import { requireUser } from "@/lib/auth";
 import { getEscrow } from "@/lib/data/payments";
-import { getCompanyProject } from "@/lib/data/startup";
+import { getCompanyProject, getOrganization } from "@/lib/data/startup";
+import { PaymentDocuments } from "@/components/startup/CompanyVerify";
+import { isStartup, paymentDocsDone } from "@/lib/org";
 import { eurFromCents, paymentsMode } from "@/lib/payments/config";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +25,9 @@ export default async function PayPage(props: PageProps<"/company/projects/[id]/p
   if (!escrow) redirect(`/company/projects/${id}`);
   if (escrow.status !== "awaiting_payment") redirect(`/company/projects/${id}`);
   const mode = paymentsMode();
+  // Verification stage 2: the registry extract and ID, before the company's first payment (migration 0030).
+  const org = await getOrganization(user);
+  const docsDone = paymentDocsDone(org);
   const error = typeof sp.error === "string" ? sp.error : null;
 
   const rows: [string, string, boolean?][] = [
@@ -54,8 +59,20 @@ export default async function PayPage(props: PageProps<"/company/projects/[id]/p
         <p>Folio keeps your payment safe until you&apos;ve checked the work. The student is paid only after they submit it and you verify it. If you ask for changes, the money stays held while they fix it.</p>
       </div>
 
+      {org && !docsDone && (
+        <div className={cn(card, "flex flex-col gap-4 p-5")}>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-brand">One last check before you pay</span>
+            <h2 className="text-lg font-semibold tracking-tight">{isStartup(org) ? "Confirm it’s you" : `Confirm you can act for ${org.name || "the company"}`}</h2>
+            <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{isStartup(org) ? "Upload your ID once" : "Upload these once"}; you won&apos;t be asked again. They&apos;re stored privately and seen only by Folio&apos;s review team. <Link href="/legal/privacy#company-verification" className="underline underline-offset-2 hover:text-foreground">How we handle them</Link></p>
+          </div>
+          <PaymentDocuments org={org} />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
-        {mode !== "off" && <PayButton projectId={id} mode={mode} label={`Pay ${eurFromCents(escrow.totalCents)}${mode === "paypal" ? " with PayPal" : ""}`} />}
+        {mode !== "off" && !docsDone && <span className="text-[0.8125rem] text-muted-foreground">{isStartup(org) ? "Upload your ID to pay." : "Upload both documents to pay."}</span>}
+        {mode !== "off" && docsDone && <PayButton projectId={id} mode={mode} label={`Pay ${eurFromCents(escrow.totalCents)}${mode === "paypal" ? " with PayPal" : ""}`} />}
         <DeleteProjectButton projectId={id} title={p.title} redirectTo="/company/projects" />
       </div>
     </div>

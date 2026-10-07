@@ -324,7 +324,7 @@ const CHAPTERS = [
 const chapterOf = (step: number) => CHAPTERS.findIndex((c) => step < c.end);
 
 // Every step shows for the same time.
-const STEP_MS = 3500;
+const STEP_MS = 4000;
 
 export function WorkflowDemo() {
   const [step, setStep] = useState(0);

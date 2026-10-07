@@ -3,6 +3,8 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { getOrganization } from "@/lib/data/startup";
+import { isStartup, paymentDocsDone } from "@/lib/org";
 import { removeProject, savePaypalEmail, startFunding, withdraw } from "@/lib/data/payments";
 import { str, type FormState } from "@/lib/form";
 
@@ -15,6 +17,12 @@ async function origin() {
 /** The company pays for a draft project. Returns a PayPal URL to go to, or `funded` when the payment is done. */
 export async function startPaymentAction(projectId: string): Promise<{ url?: string; funded?: boolean; error?: string }> {
   const user = await requireUser(`/company/projects/${projectId}/pay`, "company");
+  // Verification stage 2 (migration 0030): no payment without the registry extract and the representative's ID.
+  const org = await getOrganization(user);
+  // A student startup (0031) only uploads the founder's ID; a company also the registry extract.
+  if (!paymentDocsDone(org)) {
+    return { error: isStartup(org) ? "Upload your ID first." : "Upload the registry extract and the representative's ID first." };
+  }
   const res = await startFunding(user, projectId, await origin());
   if (res.funded) { revalidatePath("/company", "layout"); revalidatePath("/projects"); }
   return res;
@@ -35,7 +43,7 @@ export async function withdrawAction(): Promise<{ cents?: number; error?: string
   return res;
 }
 
-/** Deletes a project that hasn't started (or cancels and refunds it if it was already paid). Works for companies and students. */
+/** Deletes a project that hasn't started (or cancels and refunds it if it was already paid). Used by companies for their own projects. */
 export async function removeProjectAction(projectId: string): Promise<{ kind?: "deleted" | "cancelled"; error?: string }> {
   const user = await requireUser("/");
   const res = await removeProject(user, projectId);

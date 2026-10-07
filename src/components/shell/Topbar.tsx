@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils";
 import type { Notification, StudentProfile } from "@/lib/types";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { Logo } from "@/components/shared/Logo";
-import { NavItems, UserMenu } from "@/components/shell/Sidebar";
+import { NavItems, UserMenu, type AccountFace } from "@/components/shell/Sidebar";
 import type { NavCounts } from "./nav";
 
 
-export function Topbar({ user, counts, notifications, sidebarCollapsed, onToggleSidebar }: { user: StudentProfile; counts: NavCounts; notifications: { items: Notification[]; unread: number }; sidebarCollapsed: boolean; onToggleSidebar: () => void }) {
+export function Topbar({ user, account, counts, notifications, sidebarCollapsed, onToggleSidebar }: { user: StudentProfile; account?: AccountFace; counts: NavCounts; notifications: { items: Notification[]; unread: number }; sidebarCollapsed: boolean; onToggleSidebar: () => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -53,14 +53,14 @@ export function Topbar({ user, counts, notifications, sidebarCollapsed, onToggle
         </form>
       )}
       <NotificationsMenu items={notifications.items} unread={notifications.unread} />
-      <Link href={company ? "/company/projects/new" : "/projects/new"} className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />Post a project</Link>
+      {company && <Link data-tour="post" href="/company/projects/new" className={cn(buttonVariants(), "h-9 shrink-0 px-3.5")}><Plus className="size-4" />Post a project</Link>}
+      <UserMenu user={user} account={account} />
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-64 gap-0 p-0 sm:max-w-64" showCloseButton={false}>
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <div className="flex h-20 items-center gap-3 border-b px-3.5"><Logo size={56} /><span className="text-xl font-semibold">Folio</span></div>
           <NavItems role={user.role} counts={counts} onNavigate={() => setOpen(false)} />
-          <div className="border-t p-2"><UserMenu user={user} /></div>
         </SheetContent>
       </Sheet>
     </header>

@@ -25,8 +25,8 @@ export const OPERATOR = {
 } as const;
 
 /** Bump this when the Terms or Privacy Policy change in a way users must accept again. Stored on each account at sign-up. */
-export const TERMS_VERSION = "2026-10-05";
-export const LEGAL_UPDATED = "5 October 2026";
+export const TERMS_VERSION = "2026-10-07";
+export const LEGAL_UPDATED = "7 October 2026";
 
 /** Folio's fee as a percentage, for the texts. */
 export const FEE_PERCENT = Math.round(FEE_RATE * 100);

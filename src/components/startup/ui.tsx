@@ -1,5 +1,6 @@
 // Small building blocks for the startup interface, in the same style as the student side.
-import type { ProjectStatus } from "@/lib/types";
+import { FIELD_TONES } from "@/lib/fields";
+import type { Category, ProjectStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const card = "rounded-xl border bg-white shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,.04)]";
@@ -56,3 +57,9 @@ export function ago(iso: string) {
 }
 
 export const pastLabel = (count: number, avg: number | null) => (count ? `${count} past project${count > 1 ? "s" : ""} · ★ ${avg?.toFixed(1)}` : "First project");
+
+/** A project's field as a soft coloured chip, the same colours students see in the project filters. */
+export function CategoryChip({ category, className }: { category: Category; className?: string }) {
+  const tone = FIELD_TONES[category] ?? { bg: "#f1f5f9", fg: "#334155" };
+  return <span className={cn("inline-flex h-5 w-fit items-center rounded px-1.5 text-xs font-medium", className)} style={{ background: tone.bg, color: tone.fg }}>{category}</span>;
+}

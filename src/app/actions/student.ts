@@ -3,14 +3,10 @@
 // Student-side server actions. Owner: student interface.
 import path from "node:path";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { isAvatarColor } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
-import { acceptApplicant, declineApplicant } from "@/lib/data/applicants";
-import { markAllRead } from "@/lib/data/notifications";
-import { addCertificate, addProfileFile, removeCertificate, confirmInterview, createApplication, createProject, markDelivered, reanalyzeStoredCv, deleteCv, removeAvatar, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, updateProject, withdrawApplication } from "@/lib/data/student";
+import { addCertificate, addProfileFile, confirmInterview, createApplication, deleteCv, reanalyzeStoredCv, removeAvatar, removeCertificate, removeProfileFile, saveAvatar, saveCv, setAvatarColor, toggleSaved, updateProfile, withdrawApplication } from "@/lib/data/student";
 import { str, type FormState } from "@/lib/form";
-import { CATEGORIES, type Category } from "@/lib/types";
 
 export async function applyAction(_: FormState, f: FormData): Promise<FormState> {
   const projectId = str(f, "projectId");
@@ -48,36 +44,6 @@ export async function uploadCvAction(_: FormState, f: FormData): Promise<FormSta
   const res = await saveCv(user, file, ext);
   if (res.error) return res;
   revalidatePath("/profile");
-  return { ok: true };
-}
-
-export async function postProjectAction(_: FormState, f: FormData): Promise<FormState> {
-  const user = await requireUser("/projects/new", "student");
-  const title = str(f, "title"), summary = str(f, "summary"), doneWhen = str(f, "doneWhen");
-  const deliverables = str(f, "deliverables").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8);
-  const category = str(f, "category") as Category;
-  const priceEur = Number(f.get("priceEur")), weeks = Number(f.get("weeks"));
-  if (!title || !summary || !doneWhen || deliverables.length === 0) return { error: "Fill in the title, problem, deliverables and how you'll know it's done." };
-  if (!CATEGORIES.includes(category)) return { error: "Pick a category." };
-  if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
-  if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
-  const skills = str(f, "skills").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 5);
-  const hours = Number(f.get("hoursPerWeek"));
-  const hoursPerWeek = hours >= 1 && hours <= 60 ? Math.round(hours) : null;
-  const learn = str(f, "learn").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 4);
-  const beginnerFriendly = f.get("beginnerFriendly") === "on";
-  const res = await createProject(user, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills, hoursPerWeek, learn, beginnerFriendly });
-  if (res.error) return { error: res.error };
-  revalidatePath("/projects");
-  redirect("/applications?tab=requests&posted=1");
-}
-
-export async function markDeliveredAction(applicationId: string): Promise<FormState> {
-  const user = await requireUser("/applications", "student");
-  const res = await markDelivered(user, applicationId);
-  if (res.error) return res;
-  revalidatePath("/applications");
-  revalidatePath("/");
   return { ok: true };
 }
 
@@ -129,54 +95,6 @@ export async function deleteExtraFileAction(id: string): Promise<FormState> {
   if (res.error) return res;
   revalidatePath("/", "layout");
   return { ok: true };
-}
-
-// ---- Reviewing applicants on a request you posted
-export async function acceptApplicantAction(applicationId: string, projectId: string): Promise<FormState> {
-  await requireUser(`/requests/${projectId}`, "student");
-  const res = await acceptApplicant(applicationId);
-  if (res.error) return res;
-  revalidatePath(`/requests/${projectId}`);
-  revalidatePath("/applications");
-  revalidatePath("/projects");
-  revalidatePath("/home");
-  return { ok: true };
-}
-
-export async function declineApplicantAction(applicationId: string, projectId: string): Promise<FormState> {
-  await requireUser(`/requests/${projectId}`, "student");
-  const res = await declineApplicant(applicationId);
-  if (res.error) return res;
-  revalidatePath(`/requests/${projectId}`);
-  return { ok: true };
-}
-
-export async function updateProjectAction(projectId: string, _: FormState, f: FormData): Promise<FormState> {
-  const user = await requireUser(`/requests/${projectId}/edit`, "student");
-  const title = str(f, "title"), summary = str(f, "summary"), doneWhen = str(f, "doneWhen");
-  const deliverables = str(f, "deliverables").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8);
-  const category = str(f, "category") as Category;
-  const priceEur = Number(f.get("priceEur")), weeks = Number(f.get("weeks"));
-  if (!title || !summary || !doneWhen || deliverables.length === 0) return { error: "Fill in the title, problem, deliverables and how you'll know it's done." };
-  if (!CATEGORIES.includes(category)) return { error: "Pick a category." };
-  if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
-  if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
-  const skills = str(f, "skills").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 5);
-  const hours = Number(f.get("hoursPerWeek"));
-  const hoursPerWeek = hours >= 1 && hours <= 60 ? Math.round(hours) : null;
-  const learn = str(f, "learn").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 4);
-  const beginnerFriendly = f.get("beginnerFriendly") === "on";
-  const res = await updateProject(user, projectId, { title, summary, doneWhen, deliverables, category, priceEur: Math.round(priceEur), weeks, skills, hoursPerWeek, learn, beginnerFriendly });
-  if (res.error) return { error: res.error };
-  revalidatePath(`/requests/${projectId}`);
-  revalidatePath("/projects");
-  revalidatePath("/applications");
-  redirect(`/requests/${projectId}?saved=${res.notified ?? 0}`);
-}
-
-export async function markNotificationsReadAction(): Promise<void> {
-  const user = await requireUser("/home", "student");
-  await markAllRead(user);
 }
 
 export async function toggleSavedAction(projectId: string, save: boolean): Promise<FormState> {
@@ -244,7 +162,7 @@ export async function addCertificateAction(_: FormState, f: FormData): Promise<F
   if (!file && !credentialUrl) return { error: "Add a link to the certificate or upload a copy, so clients can check it." };
   const res = await addCertificate(user, { title, issuer, issuedOn: issuedOn || null, credentialUrl: credentialUrl || null, file, ext });
   if (res.error) return res;
-  revalidatePath("/profile");
+  revalidatePath("/", "layout"); // the profile and the home checklist
   return { ok: true };
 }
 
@@ -252,6 +170,6 @@ export async function deleteCertificateAction(id: string): Promise<FormState> {
   const user = await requireUser("/profile", "student");
   const res = await removeCertificate(user, id);
   if (res.error) return res;
-  revalidatePath("/profile");
+  revalidatePath("/", "layout");
   return { ok: true };
 }

@@ -9,9 +9,12 @@ import { isAvatarColor } from "@/lib/avatar";
 import { createEscrow } from "@/lib/data/payments";
 import { paymentsMode } from "@/lib/payments/config";
 import {
-  acceptApplicant, createCompanyProject, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc,
-  removeOrgLogo, saveCompanyDoc, saveCompanyFile, saveOrganization, saveOrgLogo, setOrgLogoColor, submitVerification, verifyDelivery, type DocKind,
+  acceptApplicant, createCompanyProject, deleteProjectDraft, saveProjectDraft, declineApplicant, deleteCompanyFile, DOC_KINDS, getOrganization, inviteToInterview, removeCompanyDoc, saveFounderLinkedin,
+  registerStartup, removeOrgLogo, saveCompanyDoc, saveCompanyFile, saveOrganization, saveOrgLogo, setOrgLogoColor, submitVerification, verifyDelivery,
+  type DocKind, type OrgKind,
 } from "@/lib/data/startup";
+import { isIeEmail } from "@/lib/ie-email";
+import { isStartup, STARTUP_MAX_PAY } from "@/lib/org";
 import { EMAIL, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIES, type Category } from "@/lib/types";
@@ -38,14 +41,35 @@ export async function resendCompanyCodeAction(email: string): Promise<FormState>
   return { ok: true };
 }
 
-// ---------------------------------------------------------------- company verification (steps 3–5) + profile
+// ---------------------------------------------------------------- company verification (one step) + profile
 
+/** The details form's kind ("company" unless the student-startup option was picked; the profile editor sends none). */
+const kindOf = (f: FormData): OrgKind | undefined => (f.has("kind") ? (str(f, "kind") === "student_startup" ? "student_startup" : "company") : undefined);
+
+/** Company details. From the verification page it also sends them to Folio for review in the same step (migration 0032:
+ *  the founder's LinkedIn is optional); from the profile page it only saves. */
 export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promise<FormState> {
   const user = await requireUser("/company/verify", "company");
+  const submitting = str(f, "then") !== "profile";
+  if (submitting && f.get("agree") !== "on") return { error: "Tick the declaration at the bottom to send it for review." };
+  const founderLinkedin = str(f, "founderLinkedin");
+  if (submitting && founderLinkedin && !/^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/in\/[^\s/]+\/?$/i.test(founderLinkedin)) {
+    return { error: "Use the link to your personal LinkedIn profile, like linkedin.com/in/your-name, or leave it empty." };
+  }
   const name = str(f, "name"), cif = str(f, "cif").toUpperCase().replace(/[\s-]/g, ""), website = str(f, "website").replace(/^https?:\/\//, "").replace(/\/$/, "");
   const hood = str(f, "hood"), about = str(f, "about"), teamSize = str(f, "teamSize"), founded = str(f, "founded");
-  if (!name || !cif || !website || !about) return { error: "Fill in the legal name, CIF / NIF, website and what the company does." };
-  if (!/^[A-Z0-9]{8,10}$/.test(cif)) return { error: "A CIF / NIF is 9 letters and numbers, like B12345678." };
+  const kind = kindOf(f), founderIeEmail = str(f, "founderIeEmail").toLowerCase();
+  if (kind === "student_startup") {
+    // Not registered yet: no CIF needed (one may be added if it exists), but the founder's IE email. The profile
+    // editor doesn't show the email (Folio checked it), so it's only asked for on the details step.
+    const askEmail = str(f, "then") !== "profile";
+    if (!name || !website || !about || (askEmail && !founderIeEmail)) return { error: "Fill in the startup's name, your IE email, a website or LinkedIn page, and what it does." };
+    if (askEmail && !isIeEmail(founderIeEmail)) return { error: "Use your IE University email, like you@student.ie.edu." };
+    if (cif && !/^[A-Z0-9]{8,10}$/.test(cif)) return { error: "A CIF / NIF is 9 letters and numbers, like B12345678. Leave it empty if you don't have one yet." };
+  } else {
+    if (!name || !cif || !website || !about) return { error: "Fill in the legal name, CIF / NIF, website and what the company does." };
+    if (!/^[A-Z0-9]{8,10}$/.test(cif)) return { error: "A CIF / NIF is 9 letters and numbers, like B12345678." };
+  }
   if (founded && !(/^\d{4}$/.test(founded) && Number(founded) <= new Date().getFullYear())) return { error: "Enter the year the company was founded, like 2024." };
   // The LinkedIn field only exists on the profile editor; leave it untouched when it isn't sent.
   let linkedinUrl: string | undefined;
@@ -56,11 +80,46 @@ export async function saveCompanyDetailsAction(_: FormState, f: FormData): Promi
     // Unchanged (e.g. before migration 0016 adds the column): don't write it, so other edits still save.
     if (linkedinUrl === ((await getOrganization(user))?.linkedinUrl ?? "")) linkedinUrl = undefined;
   }
-  const res = await saveOrganization(user, { name, cif, website, hood, about, founded, teamSize, linkedinUrl });
+  const res = await saveOrganization(user, { name, cif, website, hood, about, founded, teamSize, linkedinUrl, kind, founderIeEmail });
   if (res.error) return res;
   refresh();
-  if (str(f, "then") === "profile") return { ok: true }; // saved from the profile page: stay there and show a toast
-  redirect("/company/verify?step=4");
+  if (!submitting) return { ok: true }; // saved from the profile page: stay there and show a toast
+  if (founderLinkedin && !user.linkedinVerified) {
+    const saved = await saveFounderLinkedin(user, /^https?:\/\//i.test(founderLinkedin) ? founderLinkedin : `https://${founderLinkedin}`);
+    if (saved.error) return saved;
+  }
+  const sent = await submitVerification();
+  if (sent.error) return sent;
+  refresh();
+  redirect("/company/verify");
+}
+
+/** "Finish later" on the details step: saves whatever is filled in (no format checks, that happens on Continue) and
+ *  goes back to the dashboard. The legal name is the one field a saved draft needs. */
+export async function saveCompanyDetailsDraftAction(f: FormData): Promise<FormState> {
+  const user = await requireUser("/company/verify", "company");
+  const org = await getOrganization(user);
+  if (org?.status === "pending" || org?.status === "verified") redirect("/company"); // locked: nothing to save
+  const name = str(f, "name"), cif = str(f, "cif").toUpperCase().replace(/[\s-]/g, ""), website = str(f, "website").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const hood = str(f, "hood"), about = str(f, "about"), founded = str(f, "founded"), teamSize = str(f, "teamSize");
+  const kind = kindOf(f), founderIeEmail = str(f, "founderIeEmail").toLowerCase();
+  if (!name) return { error: kind === "student_startup" ? "Add the startup's name to save your progress." : "Add the legal company name to save your progress." };
+  const res = await saveOrganization(user, {
+    name, cif, website, hood, about, founded: /^\d{4}$/.test(founded) ? founded : "", teamSize,
+    kind, founderIeEmail: isIeEmail(founderIeEmail) ? founderIeEmail : undefined, // a half-typed email isn't saved
+  });
+  if (res.error) return res;
+  refresh();
+  redirect("/company");
+}
+
+/** A student startup got registered: the legal name and CIF turn it into a company (the €500 cap lifts). */
+export async function registerStartupAction(_: FormState, f: FormData): Promise<FormState> {
+  await requireUser("/company/profile", "company");
+  const res = await registerStartup(str(f, "legalName"), str(f, "cif"));
+  if (res.error) return res;
+  refresh();
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------- company profile: logo + shared files
@@ -129,7 +188,7 @@ export async function uploadCompanyDocAction(_: FormState, f: FormData): Promise
   if (file.size > 10 * 1024 * 1024) return { error: "The file must be under 10 MB." };
   const res = await saveCompanyDoc(user, kind, file, ext);
   if (res.error) return res;
-  revalidatePath("/company/verify");
+  revalidatePath("/company", "layout"); // the payment page asks for them now
   return { ok: true };
 }
 
@@ -138,18 +197,8 @@ export async function removeCompanyDocAction(kind: DocKind): Promise<FormState> 
   if (!DOC_KINDS.includes(kind)) return { error: "Unknown document." };
   const res = await removeCompanyDoc(user, kind);
   if (res.error) return res;
-  revalidatePath("/company/verify");
+  revalidatePath("/company", "layout");
   return { ok: true };
-}
-
-export async function submitVerificationAction(_: FormState, f: FormData): Promise<FormState> {
-  const user = await requireUser("/company/verify", "company");
-  if (f.get("agree") !== "on") return { error: "Tick the declaration to submit." };
-  if (!(await getOrganization(user))?.logoUrl) return { error: "Upload your company logo first (step 4)." };
-  const res = await submitVerification();
-  if (res.error) return res;
-  refresh();
-  redirect("/company/verify");
 }
 
 // ---------------------------------------------------------------- projects
@@ -166,10 +215,13 @@ export async function postCompanyProjectAction(_: FormState, f: FormData): Promi
   if (!CATEGORIES.includes(category)) return { error: "Pick a category." };
   if (!deliverable || skills.length === 0) return { error: "Describe the deliverable and pick at least one skill." };
   if (!(priceEur >= 150)) return { error: "Set a price of at least €150." };
+  if (isStartup(org) && priceEur > STARTUP_MAX_PAY) return { error: `Student startups can post projects of up to €${STARTUP_MAX_PAY} until the startup is registered.` };
   if (!(weeks >= 1 && weeks <= 6)) return { error: "Duration must be 1 to 6 weeks." };
   if (paymentsMode() === "off") return { error: "Payments aren't available yet, so projects can't be published right now." };
   const res = await createCompanyProject(user, org, { title, summary, deliverable, category, priceEur: Math.round(priceEur), weeks, skills });
   if (res.error || !res.id) return { error: res.error ?? "Couldn't post your project." };
+  const draftId = str(f, "draftId");
+  if (draftId) await deleteProjectDraft(user, draftId); // it became a real project
   refresh();
   if (!res.unpaid) redirect(`/company/projects/${res.id}?posted=1`);                // before the payments migration
   const escrow = await createEscrow(user, res.id, Math.round(priceEur));
@@ -220,5 +272,22 @@ export async function verifyDeliveryAction(_: FormState, f: FormData): Promise<F
   if (res.error) return res;
   refresh();
   revalidatePath("/profile");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- unfinished drafts
+
+/** Saves the "post a project" form as it is (any field may be empty) and returns the draft's id. */
+export async function saveProjectDraftAction(id: string | null, data: unknown, step: number): Promise<{ id?: string; error?: string }> {
+  const user = await requireUser("/company/projects/new", "company");
+  const res = await saveProjectDraft(user, id, data, step);
+  if (!res.error) revalidatePath("/company/projects");
+  return res;
+}
+
+export async function deleteProjectDraftAction(id: string): Promise<FormState> {
+  const user = await requireUser("/company/projects", "company");
+  await deleteProjectDraft(user, id);
+  revalidatePath("/company/projects");
   return { ok: true };
 }
