@@ -47,7 +47,7 @@ const sections: LegalSection[] = [
   { id: "company-verification", title: "Company verification", body: <>
     <p>We check every company that wants to post projects, in two stages. This protects students from fake or fraudulent offers and makes sure we deal with someone who can act for the company.</p>
     <LegalTable head={["When", "What we ask for", "What we check"]} rows={[
-      ["Before the company can publish", "Legal name, CIF, website and description; the founder's LinkedIn (connected, or a profile link)", "Against public records (for example the company registry and the website) that the company exists and the person is real"],
+      ["Before the company can publish", "Legal name, CIF, website and description; optionally the founder's LinkedIn (connected, or a profile link)", "Against public records (for example the company registry and the website) that the company exists and the person is real"],
       ["Before the company's first payment", "Company registry extract (nota simple); ID of the representative (DNI, NIE or passport)", "The company's legal details and who can represent it, and that the person signing up is that representative"],
     ]} />
     <p>A <strong>student startup</strong> (an IE student&apos;s own startup that isn&apos;t registered yet) has no CIF or registry extract. Instead we ask for the founder&apos;s IE email, which we write to once to confirm the founder is an IE student, and before the first payment only the founder&apos;s ID. The IE email isn&apos;t shown to students or anyone else, and is kept and deleted like the documents below.</p>

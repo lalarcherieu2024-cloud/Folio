@@ -22,8 +22,7 @@ import { AccountStrip, type SignupAccount } from "@/components/shared/SignupExit
 const STEPS: readonly (readonly [string, string])[] = [
   ["Create your account", "LinkedIn, or your work email and a password"],
   SKIP_EMAIL_CONFIRMATION ? ["Email check", "Skipped for now"] : ["Confirm your email", "Click the link we email you"],
-  ["Company details", "Legal name, CIF, website and location"],
-  ["Your LinkedIn and submit", "So we know who's behind the company"],
+  ["Company details", "One short form, sent to Folio for review"],
   ["Folio verification", "We review within 1–2 business days"],
 ];
 
@@ -132,7 +131,6 @@ const FOUNDER_STEPS: readonly (readonly [string, string])[] = [
   STEPS[1],
   ["Your startup", "Its name, your IE email, a website or LinkedIn page"],
   STEPS[3],
-  STEPS[4],
 ];
 
 const COPY = {
@@ -150,7 +148,7 @@ function CheckEmail({ email }: { email: string }) {
   });
   return (
     <>
-      <StepHeading eyebrow="Step 2 of 5" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to verify your company.</>} />
+      <StepHeading eyebrow="Step 2 of 4" title="Check your inbox" sub={<>We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click it to confirm your email, and you&apos;ll come straight back to verify your company.</>} />
       <StepCard footer={<>
         <Link href="/company/signup" className={outlineBtn}>Back</Link>
         <Link href="/signin?as=company" className={primaryBtn}>I&apos;ve confirmed, sign in</Link>
@@ -199,7 +197,7 @@ export function CompanyAuth({ mode, next, founder = false }: { mode: "signin" | 
       </>}
 
       {up && !sentTo && <>
-        <StepHeading eyebrow="Step 1 of 5" title={founder ? "Create your startup's account" : "Create your company account"} />
+        <StepHeading eyebrow="Step 1 of 4" title={founder ? "Create your startup's account" : "Create your company account"} />
         <form action={action}>
           <input type="hidden" name="role" value="company" />
           {founder && <input type="hidden" name="founder" value="1" />}

@@ -11,7 +11,6 @@ import { getCompanyLedger } from "@/lib/data/payments";
 import { getCompanyApplicants, getCompanyProjects, getOrganization, type Organization } from "@/lib/data/startup";
 import { eurFromCents } from "@/lib/payments/config";
 import type { StudentProfile } from "@/lib/types";
-import { detailsComplete } from "@/lib/org";
 import { cn } from "@/lib/utils";
 import { eur, firstName } from "@/lib/work";
 
@@ -61,9 +60,8 @@ export default async function CompanyHome() {
   const queue = [...toVerify, ...pending];
   const steps = setupSteps(user, org, rows);
   const done = steps.filter((s) => s.done).length;
-  // Verification steps done (details, then submitted with LinkedIn), for the card's progress. Documents come later,
-  // on the payment page.
-  const verifyDone = org?.status === "pending" ? 2 : detailsComplete(org) ? 1 : 0;
+  // Verification is one form (migration 0032); a saved draft means they've started.
+  const verifyStarted = !!org && org.status !== "pending";
   const tourStage = org?.status !== "verified" ? (org?.status === "pending" ? null : "verify")
     : rows.every((r) => r.stage.key === "draft" || r.stage.key === "cancelled") ? "post"
     : pending.length > 0 ? "applicants" : null;
@@ -124,15 +122,11 @@ export default async function CompanyHome() {
             <p className="max-w-[60ch] text-[0.9375rem] text-muted-foreground">
               {org?.status === "pending"
                 ? "We check every company before students see its projects, usually within 1–2 business days. You can publish as soon as it's verified."
-                : "Students only see projects from verified companies. It takes about 2 minutes: your company details and your LinkedIn. No documents needed yet."}
+                : "Students only see projects from verified companies. It's one short form, about 2 minutes, and no documents are needed yet."}
             </p>
-            <div className="mt-1 flex max-w-[22rem] items-center gap-3">
-              <div className="flex flex-1 gap-1">{[0, 1].map((n) => <span key={n} className={cn("h-1.5 flex-1 rounded-full", n < verifyDone ? "bg-brand" : "bg-zinc-200")} />)}</div>
-              <span className="text-xs tabular-nums text-muted-foreground">{verifyDone} of 2 done</span>
-            </div>
           </div>
           <Link href="/company/verify" className={cn(buttonVariants(), "h-11 shrink-0 gap-2 px-5 text-[0.9375rem]")}>
-            {org?.status === "pending" ? "See status" : verifyDone ? "Continue verification" : "Start verification"}<ArrowRight className="size-4" />
+            {org?.status === "pending" ? "See status" : verifyStarted ? "Continue verification" : "Start verification"}<ArrowRight className="size-4" />
           </Link>
         </div>
       )}

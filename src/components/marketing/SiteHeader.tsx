@@ -1,8 +1,9 @@
 "use client";
 
-import { Building2, ChevronDown, LogOut, RotateCcw } from "lucide-react";
+import { Building2, ChevronDown, LogOut, Menu, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { signOutAction } from "@/app/actions/auth";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -10,23 +11,65 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
 
-// Jump links into the "How Folio works" section on the front page.
-const NAV = [["/#hiring", "Hiring"], ["/#getting-paid", "Getting paid"], ["/#trust", "Questions"]] as const;
+// The front page's sections, in page order. On the front page a tab scrolls there smoothly and shows which section
+// you're in; from any other page it opens the front page at that section. Every section has the same scroll margin
+// (scroll-mt-24), so each one lands just below this header.
+const NAV = [["how", "How it works"], ["hiring", "For companies"], ["getting-paid", "Getting paid"], ["students", "For students"], ["trust", "Questions"]] as const;
+
+/** On the front page: the section under a line a little above the middle of the screen. Measured on every scroll and
+ *  resize (once per frame), so it's always right, also for sections without a tab (then nothing is highlighted). */
+function useActiveSection(enabled: boolean) {
+  const [active, setActive] = useState<string | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const line = window.innerHeight * 0.45;
+      const at = [...document.querySelectorAll<HTMLElement>("main section[id]")].find((s) => { const r = s.getBoundingClientRect(); return r.top <= line && r.bottom > line; });
+      setActive(at?.id ?? null);
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("scroll", schedule); window.removeEventListener("resize", schedule); };
+  }, [enabled]);
+  return enabled ? active : null;
+}
+
+/** Scroll to a front-page section, or false when it isn't on this page (then the link navigates there instead). */
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  el.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  history.replaceState(null, "", `#${id}`);
+  return true;
+}
 
 // Header for signed-out visitors. Hidden on the company pages and student sign-up, which have their own full-screen layout.
 // `onboarding`: a student who is signed in but hasn't finished signing up.
 export function SiteHeader({ onboarding }: { onboarding?: { name: string; email: string } }) {
   const path = usePathname();
+  const home = path === "/";
+  const active = useActiveSection(home);
   if (path.startsWith("/company/") || path === "/signup" || path.startsWith("/welcome")) return null;
+  const tab = (id: string, label: string) => (
+    <Link key={id} href={`/#${id}`} aria-current={active === id ? "location" : undefined}
+      onClick={(e) => { if (home && scrollToSection(id)) e.preventDefault(); }}
+      className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3", active === id ? "bg-panel text-foreground" : "text-zinc-600")}>
+      {label}
+    </Link>
+  );
   return (
     <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-[75rem] items-center gap-2 px-6">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Folio home">
-          <Logo size={64} />
-          <span className="text-2xl font-semibold tracking-tight">Folio</span>
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Folio home">
+          <Logo size={64} className="size-11 md:size-16" />
+          <span className="text-xl font-semibold tracking-tight md:text-2xl">Folio</span>
         </Link>
-        <nav className="ml-6 hidden items-center gap-1 text-sm md:flex" aria-label="Main">
-          {NAV.map(([href, label]) => <Link key={href} href={href} className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3 text-zinc-600")}>{label}</Link>)}
+        <nav className="ml-4 hidden items-center gap-0.5 text-sm lg:flex" aria-label="Main">
+          {NAV.map(([id, label]) => tab(id, label))}
         </nav>
         <div className="flex-1" />
         {onboarding ? <>
@@ -62,9 +105,26 @@ export function SiteHeader({ onboarding }: { onboarding?: { name: string; email:
           </DropdownMenu>
           <Link href="/welcome" className={cn(buttonVariants(), "ml-1 h-9 px-3.5")}>Finish sign-up</Link>
         </> : <>
-          <Link href="/signin" className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3.5")}>Sign in</Link>
+          <Link href="/signin" className={cn(buttonVariants({ variant: "ghost" }), "hidden h-9 px-3.5 sm:inline-flex")}>Sign in</Link>
           <Link href="/signup" className={cn(buttonVariants(), "h-9 px-3.5")}>Create account</Link>
         </>}
+        {/* Below the width where the tabs fit: the same sections (and sign in) in a menu. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger aria-label="Menu" className="grid size-9 shrink-0 place-items-center rounded-md text-zinc-700 outline-none hover:bg-panel focus-visible:ring-2 focus-visible:ring-ring lg:hidden">
+            <Menu className="size-5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuGroup>
+              {NAV.map(([id, label]) => home
+                ? <DropdownMenuItem key={id} onClick={() => scrollToSection(id)}>{label}</DropdownMenuItem>
+                : <DropdownMenuItem key={id} render={<Link href={`/#${id}`} />}>{label}</DropdownMenuItem>)}
+            </DropdownMenuGroup>
+            {!onboarding && <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem render={<Link href="/signin" />}>Sign in</DropdownMenuItem>
+            </>}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

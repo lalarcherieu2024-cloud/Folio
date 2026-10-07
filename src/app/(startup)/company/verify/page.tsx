@@ -1,7 +1,6 @@
 import { CompanyVerify } from "@/components/startup/CompanyVerify";
 import { requireUser } from "@/lib/auth";
 import { getOrganization } from "@/lib/data/startup";
-import { detailsComplete } from "@/lib/org";
 
 export const metadata = { title: "Company verification · Folio" };
 
@@ -10,16 +9,10 @@ export default async function VerifyCompany({ searchParams }: PageProps<"/compan
   const user = await requireUser("/company/verify", "company");
   const org = await getOrganization(user);
   const sp = await searchParams;
-  const asked = Number(sp.step);
 
-  // Submitted or verified companies only see their status. Before that: details (3), then review and submit (5).
-  // The old documents step (4) is gone: documents are asked for before the first payment (migration 0030).
-  let step: 3 | 5 | 6;
-  if (org && (org.status === "pending" || org.status === "verified")) step = 6;
-  else if (!org || !detailsComplete(org)) step = 3; // also a draft saved part-way with "Finish later"
-  else if (asked === 3) step = 3;
-  else if (org.status === "rejected" && asked !== 5) step = 6;
-  else step = 5;
+  // One step (migration 0032): the details form, which sends them for review, then the status. A company that was asked
+  // for changes sees the status with the note, and "Fix and resubmit" (?edit=1) reopens the form.
+  const step: 1 | 2 = !org || org.status === "draft" || (org.status === "rejected" && (sp.edit === "1" || sp.step !== undefined)) ? 1 : 2;
 
   // "?founder=1" comes from the student-founder sign-up: the details step starts on "Student startup".
   return <CompanyVerify step={step} org={org} user={user} founder={sp.founder === "1"} />;
