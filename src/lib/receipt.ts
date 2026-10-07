@@ -25,13 +25,13 @@ const clean = (s: string) => s.replace(/[\r\n\t]+/g, " ").replace(/[^\x20-\x7E 
 const money = (cents: number) => "€" + (cents / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const date = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-export async function buildReceipt(d: ReceiptData): Promise<Uint8Array> {
+export async function buildReceipt(d: ReceiptData, origin: string): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Folio receipt ${d.receiptNo}`);
   pdf.setAuthor("Folio");
   const W = mm(210), H = mm(297);
   const page = pdf.addPage([W, H]);
-  const f = await embedFolioFonts(pdf);
+  const f = await embedFolioFonts(pdf, origin);
   const L = mm(22), R = W - mm(22);
   let y = H - mm(28);
   const text = (t: string, x: number, yy: number, font: PDFFont, size: number, color = INK) => page.drawText(clean(t), { x, y: yy, size, font, color });

@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 const STATUS: Record<string, string> = { held: "Held in escrow", released: "Released to the student", paid_out: "Paid to the student", refunded: "Refunded" };
 
 // A PDF receipt for a project the company paid for. Only the company that paid can download it.
-export async function GET(_: Request, { params }: { params: Promise<{ escrowId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ escrowId: string }> }) {
   const { escrowId } = await params;
   if (!UUID.test(escrowId)) return new Response("Not found", { status: 404 });
   const user = await getSession();
@@ -23,7 +23,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ escrowId: 
     payerName: user.fullName, payerEmail: user.email, projectTitle: project?.title ?? "Project", student: student?.full_name ?? null,
     amountCents: e.amount_cents, feeCents: e.fee_cents, status: STATUS[e.status] ?? e.status,
     method: e.provider === "paypal" ? "PayPal" : "Test mode (no real money moved)", reference: e.provider === "paypal" ? e.provider_ref : null,
-  });
+  }, new URL(request.url).origin);
   return new Response(Buffer.from(pdf), {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="Folio-receipt-${String(e.id).slice(0, 8)}.pdf"`, "Cache-Control": "private, no-store" },
   });

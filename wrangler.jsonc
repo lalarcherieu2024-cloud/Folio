@@ -1,0 +1,33 @@
+// Folio on Cloudflare Workers (Next.js via @opennextjs/cloudflare). Two environments:
+//   production  → Worker "folio"          (default, deployed from the `main` branch)
+//   staging     → Worker "folio-staging"  (`--env staging`, deployed from the `staging` branch)
+// Non-secret runtime settings live in "vars" below. Secrets are set per environment with
+// `npx wrangler secret put NAME [--env staging]` and never committed. See DEPLOYMENT.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "folio",
+  "compatibility_date": "2026-10-06",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "folio" }],
+  "observability": { "enabled": true },
+  "vars": {
+    // Real money through PayPal live. Requires the PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET secrets;
+    // without them payments stay OFF (see src/lib/payments/config.ts).
+    "PAYMENTS_MODE": "paypal",
+    "PAYPAL_ENV": "live"
+  },
+  "env": {
+    "staging": {
+      "name": "folio-staging",
+      // Environments don't inherit services or vars, so they are repeated here.
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "folio-staging" }],
+      "vars": {
+        // Nothing real moves on staging: paying and withdrawing only update records.
+        "PAYMENTS_MODE": "simulated",
+        "PAYPAL_ENV": "sandbox"
+      }
+    }
+  }
+}
